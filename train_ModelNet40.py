@@ -119,7 +119,7 @@ class Modelnet40Config(Config):
     # 'permissive' only constrains offsets inside the deform radius
     # 'fitting' helps deformed kernels to adapt to the geometry by penalizing distance to input points
     offsets_loss = 'fitting'
-    offsets_decay = 1.0
+    offsets_decay = 0.1
 
     #####################
     # Training parameters
