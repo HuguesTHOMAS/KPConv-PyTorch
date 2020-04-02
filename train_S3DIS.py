@@ -274,6 +274,8 @@ if __name__ == '__main__':
     # Define network model
     t1 = time.time()
     net = KPFCNN(config)
+    print(net)
+    print("Model size %i" % sum(param.numel() for param in net.parameters() if param.requires_grad))
 
     # Define a trainer class
     trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)
