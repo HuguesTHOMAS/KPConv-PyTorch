@@ -1374,7 +1374,9 @@ def ModelNet40_deform(old_result_limit):
 
 def S3DIS_first(old_result_limit):
     """
-    Test first S3DIS
+    Test first S3DIS. First two test have all symetries (even vertical), which is not good). We corecct for
+    the following.
+    Then we try some experiments with different input scalea and the results are not as high as expected. WHY?
     """
 
     # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
@@ -1395,6 +1397,8 @@ def S3DIS_first(old_result_limit):
                   'Fin=5_R=1.2_r=0.02',
                   'Fin=5_R=1.8_r=0.03',
                   'Fin=5_R=2.5_r=0.04',
+                  'original_normal',
+                  'original_deform',
                   'test']
 
     logs_names = np.array(logs_names[:len(logs)])

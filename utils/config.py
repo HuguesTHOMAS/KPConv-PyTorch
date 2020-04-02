@@ -144,7 +144,7 @@ class Config:
     augment_color = 0.7
 
     # Augment with occlusions (not implemented yet)
-    augment_occlusion = 'planar'
+    augment_occlusion = 'none'
     augment_occlusion_ratio = 0.2
     augment_occlusion_num = 1
 
@@ -233,7 +233,7 @@ class Config:
         # Class variable dictionary
         for line in lines:
             line_info = line.split()
-            if len(line_info) > 1 and line_info[0] != '#':
+            if len(line_info) > 2 and line_info[0] != '#':
 
                 if line_info[2] == 'None':
                     setattr(self, line_info[0], None)

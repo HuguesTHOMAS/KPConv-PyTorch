@@ -62,7 +62,7 @@ class S3DISConfig(Config):
     dataset_task = ''
 
     # Number of CPU threads for the input pipeline
-    input_threads = 10
+    input_threads = 20
 
     #########################
     # Architecture definition
@@ -70,14 +70,15 @@ class S3DISConfig(Config):
 
     # Define layers
     architecture = ['simple',
-                    'resnetb_strided',
                     'resnetb',
                     'resnetb_strided',
                     'resnetb',
                     'resnetb_strided',
                     'resnetb',
                     'resnetb_strided',
-                    'resnetb',
+                    'resnetb_deformable',
+                    'resnetb_deformable_strided',
+                    'resnetb_deformable',
                     'nearest_upsample',
                     'unary',
                     'nearest_upsample',
@@ -92,7 +93,7 @@ class S3DISConfig(Config):
     ###################
 
     # Radius of the input sphere
-    in_radius = 2.5
+    in_radius = 2.0
 
     # Number of kernel points
     num_kernel_points = 15
@@ -107,7 +108,7 @@ class S3DISConfig(Config):
     deform_radius = 6.0
 
     # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
-    KP_extent = 1.5
+    KP_extent = 1.2
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
     KP_influence = 'linear'
@@ -119,11 +120,11 @@ class S3DISConfig(Config):
     in_features_dim = 5
 
     # Can the network learn modulations
-    modulated = True
+    modulated = False
 
     # Batch normalization parameters
     use_batch_norm = True
-    batch_norm_momentum = 0.05
+    batch_norm_momentum = 0.02
 
     # Offset loss
     # 'permissive' only constrains offsets inside the deform radius (NOT implemented yet)
@@ -145,7 +146,7 @@ class S3DISConfig(Config):
     grad_clip_norm = 100.0
 
     # Number of batch
-    batch_num = 8
+    batch_num = 10
 
     # Number of steps per epochs
     epoch_steps = 500
@@ -163,7 +164,7 @@ class S3DISConfig(Config):
     augment_scale_min = 0.9
     augment_scale_max = 1.1
     augment_noise = 0.001
-    augment_color = 0.9
+    augment_color = 0.8
 
     # The way we balance segmentation loss TODO: implement and test 'class' and 'batch' modes
     #   > 'none': Each point in the whole batch has the same contribution.
@@ -187,6 +188,11 @@ if __name__ == '__main__':
     ############################
     # Initialize the environment
     ############################
+
+    # TODO: 9 millions de parametres au lieu de 14 millions... Pourquoi?
+    # TODO: radius des strided 2 fois trop grand
+    # TODO: implement un sampler plus simple
+    # TODO: test batch size a 16
 
     # Set which gpu is going to be used
     GPU_ID = '1'
@@ -264,9 +270,9 @@ if __name__ == '__main__':
     training_sampler.calibration(training_loader, verbose=True)
     test_sampler.calibration(test_loader, verbose=True)
 
-    #debug_timing(training_dataset, training_sampler, training_loader)
-    #debug_timing(test_dataset, test_sampler, test_loader)
-    #debug_show_clouds(training_dataset, training_sampler, training_loader)
+    #debug_timing(training_dataset, training_loader)
+    #debug_timing(test_dataset, test_loader)
+    #debug_upsampling(training_dataset, training_loader)
 
     print('\nModel Preparation')
     print('*****************')
@@ -274,6 +280,8 @@ if __name__ == '__main__':
     # Define network model
     t1 = time.time()
     net = KPFCNN(config)
+    print(net)
+    print("Model size %i" % sum(param.numel() for param in net.parameters() if param.requires_grad))
 
     # Define a trainer class
     trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)

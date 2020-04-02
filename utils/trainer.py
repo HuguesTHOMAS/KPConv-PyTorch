@@ -262,7 +262,6 @@ class ModelTrainer:
                     checkpoint_path = join(checkpoint_directory, 'chkp_{:04d}.tar'.format(self.epoch))
                     torch.save(save_dict, checkpoint_path)
 
-
             # Validation
             net.eval()
             self.validation(net, val_loader, config)

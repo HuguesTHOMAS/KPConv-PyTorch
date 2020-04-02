@@ -1191,17 +1191,32 @@ def S3DISCollate(batch_data):
 #       \*********************/
 
 
-def debug_sampling(dataset, sampler, loader):
+def debug_upsampling(dataset, loader):
     """Shows which labels are sampled according to strategy chosen"""
-    label_sum = np.zeros((dataset.num_classes), dtype=np.int32)
+
+
     for epoch in range(10):
 
-        for batch_i, (points, normals, labels, indices, in_sizes) in enumerate(loader):
-            # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
+        for batch_i, batch in enumerate(loader):
 
-            label_sum += np.bincount(labels.numpy(), minlength=dataset.num_classes)
-            print(label_sum)
-            #print(sampler.potentials[:6])
+            pc1 = batch.points[1].numpy()
+            pc2 = batch.points[2].numpy()
+            up1 = batch.upsamples[1].numpy()
+
+            print(pc1.shape, '=>', pc2.shape)
+            print(up1.shape, np.max(up1))
+
+            pc2 = np.vstack((pc2, np.zeros_like(pc2[:1, :])))
+
+            # Get neighbors distance
+            p0 = pc1[10, :]
+            neighbs0 = up1[10, :]
+            neighbs0 = pc2[neighbs0, :] - p0
+            d2 = np.sum(neighbs0 ** 2, axis=1)
+
+            print(neighbs0.shape)
+            print(neighbs0[:5])
+            print(d2[:5])
 
             print('******************')
         print('*******************************************')
@@ -1210,7 +1225,7 @@ def debug_sampling(dataset, sampler, loader):
     print(counts)
 
 
-def debug_timing(dataset, sampler, loader):
+def debug_timing(dataset, loader):
     """Timing of generator function"""
 
     t = [time.time()]
@@ -1252,7 +1267,7 @@ def debug_timing(dataset, sampler, loader):
     print(counts)
 
 
-def debug_show_clouds(dataset, sampler, loader):
+def debug_show_clouds(dataset, loader):
 
 
     for epoch in range(10):
@@ -1307,7 +1322,7 @@ def debug_show_clouds(dataset, sampler, loader):
     print(counts)
 
 
-def debug_batch_and_neighbors_calib(dataset, sampler, loader):
+def debug_batch_and_neighbors_calib(dataset, loader):
     """Timing of generator function"""
 
     t = [time.time()]

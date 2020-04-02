@@ -469,7 +469,8 @@ class PointCloudDataset(Dataset):
             # Reduce size of neighbors matrices by eliminating furthest point
             conv_i = self.big_neighborhood_filter(conv_i, len(input_points))
             pool_i = self.big_neighborhood_filter(pool_i, len(input_points))
-            up_i = self.big_neighborhood_filter(up_i, len(input_points))
+            if up_i.shape[0] > 0:
+                up_i = self.big_neighborhood_filter(up_i, len(input_points)+1)
 
             # Updating input lists
             input_points += [stacked_points]

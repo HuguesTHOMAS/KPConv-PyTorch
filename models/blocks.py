@@ -355,6 +355,8 @@ class KPConv(nn.Module):
         # Convolution sum [n_points, out_fdim]
         return torch.sum(kernel_outputs, dim=0)
 
+    def __repr__(self):
+        return "KPConv(radius: %.2f, in_feat: %i, out_feat: %i)"% (self.radius, self.in_channels, self.out_channels)
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
