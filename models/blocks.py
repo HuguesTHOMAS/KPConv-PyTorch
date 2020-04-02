@@ -356,7 +356,9 @@ class KPConv(nn.Module):
         return torch.sum(kernel_outputs, dim=0)
 
     def __repr__(self):
-        return "KPConv(radius: %.2f, in_feat: %i, out_feat: %i)"% (self.radius, self.in_channels, self.out_channels)
+        return 'KPConv(radius: {:.2f}, in_feat: {:d}, out_feat: {:d})'.format(self.radius,
+                                                                              self.in_channels,
+                                                                              self.out_channels)
 
 # ----------------------------------------------------------------------------------------------------------------------
 #

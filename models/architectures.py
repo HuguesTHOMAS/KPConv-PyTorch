@@ -53,7 +53,6 @@ class KPCNN(nn.Module):
                 break
 
             # Apply the good block function defining tf ops
-            print(block, r)
             self.block_ops.append(block_decider(block,
                                                 r,
                                                 in_dim,
@@ -331,7 +330,6 @@ class KPFCNN(nn.Module):
             if block_i in self.encoder_skips:
                 skip_x.append(x)
             x = block_op(x, batch)
-            print(block_op)
 
         for block_i, block_op in enumerate(self.decoder_blocs):
             if block_i in self.decoder_concats:
