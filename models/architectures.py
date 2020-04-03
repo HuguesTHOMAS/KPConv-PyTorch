@@ -65,7 +65,11 @@ class KPCNN(nn.Module):
             block_in_layer += 1
 
             # Update dimension of input from output
-            in_dim = out_dim
+            if 'simple' in block:
+                in_dim = out_dim // 2
+            else:
+                in_dim = out_dim
+
 
             # Detect change to a subsampled layer
             if 'pool' in block or 'strided' in block:
@@ -245,7 +249,10 @@ class KPFCNN(nn.Module):
                                                     config))
 
             # Update dimension of input from output
-            in_dim = out_dim
+            if 'simple' in block:
+                in_dim = out_dim // 2
+            else:
+                in_dim = out_dim
 
             # Detect change to a subsampled layer
             if 'pool' in block or 'strided' in block:

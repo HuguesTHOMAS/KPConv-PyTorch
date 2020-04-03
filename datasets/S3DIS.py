@@ -175,7 +175,6 @@ class S3DISDataset(PointCloudDataset):
                 self.min_potentials += [float(self.potentials[-1][min_ind])]
 
             # Share potential memory
-            self.pot_lock = Lock()
             self.argmin_potentials = torch.from_numpy(np.array(self.argmin_potentials, dtype=np.int64))
             self.min_potentials = torch.from_numpy(np.array(self.min_potentials, dtype=np.float64))
             self.argmin_potentials.share_memory_()
@@ -185,12 +184,20 @@ class S3DISDataset(PointCloudDataset):
 
             self.worker_waiting = torch.tensor([0 for _ in range(config.input_threads)], dtype=torch.int32)
             self.worker_waiting.share_memory_()
+            self.epoch_inds = None
+            self.epoch_i = 0
 
         else:
-            self.pot_lock = None
             self.potentials = None
             self.min_potentials = None
             self.argmin_potentials = None
+            N = config.epoch_steps * config.batch_num
+            self.epoch_inds = torch.from_numpy(np.zeros((2, N), dtype=np.int64))
+            self.epoch_i = torch.from_numpy(np.zeros((1,), dtype=np.int64))
+            self.epoch_i.share_memory_()
+            self.epoch_inds.share_memory_()
+
+        self.worker_lock = Lock()
 
         # For ERF visualization, we want only one cloud per batch and no randomness
         if self.set == 'ERF':
@@ -206,11 +213,18 @@ class S3DISDataset(PointCloudDataset):
         """
         return len(self.cloud_names)
 
-    def __getitem__(self, batch_i, debug_workers=False):
+    def __getitem__(self, batch_i):
         """
         The main thread gives a list of indices to load a batch. Each worker is going to work in parallel to load a
         different list of indices.
         """
+
+        if self.use_potentials:
+            return self.potential_item(batch_i)
+        else:
+            return self.random_item(batch_i)
+
+    def potential_item(self, batch_i, debug_workers=False):
 
         # Initiate concatanation lists
         p_list = []
@@ -225,7 +239,6 @@ class S3DISDataset(PointCloudDataset):
 
         info = get_worker_info()
         wid = info.id
-
 
         while True:
 
@@ -243,7 +256,7 @@ class S3DISDataset(PointCloudDataset):
                 print(message)
                 self.worker_waiting[wid] = 0
 
-            with self.pot_lock:
+            with self.worker_lock:
 
                 if debug_workers:
                     message = ''
@@ -271,7 +284,7 @@ class S3DISDataset(PointCloudDataset):
 
                 # Add a small noise to center point
                 if self.set != 'ERF':
-                    center_point += np.random.normal(scale=self.config.in_radius/10, size=center_point.shape)
+                    center_point += np.random.normal(scale=self.config.in_radius / 10, size=center_point.shape)
 
                 # Indices of points in input region
                 pot_inds, dists = self.pot_trees[cloud_ind].query_radius(center_point,
@@ -337,7 +350,7 @@ class S3DISDataset(PointCloudDataset):
                 break
 
             # Randomly drop some points (act as an augmentation process and a safety for GPU memory consumption)
-            #if n > int(self.batch_limit):
+            # if n > int(self.batch_limit):
             #    input_inds = np.random.choice(input_inds, size=int(self.batch_limit) - 1, replace=False)
             #    n = input_inds.shape[0]
 
@@ -395,6 +408,131 @@ class S3DISDataset(PointCloudDataset):
                     message += ' o '
             print(message)
             self.worker_waiting[wid] = 2
+
+        return input_list
+
+    def random_item(self, batch_i):
+
+        # Initiate concatanation lists
+        p_list = []
+        f_list = []
+        l_list = []
+        i_list = []
+        pi_list = []
+        ci_list = []
+        s_list = []
+        R_list = []
+        batch_n = 0
+
+        while True:
+
+            with self.worker_lock:
+
+                # Get potential minimum
+                cloud_ind = int(self.epoch_inds[0, self.epoch_i])
+                point_ind = int(self.epoch_inds[1, self.epoch_i])
+
+                # Update epoch indice
+                self.epoch_i += 1
+
+            # Get points from tree structure
+            points = np.array(self.input_trees[cloud_ind].data, copy=False)
+
+            # Center point of input region
+            center_point = points[point_ind, :].reshape(1, -1)
+
+            # Add a small noise to center point
+            if self.set != 'ERF':
+                center_point += np.random.normal(scale=self.config.in_radius / 10, size=center_point.shape)
+
+            # Indices of points in input region
+            input_inds = self.input_trees[cloud_ind].query_radius(center_point,
+                                                                  r=self.config.in_radius)[0]
+
+            # Number collected
+            n = input_inds.shape[0]
+
+            # Collect labels and colors
+            input_points = (points[input_inds] - center_point).astype(np.float32)
+            input_colors = self.input_colors[cloud_ind][input_inds]
+            if self.set in ['test', 'ERF']:
+                input_labels = np.zeros(input_points.shape[0])
+            else:
+                input_labels = self.input_labels[cloud_ind][input_inds]
+                input_labels = np.array([self.label_to_idx[l] for l in input_labels])
+
+            # Data augmentation
+            input_points, scale, R = self.augmentation_transform(input_points)
+
+            # Color augmentation
+            if np.random.rand() > self.config.augment_color:
+                input_colors *= 0
+
+            # Get original height as additional feature
+            input_features = np.hstack((input_colors, input_points[:, 2:] + center_point[:, 2:])).astype(np.float32)
+
+            # Stack batch
+            p_list += [input_points]
+            f_list += [input_features]
+            l_list += [input_labels]
+            pi_list += [input_inds]
+            i_list += [point_ind]
+            ci_list += [cloud_ind]
+            s_list += [scale]
+            R_list += [R]
+
+            # Update batch size
+            batch_n += n
+
+            # In case batch is full, stop
+            if batch_n > int(self.batch_limit):
+                break
+
+            # Randomly drop some points (act as an augmentation process and a safety for GPU memory consumption)
+            # if n > int(self.batch_limit):
+            #    input_inds = np.random.choice(input_inds, size=int(self.batch_limit) - 1, replace=False)
+            #    n = input_inds.shape[0]
+
+        ###################
+        # Concatenate batch
+        ###################
+
+        stacked_points = np.concatenate(p_list, axis=0)
+        features = np.concatenate(f_list, axis=0)
+        labels = np.concatenate(l_list, axis=0)
+        point_inds = np.array(i_list, dtype=np.int32)
+        cloud_inds = np.array(ci_list, dtype=np.int32)
+        input_inds = np.concatenate(pi_list, axis=0)
+        stack_lengths = np.array([pp.shape[0] for pp in p_list], dtype=np.int32)
+        scales = np.array(s_list, dtype=np.float32)
+        rots = np.stack(R_list, axis=0)
+
+        # Input features
+        stacked_features = np.ones_like(stacked_points[:, :1], dtype=np.float32)
+        if self.config.in_features_dim == 1:
+            pass
+        elif self.config.in_features_dim == 4:
+            stacked_features = np.hstack((stacked_features, features[:, :3]))
+        elif self.config.in_features_dim == 5:
+            stacked_features = np.hstack((stacked_features, features))
+        else:
+            raise ValueError('Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)')
+
+        #######################
+        # Create network inputs
+        #######################
+        #
+        #   Points, neighbors, pooling indices for each layers
+        #
+
+        # Get the whole input list
+        input_list = self.segmentation_inputs(stacked_points,
+                                              stacked_features,
+                                              labels,
+                                              stack_lengths)
+
+        # Add scale and rotation for testing
+        input_list += [scales, rots, cloud_inds, point_inds, input_inds]
 
         return input_list
 
@@ -622,13 +760,13 @@ class S3DISDataset(PointCloudDataset):
         # Reprojection indices
         ######################
 
+        # Get number of clouds
+        self.num_clouds = len(self.input_trees)
+
         # Only necessary for validation and test sets
         if self.set in ['validation', 'test']:
 
             print('\nPreparing reprojection indices for testing')
-
-            # Get number of clouds
-            self.num_clouds = len(self.input_trees)
 
             # Get validation/test reprojection indices
             i_cloud = 0
@@ -690,7 +828,7 @@ class S3DISDataset(PointCloudDataset):
 class S3DISSampler(Sampler):
     """Sampler for S3DIS"""
 
-    def __init__(self, dataset: S3DISDataset,):
+    def __init__(self, dataset: S3DISDataset):
         Sampler.__init__(self, dataset)
 
         # Dataset used by the sampler (no copy is made in memory)
@@ -710,6 +848,49 @@ class S3DISSampler(Sampler):
         (input sphere) in epoch instead of the list of point indices
         """
 
+        if not self.dataset.use_potentials:
+
+            # Initiate current epoch ind
+            self.dataset.epoch_i *= 0
+            self.dataset.epoch_inds *= 0
+
+            # Initiate container for indices
+            all_epoch_inds = np.zeros((2, 0), dtype=np.int32)
+
+            # Number of sphere centers taken per class in each cloud
+            num_centers = self.N * self.dataset.config.batch_num
+            random_pick_n = int(np.ceil(num_centers / (self.dataset.num_clouds * self.dataset.config.num_classes)))
+
+            # Choose random points of each class for each cloud
+            for cloud_ind, cloud_labels in enumerate(self.dataset.input_labels):
+                epoch_indices = np.empty((0,), dtype=np.int32)
+                for label_ind, label in enumerate(self.dataset.label_values):
+                    if label not in self.dataset.ignored_labels:
+                        label_indices = np.where(np.equal(cloud_labels, label))[0]
+                        if len(label_indices) <= random_pick_n:
+                            epoch_indices = np.hstack((epoch_indices, label_indices))
+                        elif len(label_indices) < 50 * random_pick_n:
+                            new_randoms = np.random.choice(label_indices, size=random_pick_n, replace=False)
+                            epoch_indices = np.hstack((epoch_indices, new_randoms.astype(np.int32)))
+                        else:
+                            rand_inds = []
+                            while len(rand_inds) < random_pick_n:
+                                rand_inds = np.unique(np.random.choice(label_indices, size=5 * random_pick_n, replace=True))
+                            epoch_indices = np.hstack((epoch_indices, rand_inds[:random_pick_n].astype(np.int32)))
+
+                # Stack those indices with the cloud index
+                epoch_indices = np.vstack((np.full(epoch_indices.shape, cloud_ind, dtype=np.int32), epoch_indices))
+
+                # Update the global indice container
+                all_epoch_inds = np.hstack((all_epoch_inds, epoch_indices))
+
+            # Random permutation of the indices
+            random_order = np.random.permutation(all_epoch_inds.shape[1])
+            all_epoch_inds = all_epoch_inds[:, random_order].astype(np.int64)
+
+            # Update epoch inds
+            self.dataset.epoch_inds += torch.from_numpy(all_epoch_inds[:, :num_centers])
+
         # Generator loop
         for i in range(self.N):
             yield i
@@ -718,7 +899,7 @@ class S3DISSampler(Sampler):
         """
         The number of yielded samples is variable
         """
-        return None
+        return self.N
 
     def fast_calib(self):
         """
@@ -827,9 +1008,14 @@ class S3DISSampler(Sampler):
             batch_lim_dict = {}
 
         # Check if the batch limit associated with current parameters exists
-        key = '{:.3f}_{:.3f}_{:d}'.format(self.dataset.config.in_radius,
-                                          self.dataset.config.first_subsampling_dl,
-                                          self.dataset.config.batch_num)
+        if self.dataset.use_potentials:
+            sampler_method = 'potentials'
+        else:
+            sampler_method = 'random'
+        key = '{:s}_{:.3f}_{:.3f}_{:d}'.format(sampler_method,
+                                               self.dataset.config.in_radius,
+                                               self.dataset.config.first_subsampling_dl,
+                                               self.dataset.config.batch_num)
         if key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -902,8 +1088,6 @@ class S3DISSampler(Sampler):
 
             # From config parameter, compute higher bound of neighbors number in a neighborhood
             hist_n = int(np.ceil(4 / 3 * np.pi * (self.dataset.config.deform_radius + 1) ** 3))
-
-            print(hist_n)
 
             # Histogram of neighborhood sizes
             neighb_hists = np.zeros((self.dataset.config.num_layers, hist_n), dtype=np.int32)
@@ -1018,9 +1202,14 @@ class S3DISSampler(Sampler):
                 print()
 
             # Save batch_limit dictionary
-            key = '{:.3f}_{:.3f}_{:d}'.format(self.dataset.config.in_radius,
-                                              self.dataset.config.first_subsampling_dl,
-                                              self.dataset.config.batch_num)
+            if self.dataset.use_potentials:
+                sampler_method = 'potentials'
+            else:
+                sampler_method = 'random'
+            key = '{:s}_{:.3f}_{:.3f}_{:d}'.format(sampler_method,
+                                                   self.dataset.config.in_radius,
+                                                   self.dataset.config.first_subsampling_dl,
+                                                   self.dataset.config.batch_num)
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, 'wb') as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1232,6 +1421,7 @@ def debug_timing(dataset, loader):
     last_display = time.time()
     mean_dt = np.zeros(2)
     estim_b = dataset.config.batch_num
+    estim_N = 0
 
     for epoch in range(10):
 
@@ -1244,6 +1434,7 @@ def debug_timing(dataset, loader):
 
             # Update estim_b (low pass filter)
             estim_b += (len(batch.cloud_inds) - estim_b) / 100
+            estim_N += (batch.features.shape[0] - estim_N) / 10
 
             # Pause simulating computations
             time.sleep(0.05)
@@ -1255,11 +1446,12 @@ def debug_timing(dataset, loader):
             # Console display (only one per second)
             if (t[-1] - last_display) > -1.0:
                 last_display = t[-1]
-                message = 'Step {:08d} -> (ms/batch) {:8.2f} {:8.2f} / batch = {:.2f}'
+                message = 'Step {:08d} -> (ms/batch) {:8.2f} {:8.2f} / batch = {:.2f} - {:.0f}'
                 print(message.format(batch_i,
                                      1000 * mean_dt[0],
                                      1000 * mean_dt[1],
-                                     estim_b))
+                                     estim_b,
+                                     estim_N))
 
         print('************* Epoch ended *************')
 

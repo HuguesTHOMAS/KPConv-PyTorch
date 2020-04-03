@@ -1376,12 +1376,14 @@ def S3DIS_first(old_result_limit):
     """
     Test first S3DIS. First two test have all symetries (even vertical), which is not good). We corecct for
     the following.
-    Then we try some experiments with different input scalea and the results are not as high as expected. WHY?
+    Then we try some experiments with different input scalea and the results are not as high as expected.
+     WHY?
+     FOUND IT! Problem resnet bottleneck should divide out-dim by 4 and not by 2
     """
 
     # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
     start = 'Log_2020-03-25_19-30-17'
-    end = 'Log_2020-04-25_19-30-17'
+    end = 'Log_2020-04-03_11-12-05'
 
     if end < old_result_limit:
         res_path = 'old_results'
@@ -1399,6 +1401,35 @@ def S3DIS_first(old_result_limit):
                   'Fin=5_R=2.5_r=0.04',
                   'original_normal',
                   'original_deform',
+                  'original_random_sampler',
+                  'original_potentials_batch16',
+                  'test']
+
+    logs_names = np.array(logs_names[:len(logs)])
+
+    return logs, logs_names
+
+
+def S3DIS_(old_result_limit):
+    """
+    Test S3DIS.
+    """
+
+    # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
+    start = 'Log_2020-04-03_11-12-07'
+    end = 'Log_2020-04-25_19-30-17'
+
+    if end < old_result_limit:
+        res_path = 'old_results'
+    else:
+        res_path = 'results'
+
+    logs = np.sort([join(res_path, l) for l in listdir(res_path) if start <= l <= end])
+    logs = logs.astype('<U50')
+
+    # Give names to the logs (for legends)
+    logs_names = ['R=2.0_r=0.04_Din=128_potential',
+                  'R=2.0_r=0.04_Din=64_potential',
                   'test']
 
     logs_names = np.array(logs_names[:len(logs)])
@@ -1416,7 +1447,7 @@ if __name__ == '__main__':
     old_res_lim = 'Log_2020-03-25_19-30-17'
 
     # My logs: choose the logs to show
-    logs, logs_names = S3DIS_first(old_res_lim)
+    logs, logs_names = S3DIS_(old_res_lim)
     #os.environ['QT_DEBUG_PLUGINS'] = '1'
 
     ######################################################

@@ -76,9 +76,9 @@ class S3DISConfig(Config):
                     'resnetb_strided',
                     'resnetb',
                     'resnetb_strided',
-                    'resnetb_deformable',
-                    'resnetb_deformable_strided',
-                    'resnetb_deformable',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb',
                     'nearest_upsample',
                     'unary',
                     'nearest_upsample',
@@ -117,6 +117,7 @@ class S3DISConfig(Config):
     aggregation_mode = 'sum'
 
     # Choice of input features
+    first_features_dim = 64
     in_features_dim = 5
 
     # Can the network learn modulations
@@ -161,8 +162,8 @@ class S3DISConfig(Config):
     augment_scale_anisotropic = True
     augment_symmetries = [True, False, False]
     augment_rotation = 'vertical'
-    augment_scale_min = 0.9
-    augment_scale_max = 1.1
+    augment_scale_min = 0.8
+    augment_scale_max = 1.2
     augment_noise = 0.001
     augment_color = 0.8
 
@@ -189,13 +190,8 @@ if __name__ == '__main__':
     # Initialize the environment
     ############################
 
-    # TODO: 9 millions de parametres au lieu de 14 millions... Pourquoi?
-    # TODO: radius des strided 2 fois trop grand
-    # TODO: implement un sampler plus simple
-    # TODO: test batch size a 16
-
     # Set which gpu is going to be used
-    GPU_ID = '1'
+    GPU_ID = '2'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID
@@ -245,8 +241,8 @@ if __name__ == '__main__':
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = S3DISDataset(config, set='training')
-    test_dataset = S3DISDataset(config, set='validation')
+    training_dataset = S3DISDataset(config, set='training', use_potentials=True)
+    test_dataset = S3DISDataset(config, set='validation', use_potentials=True)
 
     # Initialize samplers
     training_sampler = S3DISSampler(training_dataset)
@@ -280,8 +276,18 @@ if __name__ == '__main__':
     # Define network model
     t1 = time.time()
     net = KPFCNN(config)
-    print(net)
-    print("Model size %i" % sum(param.numel() for param in net.parameters() if param.requires_grad))
+
+    debug = False
+    if debug:
+        print('\n*************************************\n')
+        print(net)
+        print('\n*************************************\n')
+        for param in net.parameters():
+            if param.requires_grad:
+                print(param.shape)
+        print('\n*************************************\n')
+        print("Model size %i" % sum(param.numel() for param in net.parameters() if param.requires_grad))
+        print('\n*************************************\n')
 
     # Define a trainer class
     trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)

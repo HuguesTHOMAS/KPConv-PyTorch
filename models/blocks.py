@@ -497,7 +497,7 @@ class SimpleBlock(nn.Module):
         self.KPConv = KPConv(config.num_kernel_points,
                              config.in_points_dim,
                              in_dim,
-                             out_dim,
+                             out_dim // 2,
                              current_extent,
                              radius,
                              fixed_kernel_points=config.fixed_kernel_points,
@@ -507,7 +507,7 @@ class SimpleBlock(nn.Module):
                              modulated=config.modulated)
 
         # Other opperations
-        self.batch_norm = BatchNormBlock(out_dim, self.use_bn, self.bn_momentum)
+        self.batch_norm = BatchNormBlock(out_dim // 2, self.use_bn, self.bn_momentum)
         self.leaky_relu = nn.LeakyReLU(0.1)
 
         return
@@ -549,16 +549,16 @@ class ResnetBottleneckBlock(nn.Module):
         self.layer_ind = layer_ind
 
         # First downscaling mlp
-        if in_dim != out_dim // 2:
-            self.unary1 = UnaryBlock(in_dim, out_dim // 2, self.use_bn, self.bn_momentum)
+        if in_dim != out_dim // 4:
+            self.unary1 = UnaryBlock(in_dim, out_dim // 4, self.use_bn, self.bn_momentum)
         else:
             self.unary1 = nn.Identity()
 
         # KPConv block
         self.KPConv = KPConv(config.num_kernel_points,
                              config.in_points_dim,
-                             out_dim // 2,
-                             out_dim // 2,
+                             out_dim // 4,
+                             out_dim // 4,
                              current_extent,
                              radius,
                              fixed_kernel_points=config.fixed_kernel_points,
@@ -566,10 +566,10 @@ class ResnetBottleneckBlock(nn.Module):
                              aggregation_mode=config.aggregation_mode,
                              deformable='deform' in block_name,
                              modulated=config.modulated)
-        self.batch_norm_conv = BatchNormBlock(out_dim // 2, self.use_bn, self.bn_momentum)
+        self.batch_norm_conv = BatchNormBlock(out_dim // 4, self.use_bn, self.bn_momentum)
 
         # Second upscaling mlp
-        self.unary2 = UnaryBlock(out_dim // 2, out_dim, self.use_bn, self.bn_momentum, no_relu=True)
+        self.unary2 = UnaryBlock(out_dim // 4, out_dim, self.use_bn, self.bn_momentum, no_relu=True)
 
         # Shortcut optional mpl
         if in_dim != out_dim:
