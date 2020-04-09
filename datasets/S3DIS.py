@@ -52,7 +52,7 @@ from utils.config import bcolors
 
 
 class S3DISDataset(PointCloudDataset):
-    """Class to handle Modelnet 40 dataset."""
+    """Class to handle S3DIS dataset."""
 
     def __init__(self, config, set='training', use_potentials=True, load_data=True):
         """
@@ -138,7 +138,23 @@ class S3DISDataset(PointCloudDataset):
         ################
 
         # List of training files
-        self.train_files = [join(ply_path, f + '.ply') for f in self.cloud_names]
+        self.files = []
+        for i, f in enumerate(self.cloud_names):
+            if self.set == 'training':
+                if self.all_splits[i] != self.validation_split:
+                    self.files += [join(ply_path, f + '.ply')]
+            elif self.set in ['validation', 'test', 'ERF']:
+                if self.all_splits[i] == self.validation_split:
+                    self.files += [join(ply_path, f + '.ply')]
+            else:
+                raise ValueError('Unknown set for S3DIS data: ', self.set)
+
+        if self.set == 'training':
+            self.cloud_names = [f for i, f in enumerate(self.cloud_names)
+                                if self.all_splits[i] != self.validation_split]
+        elif self.set in ['validation', 'test', 'ERF']:
+            self.cloud_names = [f for i, f in enumerate(self.cloud_names)
+                                if self.all_splits[i] == self.validation_split]
 
         if 0 < self.config.first_subsampling_dl <= 0.01:
             raise ValueError('subsampling_parameter too low (should be over 1 cm')
@@ -149,7 +165,7 @@ class S3DISDataset(PointCloudDataset):
         self.input_labels = []
         self.pot_trees = []
         self.num_clouds = 0
-        self.validation_proj = []
+        self.test_proj = []
         self.validation_labels = []
 
         # Start loading
@@ -624,20 +640,10 @@ class S3DISDataset(PointCloudDataset):
         # Load KDTrees
         ##############
 
-        for i, file_path in enumerate(self.train_files):
+        for i, file_path in enumerate(self.files):
 
             # Restart timer
             t0 = time.time()
-
-            # Skip split that is not in current set
-            if self.set == 'training':
-                if self.all_splits[i] == self.validation_split:
-                    continue
-            elif self.set in ['validation', 'test', 'ERF']:
-                if self.all_splits[i] != self.validation_split:
-                    continue
-            else:
-                raise ValueError('Unknown set for S3DIS data: ', self.set)
 
             # Get cloud name
             cloud_name = self.cloud_names[i]
@@ -714,17 +720,7 @@ class S3DISDataset(PointCloudDataset):
             pot_dl = self.config.in_radius / 10
             cloud_ind = 0
 
-            for i, file_path in enumerate(self.train_files):
-
-                # Skip split that is not in current set
-                if self.set == 'training':
-                    if self.all_splits[i] == self.validation_split:
-                        continue
-                elif self.set in ['validation', 'test', 'ERF']:
-                    if self.all_splits[i] != self.validation_split:
-                        continue
-                else:
-                    raise ValueError('Unknown set for S3DIS data: ', self.set)
+            for i, file_path in enumerate(self.files):
 
                 # Get cloud name
                 cloud_name = self.cloud_names[i]
@@ -769,12 +765,7 @@ class S3DISDataset(PointCloudDataset):
             print('\nPreparing reprojection indices for testing')
 
             # Get validation/test reprojection indices
-            i_cloud = 0
-            for i, file_path in enumerate(self.train_files):
-
-                # Skip split that is not in current set
-                if self.all_splits[i] != self.validation_split:
-                    continue
+            for i, file_path in enumerate(self.files):
 
                 # Restart timer
                 t0 = time.time()
@@ -795,7 +786,7 @@ class S3DISDataset(PointCloudDataset):
                     labels = data['class']
 
                     # Compute projection inds
-                    idxs = self.input_trees[i_cloud].query(points, return_distance=False)
+                    idxs = self.input_trees[i].query(points, return_distance=False)
                     #dists, idxs = self.input_trees[i_cloud].kneighbors(points)
                     proj_inds = np.squeeze(idxs).astype(np.int32)
 
@@ -803,9 +794,8 @@ class S3DISDataset(PointCloudDataset):
                     with open(proj_file, 'wb') as f:
                         pickle.dump([proj_inds, labels], f)
 
-                self.validation_proj += [proj_inds]
+                self.test_proj += [proj_inds]
                 self.validation_labels += [labels]
-                i_cloud += 1
                 print('{:s} done in {:.1f}s'.format(cloud_name, time.time() - t0))
 
         print()
@@ -819,6 +809,9 @@ class S3DISDataset(PointCloudDataset):
         # Get original points
         data = read_ply(file_path)
         return np.vstack((data['x'], data['y'], data['z'])).T
+
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 #
 #           Utility classes definition

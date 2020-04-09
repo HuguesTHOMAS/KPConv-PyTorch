@@ -117,8 +117,10 @@ class Config:
     # For SLAM datasets like SemanticKitti number of frames used (minimum one)
     n_frames = 1
 
-    # For SLAM datasets like SemanticKitti max number of point in input cloud
+    # For SLAM datasets like SemanticKitti max number of point in input cloud + validation
     max_in_points = 0
+    val_radius = 51.0
+    max_val_points = 50000
 
     #####################
     # Training parameters
@@ -151,11 +153,11 @@ class Config:
     # Regularization loss importance
     weight_decay = 1e-3
 
-    # The way we balance segmentation loss
-    #   > 'none': Each point in the whole batch has the same contribution.
-    #   > 'class': Each class has the same contribution (points are weighted according to class balance)
-    #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
+    # The way we balance segmentation loss DEPRECATED
     segloss_balance = 'none'
+
+    # Choose weights for class (used in segmentation loss). Empty list for no weights
+    class_w = []
 
     # Offset regularization loss
     offsets_loss = 'permissive'
@@ -163,6 +165,7 @@ class Config:
 
     # Number of batch
     batch_num = 10
+    val_batch_num = 10
 
     # Maximal number of epochs
     max_epoch = 1000
@@ -253,6 +256,9 @@ class Config:
                     else:
                         self.num_classes = int(line_info[2])
 
+                elif line_info[0] == 'class_w':
+                    self.class_w = [float(w) for w in line_info[2:]]
+
                 else:
                     attr_type = type(getattr(self, line_info[0]))
                     if attr_type == bool:
@@ -320,6 +326,8 @@ class Config:
             text_file.write('modulated = {:d}\n'.format(int(self.modulated)))
             text_file.write('n_frames = {:d}\n'.format(self.n_frames))
             text_file.write('max_in_points = {:d}\n\n'.format(self.max_in_points))
+            text_file.write('max_val_points = {:d}\n\n'.format(self.max_val_points))
+            text_file.write('val_radius = {:.3f}\n\n'.format(self.val_radius))
 
             # Training parameters
             text_file.write('# Training parameters\n')
@@ -350,9 +358,14 @@ class Config:
 
             text_file.write('weight_decay = {:f}\n'.format(self.weight_decay))
             text_file.write('segloss_balance = {:s}\n'.format(self.segloss_balance))
+            text_file.write('class_w =')
+            for a in self.class_w:
+                text_file.write(' {:.3f}'.format(a))
+            text_file.write('\n')
             text_file.write('offsets_loss = {:s}\n'.format(self.offsets_loss))
             text_file.write('offsets_decay = {:f}\n'.format(self.offsets_decay))
             text_file.write('batch_num = {:d}\n'.format(self.batch_num))
+            text_file.write('val_batch_num = {:d}\n'.format(self.val_batch_num))
             text_file.write('max_epoch = {:d}\n'.format(self.max_epoch))
             if self.epoch_steps is None:
                 text_file.write('epoch_steps = None\n')

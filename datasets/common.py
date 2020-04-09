@@ -345,7 +345,7 @@ class PointCloudDataset(Dataset):
             else:
                 # No pooling in the end of this layer, no pooling indices required
                 pool_i = np.zeros((0, 1), dtype=np.int32)
-                pool_p = np.zeros((0, 3), dtype=np.float32)
+                pool_p = np.zeros((0, 1), dtype=np.float32)
                 pool_b = np.zeros((0,), dtype=np.int32)
 
             # Reduce size of neighbors matrices by eliminating furthest point

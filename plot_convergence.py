@@ -39,6 +39,7 @@ from utils.ply import read_ply
 # Datasets
 from datasets.ModelNet40 import ModelNet40Dataset
 from datasets.S3DIS import S3DISDataset
+from datasets.SemanticKitti import SemanticKittiDataset
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -239,7 +240,7 @@ def load_multi_snap_clouds(path, dataset, file_i, only_last=False):
         else:
             for f in listdir(cloud_folder):
                 if f.endswith('.ply') and not f.endswith('sub.ply'):
-                    if np.any([cloud_path.endswith(f) for cloud_path in dataset.train_files]):
+                    if np.any([cloud_path.endswith(f) for cloud_path in dataset.files]):
                         data = read_ply(join(cloud_folder, f))
                         labels = data['class']
                         preds = data['preds']
@@ -971,20 +972,21 @@ def compare_convergences_SLAM(dataset, list_of_paths, list_of_names=None):
     class_list = [dataset.label_to_names[label] for label in dataset.label_values
                   if label not in dataset.ignored_labels]
 
-    s = '{:^10}|'.format('mean')
+    s = '{:^6}|'.format('mean')
     for c in class_list:
-        s += '{:^10}'.format(c)
+        s += '{:^6}'.format(c[:4])
     print(s)
-    print(10*'-' + '|' + 10*config.num_classes*'-')
+    print(6*'-' + '|' + 6*config.num_classes*'-')
     for path in list_of_paths:
 
         # Get validation IoUs
+        nc_model = dataset.num_classes - len(dataset.ignored_labels)
         file = join(path, 'val_IoUs.txt')
-        val_IoUs = load_single_IoU(file, config.num_classes)
+        val_IoUs = load_single_IoU(file, nc_model)
 
         # Get Subpart IoUs
         file = join(path, 'subpart_IoUs.txt')
-        subpart_IoUs = load_single_IoU(file, config.num_classes)
+        subpart_IoUs = load_single_IoU(file, nc_model)
 
         # Get mean IoU
         val_class_IoUs, val_mIoUs = IoU_class_metrics(val_IoUs, smooth_n)
@@ -997,22 +999,21 @@ def compare_convergences_SLAM(dataset, list_of_paths, list_of_names=None):
         all_subpart_mIoUs += [subpart_mIoUs]
         all_subpart_class_IoUs += [subpart_class_IoUs]
 
-        s = '{:^10.1f}|'.format(100*subpart_mIoUs[-1])
+        s = '{:^6.1f}|'.format(100*subpart_mIoUs[-1])
         for IoU in subpart_class_IoUs[-1]:
-            s += '{:^10.1f}'.format(100*IoU)
+            s += '{:^6.1f}'.format(100*IoU)
         print(s)
 
-
-    print(10*'-' + '|' + 10*config.num_classes*'-')
+    print(6*'-' + '|' + 6*config.num_classes*'-')
     for snap_IoUs in all_val_class_IoUs:
         if len(snap_IoUs) > 0:
-            s = '{:^10.1f}|'.format(100*np.mean(snap_IoUs[-1]))
+            s = '{:^6.1f}|'.format(100*np.mean(snap_IoUs[-1]))
             for IoU in snap_IoUs[-1]:
-                s += '{:^10.1f}'.format(100*IoU)
+                s += '{:^6.1f}'.format(100*IoU)
         else:
-            s = '{:^10s}'.format('-')
+            s = '{:^6s}'.format('-')
             for _ in range(config.num_classes):
-                s += '{:^10s}'.format('-')
+                s += '{:^6s}'.format('-')
         print(s)
 
     # Plots
@@ -1038,7 +1039,7 @@ def compare_convergences_SLAM(dataset, list_of_paths, list_of_names=None):
     #ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
     displayed_classes = [0, 1, 2, 3, 4, 5, 6, 7]
-    displayed_classes = []
+    #displayed_classes = []
     for c_i, c_name in enumerate(class_list):
         if c_i in displayed_classes:
 
@@ -1410,14 +1411,14 @@ def S3DIS_first(old_result_limit):
     return logs, logs_names
 
 
-def S3DIS_(old_result_limit):
+def S3DIS_go(old_result_limit):
     """
     Test S3DIS.
     """
 
     # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
     start = 'Log_2020-04-03_11-12-07'
-    end = 'Log_2020-04-25_19-30-17'
+    end = 'Log_2020-04-07_15-30-17'
 
     if end < old_result_limit:
         res_path = 'old_results'
@@ -1430,11 +1431,47 @@ def S3DIS_(old_result_limit):
     # Give names to the logs (for legends)
     logs_names = ['R=2.0_r=0.04_Din=128_potential',
                   'R=2.0_r=0.04_Din=64_potential',
+                  'R=1.8_r=0.03',
+                  'R=1.8_r=0.03_deeper',
+                  'R=1.8_r=0.03_deform',
+                  'R=2.0_r=0.03_megadeep',
+                  'R=2.5_r=0.03_megadeep',
                   'test']
 
     logs_names = np.array(logs_names[:len(logs)])
 
     return logs, logs_names
+
+
+def SemanticKittiFirst(old_result_limit):
+    """
+    Test SematicKitti. First exps
+    """
+
+    # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
+    start = 'Log_2020-04-07_15-30-17'
+    end = 'Log_2020-05-07_15-30-17'
+
+    if end < old_result_limit:
+        res_path = 'old_results'
+    else:
+        res_path = 'results'
+
+    logs = np.sort([join(res_path, l) for l in listdir(res_path) if start <= l <= end])
+    logs = logs.astype('<U50')
+
+    # Give names to the logs (for legends)
+    logs_names = ['R=5.0_dl=0.04',
+                  'R=5.0_dl=0.08',
+                  'R=10.0_dl=0.08',
+                  'test']
+
+    logs_names = np.array(logs_names[:len(logs)])
+
+    return logs, logs_names
+
+
+
 
 
 if __name__ == '__main__':
@@ -1443,11 +1480,15 @@ if __name__ == '__main__':
     # Choose a list of log to plot together for comparison
     ######################################################
 
+    # TODO: test deformable on S3DIS to see of fitting loss works
+    # TODO: GOOOO SemanticKitti for wednesday at least have a timing to give to them
+    # TODO: try class weights on S3DIS (very low weight for beam)
+
     # Old result limit
     old_res_lim = 'Log_2020-03-25_19-30-17'
 
     # My logs: choose the logs to show
-    logs, logs_names = S3DIS_(old_res_lim)
+    logs, logs_names = SemanticKittiFirst(old_res_lim)
     #os.environ['QT_DEBUG_PLUGINS'] = '1'
 
     ######################################################
@@ -1482,6 +1523,10 @@ if __name__ == '__main__':
         if config.dataset.startswith('S3DIS'):
             dataset = S3DISDataset(config, load_data=False)
             compare_convergences_segment(dataset, logs, logs_names)
+    elif config.dataset_task == 'slam_segmentation':
+        if config.dataset.startswith('SemanticKitti'):
+            dataset = SemanticKittiDataset(config)
+            compare_convergences_SLAM(dataset, logs, logs_names)
     else:
         raise ValueError('Unsupported dataset : ' + plot_dataset)
 

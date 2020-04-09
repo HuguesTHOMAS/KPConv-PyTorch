@@ -14,7 +14,6 @@
 #      Hugues THOMAS - 06/03/2020
 #
 
-
 from models.blocks import *
 import numpy as np
 
@@ -201,7 +200,7 @@ class KPFCNN(nn.Module):
     Class defining KPFCNN
     """
 
-    def __init__(self, config):
+    def __init__(self, config, lbl_values, ign_lbls):
         super(KPFCNN, self).__init__()
 
         ############
@@ -214,6 +213,7 @@ class KPFCNN(nn.Module):
         in_dim = config.in_features_dim
         out_dim = config.first_features_dim
         self.K = config.num_kernel_points
+        self.C = len(lbl_values) - len(ign_lbls)
 
         #####################
         # List Encoder blocks
@@ -303,21 +303,21 @@ class KPFCNN(nn.Module):
                 out_dim = out_dim // 2
 
         self.head_mlp = UnaryBlock(out_dim, config.first_features_dim, False, 0)
-        self.head_softmax = UnaryBlock(config.first_features_dim, config.num_classes, False, 0)
+        self.head_softmax = UnaryBlock(config.first_features_dim, self.C, False, 0)
 
         ################
         # Network Losses
         ################
 
+        # List of valid labels (those not ignored in loss)
+        self.valid_labels = np.sort([c for c in lbl_values if c not in ign_lbls])
+
         # Choose segmentation loss
-        if config.segloss_balance == 'none':
-            self.criterion = torch.nn.CrossEntropyLoss()
-        elif config.segloss_balance == 'class':
-            self.criterion = torch.nn.CrossEntropyLoss()
-        elif config.segloss_balance == 'batch':
-            self.criterion = torch.nn.CrossEntropyLoss()
+        if len(config.class_w) > 0:
+            class_w = torch.from_numpy(np.array(config.class_w, dtype=np.float32))
+            self.criterion = torch.nn.CrossEntropyLoss(weight=class_w, ignore_index=-1)
         else:
-            raise ValueError('Unknown segloss_balance:', config.segloss_balance)
+            self.criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
         self.offset_loss = config.offsets_loss
         self.offset_decay = config.offsets_decay
         self.output_loss = 0
@@ -357,12 +357,18 @@ class KPFCNN(nn.Module):
         :return: loss
         """
 
+        # Set all ignored labels to -1 and correct the other label to be in [0, C-1] range
+        target = - torch.ones_like(labels)
+        for i, c in enumerate(self.valid_labels):
+            target[labels == c] = i
+
+        # Reshape to have a minibatch size of 1
         outputs = torch.transpose(outputs, 0, 1)
         outputs = outputs.unsqueeze(0)
-        labels = labels.unsqueeze(0)
+        target = target.unsqueeze(0)
 
         # Cross entropy loss
-        self.output_loss = self.criterion(outputs, labels)
+        self.output_loss = self.criterion(outputs, target)
 
         # Regularization of deformable offsets
         self.reg_loss = self.offset_regularizer()
@@ -370,8 +376,7 @@ class KPFCNN(nn.Module):
         # Combined loss
         return self.output_loss + self.reg_loss
 
-    @staticmethod
-    def accuracy(outputs, labels):
+    def accuracy(self, outputs, labels):
         """
         Computes accuracy of the current batch
         :param outputs: logits predicted by the network
@@ -379,9 +384,14 @@ class KPFCNN(nn.Module):
         :return: accuracy value
         """
 
+        # Set all ignored labels to -1 and correct the other label to be in [0, C-1] range
+        target = - torch.ones_like(labels)
+        for i, c in enumerate(self.valid_labels):
+            target[labels == c] = i
+
         predicted = torch.argmax(outputs.data, dim=1)
-        total = labels.size(0)
-        correct = (predicted == labels).sum().item()
+        total = target.size(0)
+        correct = (predicted == target).sum().item()
 
         return correct / total
 

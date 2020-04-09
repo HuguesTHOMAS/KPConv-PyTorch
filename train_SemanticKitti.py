@@ -7,7 +7,7 @@
 #
 # ----------------------------------------------------------------------------------------------------------------------
 #
-#      Callable script to start a training on S3DIS dataset
+#      Callable script to start a training on SemanticKitti dataset
 #
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -29,7 +29,7 @@ import sys
 import torch
 
 # Dataset
-from datasets.S3DIS import *
+from datasets.SemanticKitti import *
 from torch.utils.data import DataLoader
 
 from utils.config import Config
@@ -43,7 +43,7 @@ from models.architectures import KPFCNN
 #       \******************/
 #
 
-class S3DISConfig(Config):
+class SemanticKittiConfig(Config):
     """
     Override the parameters you want to modify for this dataset
     """
@@ -53,7 +53,7 @@ class S3DISConfig(Config):
     ####################
 
     # Dataset name
-    dataset = 'S3DIS'
+    dataset = 'SemanticKitti'
 
     # Number of classes in the dataset (This value is overwritten by dataset class when Initializating dataset).
     num_classes = None
@@ -74,16 +74,12 @@ class S3DISConfig(Config):
                     'resnetb_strided',
                     'resnetb',
                     'resnetb',
-                    'resnetb',
                     'resnetb_strided',
                     'resnetb',
                     'resnetb',
                     'resnetb',
                     'resnetb',
-                    'resnetb',
                     'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
                     'resnetb',
                     'resnetb',
                     'resnetb',
@@ -104,13 +100,21 @@ class S3DISConfig(Config):
     ###################
 
     # Radius of the input sphere
-    in_radius = 2.5
+    in_radius = 10.0
+    val_radius = 51.0
+    n_frames = 1
+    max_in_points = 10000
+    max_val_points = 50000
+
+    # Number of batch
+    batch_num = 6
+    val_batch_num = 1
 
     # Number of kernel points
     num_kernel_points = 15
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.03
+    first_subsampling_dl = 0.08
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -154,11 +158,8 @@ class S3DISConfig(Config):
     # Learning rate management
     learning_rate = 1e-2
     momentum = 0.98
-    lr_decays = {i: 0.1 ** (1 / 150) for i in range(1, max_epoch)}
+    lr_decays = {i: 0.1 ** (1 / 100) for i in range(1, max_epoch)}
     grad_clip_norm = 100.0
-
-    # Number of batch
-    batch_num = 4
 
     # Number of steps per epochs
     epoch_steps = 500
@@ -178,11 +179,8 @@ class S3DISConfig(Config):
     augment_noise = 0.001
     augment_color = 0.8
 
-    # The way we balance segmentation loss TODO: implement and test 'class' and 'batch' modes
-    #   > 'none': Each point in the whole batch has the same contribution.
-    #   > 'class': Each class has the same contribution (points are weighted according to class balance)
-    #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
-    segloss_balance = 'none'
+    # Choose weights for class (used in segmentation loss). Empty list for no weights
+    class_w = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
     # Do we nee to save convergence
     saving = True
@@ -202,7 +200,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '3'
+    GPU_ID = '2'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID
@@ -242,7 +240,7 @@ if __name__ == '__main__':
     print('****************')
 
     # Initialize configuration class
-    config = S3DISConfig()
+    config = SemanticKittiConfig()
     if previous_training_path:
         config.load(os.path.join('results', previous_training_path))
         config.saving_path = None
@@ -252,26 +250,32 @@ if __name__ == '__main__':
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = S3DISDataset(config, set='training', use_potentials=True)
-    test_dataset = S3DISDataset(config, set='validation', use_potentials=True)
+    training_dataset = SemanticKittiDataset(config, set='training',
+                                            balance_classes=True)
+    test_dataset = SemanticKittiDataset(config, set='validation',
+                                        balance_classes=False)
 
     # Initialize samplers
-    training_sampler = S3DISSampler(training_dataset)
-    test_sampler = S3DISSampler(test_dataset)
+    training_sampler = SemanticKittiSampler(training_dataset)
+    test_sampler = SemanticKittiSampler(test_dataset)
 
     # Initialize the dataloader
     training_loader = DataLoader(training_dataset,
                                  batch_size=1,
                                  sampler=training_sampler,
-                                 collate_fn=S3DISCollate,
+                                 collate_fn=SemanticKittiCollate,
                                  num_workers=config.input_threads,
                                  pin_memory=True)
     test_loader = DataLoader(test_dataset,
                              batch_size=1,
                              sampler=test_sampler,
-                             collate_fn=S3DISCollate,
+                             collate_fn=SemanticKittiCollate,
                              num_workers=config.input_threads,
                              pin_memory=True)
+
+    # Calibrate max_in_point value
+    training_sampler.calib_max_in(config, training_loader, verbose=False)
+    test_sampler.calib_max_in(config, test_loader, verbose=False)
 
     # Calibrate samplers
     training_sampler.calibration(training_loader, verbose=True)
@@ -279,7 +283,7 @@ if __name__ == '__main__':
 
     # debug_timing(training_dataset, training_loader)
     # debug_timing(test_dataset, test_loader)
-    # debug_upsampling(training_dataset, training_loader)
+    debug_class_w(training_dataset, training_loader)
 
     print('\nModel Preparation')
     print('*****************')
@@ -312,3 +316,6 @@ if __name__ == '__main__':
 
     print('Forcing exit now')
     os.kill(os.getpid(), signal.SIGINT)
+
+    # TODO: Create a function debug_class_weights that shows class distribution in input sphere. Use that as
+    #  indication for the class weights during training
