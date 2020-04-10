@@ -504,7 +504,8 @@ class SemanticKittiDataset(PointCloudDataset):
             #  > Drop: We can drop even more points. Random choice could be faster without replace=False
             #  > reproj: No reprojection needed
             #  > Augment: See which data agment we want at test time
-            #  > input: MAIN BOTTLENECK. We need to see if we can do faster, maybe with some parallelisation
+            #  > input: MAIN BOTTLENECK. We need to see if we can do faster, maybe with some parallelisation. neighbors
+            #           and subsampling accelerated with lidar frame order
 
         return [self.config.num_layers] + input_list
 
@@ -886,9 +887,6 @@ class SemanticKittiSampler(Sampler):
 
                 if breaking:
                     break
-
-            # TODO: Compute the percentile np.percentile?
-            # TODO: optionnally show a plot of the in_points histogram?
 
             self.dataset.max_in_p = int(np.percentile(all_lengths, 100*untouched_ratio))
 
@@ -1379,7 +1377,7 @@ def debug_class_w(dataset, loader):
 
     i = 0
 
-    counts = np.zeros((0, dataset.num_classes,), dtype=np.int64)
+    counts = np.zeros((dataset.num_classes,), dtype=np.int64)
 
     s = '{:^6}|'.format('step')
     for c in dataset.label_names:
@@ -1393,12 +1391,12 @@ def debug_class_w(dataset, loader):
 
             # count labels
             new_counts = np.bincount(batch.labels)
+
             counts[:new_counts.shape[0]] += new_counts.astype(np.int64)
 
             # Update proportions
             proportions = 1000 * counts / np.sum(counts)
 
-            print(proportions)
             s = '{:^6d}|'.format(i)
             for pp in proportions:
                 s += '{:^6.1f}'.format(pp)

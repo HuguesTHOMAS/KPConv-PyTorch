@@ -1464,6 +1464,8 @@ def SemanticKittiFirst(old_result_limit):
     logs_names = ['R=5.0_dl=0.04',
                   'R=5.0_dl=0.08',
                   'R=10.0_dl=0.08',
+                  'R=10.0_dl=0.08_weigths',
+                  'R=10.0_dl=0.08_sqrt_weigths',
                   'test']
 
     logs_names = np.array(logs_names[:len(logs)])
@@ -1481,7 +1483,6 @@ if __name__ == '__main__':
     ######################################################
 
     # TODO: test deformable on S3DIS to see of fitting loss works
-    # TODO: GOOOO SemanticKitti for wednesday at least have a timing to give to them
     # TODO: try class weights on S3DIS (very low weight for beam)
 
     # Old result limit

@@ -178,7 +178,7 @@ class S3DISConfig(Config):
     augment_noise = 0.001
     augment_color = 0.8
 
-    # The way we balance segmentation loss TODO: implement and test 'class' and 'batch' modes
+    # The way we balance segmentation loss
     #   > 'none': Each point in the whole batch has the same contribution.
     #   > 'class': Each class has the same contribution (points are weighted according to class balance)
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)

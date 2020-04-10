@@ -117,8 +117,6 @@ class KPCNN(nn.Module):
         :return: loss
         """
 
-        # TODO: Ignore unclassified points in loss for segmentation architecture
-
         # Cross entropy loss
         self.output_loss = self.criterion(outputs, labels)
 

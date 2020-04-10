@@ -180,7 +180,24 @@ class SemanticKittiConfig(Config):
     augment_color = 0.8
 
     # Choose weights for class (used in segmentation loss). Empty list for no weights
-    class_w = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    # class proportion for R=10.0 and dl=0.08 (first is unlabeled)
+    # 19.1 48.9 0.5  1.1  5.6  3.6  0.7  0.6  0.9 193.2 17.7 127.4 6.7 132.3 68.4 283.8 7.0 78.5 3.3 0.8
+    #
+    #
+
+    # Inverse of proportion * 20
+    # class_w = [0.409, 40.000, 18.182, 3.571, 5.556, 28.571, 33.333, 22.222, 0.104,
+    #            1.130, 0.157, 2.985, 0.151, 0.292, 0.070, 2.857, 0.255, 6.061, 25.000]
+
+    # Inverse of proportion *20 capped (0.1 < X < 10)
+    # class_w = [0.409, 10.000, 10.000, 3.571, 5.556, 10.000, 10.000, 10.000, 0.104,
+    #            1.130, 0.157, 2.985, 0.151, 0.292, 0.100, 2.857, 0.255, 6.061, 10.000]
+
+    # Inverse of proportion *20 then sqrt
+    class_w = [0.639529479, 6.32455532, 4.264014327, 1.889822365, 2.357022604, 5.345224838,
+               5.773502692, 4.714045208, 0.321744726, 1.062988007, 0.396214426, 1.727736851,
+               0.388807896, 0.54073807, 0.265465937, 1.690308509, 0.504754465, 2.46182982, 5]
+
 
     # Do we nee to save convergence
     saving = True
@@ -283,7 +300,7 @@ if __name__ == '__main__':
 
     # debug_timing(training_dataset, training_loader)
     # debug_timing(test_dataset, test_loader)
-    debug_class_w(training_dataset, training_loader)
+    # debug_class_w(training_dataset, training_loader)
 
     print('\nModel Preparation')
     print('*****************')
@@ -316,6 +333,3 @@ if __name__ == '__main__':
 
     print('Forcing exit now')
     os.kill(os.getpid(), signal.SIGINT)
-
-    # TODO: Create a function debug_class_weights that shows class distribution in input sphere. Use that as
-    #  indication for the class weights during training
