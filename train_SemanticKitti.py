@@ -107,7 +107,7 @@ class SemanticKittiConfig(Config):
     max_val_points = 50000
 
     # Number of batch
-    batch_num = 6
+    batch_num = 10
     val_batch_num = 1
 
     # Number of kernel points
