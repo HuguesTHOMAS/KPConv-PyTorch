@@ -62,7 +62,7 @@ class SemanticKittiConfig(Config):
     dataset_task = ''
 
     # Number of CPU threads for the input pipeline
-    input_threads = 20
+    input_threads = 10
 
     #########################
     # Architecture definition

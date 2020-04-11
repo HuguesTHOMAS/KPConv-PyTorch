@@ -242,6 +242,8 @@ class S3DISDataset(PointCloudDataset):
 
     def potential_item(self, batch_i, debug_workers=False):
 
+        t = [time.time()]
+
         # Initiate concatanation lists
         p_list = []
         f_list = []
@@ -254,9 +256,14 @@ class S3DISDataset(PointCloudDataset):
         batch_n = 0
 
         info = get_worker_info()
-        wid = info.id
+        if info is not None:
+            wid = info.id
+        else:
+            wid = None
 
         while True:
+
+            t += [time.time()]
 
             if debug_workers:
                 message = ''
@@ -319,12 +326,17 @@ class S3DISDataset(PointCloudDataset):
                     self.min_potentials[[cloud_ind]] = self.potentials[cloud_ind][min_ind]
                     self.argmin_potentials[[cloud_ind]] = min_ind
 
+            t += [time.time()]
+
             # Get points from tree structure
             points = np.array(self.input_trees[cloud_ind].data, copy=False)
+
 
             # Indices of points in input region
             input_inds = self.input_trees[cloud_ind].query_radius(center_point,
                                                                   r=self.config.in_radius)[0]
+
+            t += [time.time()]
 
             # Number collected
             n = input_inds.shape[0]
@@ -338,6 +350,8 @@ class S3DISDataset(PointCloudDataset):
                 input_labels = self.input_labels[cloud_ind][input_inds]
                 input_labels = np.array([self.label_to_idx[l] for l in input_labels])
 
+            t += [time.time()]
+
             # Data augmentation
             input_points, scale, R = self.augmentation_transform(input_points)
 
@@ -347,6 +361,8 @@ class S3DISDataset(PointCloudDataset):
 
             # Get original height as additional feature
             input_features = np.hstack((input_colors, input_points[:, 2:] + center_point[:, 2:])).astype(np.float32)
+
+            t += [time.time()]
 
             # Stack batch
             p_list += [input_points]
@@ -402,11 +418,15 @@ class S3DISDataset(PointCloudDataset):
         #   Points, neighbors, pooling indices for each layers
         #
 
+        t += [time.time()]
+
         # Get the whole input list
         input_list = self.segmentation_inputs(stacked_points,
                                               stacked_features,
                                               labels,
                                               stack_lengths)
+
+        t += [time.time()]
 
         # Add scale and rotation for testing
         input_list += [scales, rots, cloud_inds, point_inds, input_inds]
@@ -425,6 +445,52 @@ class S3DISDataset(PointCloudDataset):
             print(message)
             self.worker_waiting[wid] = 2
 
+        t += [time.time()]
+
+        # Display timings
+        debugT = False
+        if debugT:
+            print('\n************************\n')
+            print('Timings:')
+            ti = 0
+            N = 5
+            mess = 'Init ...... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Pots ...... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Sphere .... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Collect ... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Augment ... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += N * (len(stack_lengths) - 1) + 1
+            print('concat .... {:5.1f}ms'.format(1000 * (t[ti+1] - t[ti])))
+            ti += 1
+            print('input ..... {:5.1f}ms'.format(1000 * (t[ti+1] - t[ti])))
+            ti += 1
+            print('stack ..... {:5.1f}ms'.format(1000 * (t[ti+1] - t[ti])))
+            ti += 1
+            print('\n************************\n')
         return input_list
 
     def random_item(self, batch_i):

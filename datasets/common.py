@@ -240,7 +240,10 @@ class PointCloudDataset(Dataset):
         # Apply transforms
         ##################
 
-        augmented_points = np.dot(points, R) * scale + noise
+        # Do not use np.dot because it is multi-threaded
+        #augmented_points = np.dot(points, R) * scale + noise
+        augmented_points = np.sum(np.expand_dims(points, 2) * R, axis=1) * scale + noise
+
 
         if normals is None:
             return augmented_points, scale, R

@@ -104,7 +104,7 @@ class S3DISConfig(Config):
     ###################
 
     # Radius of the input sphere
-    in_radius = 2.5
+    in_radius = 1.0
 
     # Number of kernel points
     num_kernel_points = 15
@@ -158,7 +158,7 @@ class S3DISConfig(Config):
     grad_clip_norm = 100.0
 
     # Number of batch
-    batch_num = 4
+    batch_num = 8
 
     # Number of steps per epochs
     epoch_steps = 500

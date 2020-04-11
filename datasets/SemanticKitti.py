@@ -204,7 +204,7 @@ class SemanticKittiDataset(PointCloudDataset):
         different list of indices.
         """
 
-        t0 = time.time()
+        t = [time.time()]
 
         # Initiate concatanation lists
         p_list = []
@@ -221,6 +221,8 @@ class SemanticKittiDataset(PointCloudDataset):
 
         while True:
 
+            t += [time.time()]
+
             with self.worker_lock:
 
                 # Get potential minimum
@@ -232,7 +234,7 @@ class SemanticKittiDataset(PointCloudDataset):
 
             s_ind, f_ind = self.all_inds[ind]
 
-            t1 = time.time()
+            t += [time.time()]
 
             #########################
             # Merge n_frames together
@@ -255,19 +257,22 @@ class SemanticKittiDataset(PointCloudDataset):
             o_pts = None
             o_labels = None
 
-            t2 = time.time()
+            t += [time.time()]
 
             num_merged = 0
             f_inc = 0
             while num_merged < self.config.n_frames and f_ind - f_inc >= 0:
 
+                # Current frame pose
+                pose = self.poses[s_ind][f_ind - f_inc]
+
                 # Select frame only if center has moved far away (more than X meter). Negative value to ignore
                 X = -1.0
-                pose = self.poses[s_ind][f_ind - f_inc]
-                diff = p_origin.dot(pose.T)[:, :3] - p_origin.dot(pose0.T)[:, :3]
-                if num_merged > 0 and np.linalg.norm(diff) < num_merged * X:
-                    f_inc += 1
-                    continue
+                if X > 0:
+                    diff = p_origin.dot(pose.T)[:, :3] - p_origin.dot(pose0.T)[:, :3]
+                    if num_merged > 0 and np.linalg.norm(diff) < num_merged * X:
+                        f_inc += 1
+                        continue
 
                 # Path of points and labels
                 seq_path = join(self.path, 'sequences', self.sequences[s_ind])
@@ -290,10 +295,11 @@ class SemanticKittiDataset(PointCloudDataset):
                     sem_labels = frame_labels & 0xFFFF  # semantic label in lower half
                     sem_labels = self.learning_map[sem_labels]
 
-                # Apply pose
+                # Apply pose (without np.dot to avoid multi-threading)
                 hpoints = np.hstack((points[:, :3], np.ones_like(points[:, :1])))
-                new_points = hpoints.dot(pose.T)
-                new_points[:, 3:] = points[:, 3:]
+                #new_points = hpoints.dot(pose.T)
+                new_points = np.sum(np.expand_dims(hpoints, 2) * pose.T, axis=1)
+                #new_points[:, 3:] = points[:, 3:]
 
                 # In case of validation, keep the original points in memory
                 if self.set in ['validation', 'test'] and f_inc == 0:
@@ -314,23 +320,27 @@ class SemanticKittiDataset(PointCloudDataset):
 
                 # Shuffle points
                 rand_order = np.random.permutation(mask_inds)
-                new_points = new_points[rand_order, :]
+                new_points = new_points[rand_order, :3]
                 sem_labels = sem_labels[rand_order]
 
                 # Place points in original frame reference to get coordinates
-                hpoints = np.hstack((new_points[:, :3], np.ones_like(new_points[:, :1])))
-                new_coords = hpoints.dot(pose0)
-                new_coords[:, 3:] = new_points[:, 3:]
+                if f_inc == 0:
+                    new_coords = points[rand_order, :]
+                else:
+                    # We have to project in the first frame coordinates
+                    new_coords = new_points - pose0[:3, 3]
+                    # new_coords = new_coords.dot(pose0[:3, :3])
+                    new_coords = np.sum(np.expand_dims(new_coords, 2) * pose0[:3, :3], axis=1)
+                    new_coords = np.hstack((new_coords, points[:, 3:]))
 
                 # Increment merge count
-                merged_points = np.vstack((merged_points, new_points[:, :3]))
+                merged_points = np.vstack((merged_points, new_points))
                 merged_labels = np.hstack((merged_labels, sem_labels))
                 merged_coords = np.vstack((merged_coords, new_coords))
                 num_merged += 1
                 f_inc += 1
 
-
-            t3 = time.time()
+            t += [time.time()]
 
             #########################
             # Merge n_frames together
@@ -347,7 +357,7 @@ class SemanticKittiDataset(PointCloudDataset):
                                                        labels=merged_labels,
                                                        sampleDl=self.config.first_subsampling_dl)
 
-            t4 = time.time()
+            t += [time.time()]
 
             # Number collected
             n = in_pts.shape[0]
@@ -364,7 +374,7 @@ class SemanticKittiDataset(PointCloudDataset):
                 in_lbls = in_lbls[input_inds]
                 n = input_inds.shape[0]
 
-            t5 = time.time()
+            t += [time.time()]
 
             # Before augmenting, compute reprojection inds (only for validation and test)
             if self.set in ['validation', 'test']:
@@ -381,12 +391,12 @@ class SemanticKittiDataset(PointCloudDataset):
                 proj_inds = np.zeros((0,))
                 reproj_mask = np.zeros((0,))
 
-            t6 = time.time()
+            t += [time.time()]
 
             # Data augmentation
             in_pts, scale, R = self.augmentation_transform(in_pts)
 
-            t7 = time.time()
+            t += [time.time()]
 
             # Color augmentation
             if np.random.rand() > self.config.augment_color:
@@ -404,8 +414,7 @@ class SemanticKittiDataset(PointCloudDataset):
             r_mask_list += [reproj_mask]
             val_labels_list += [o_labels]
 
-
-            t8 = time.time()
+            t += [time.time()]
 
             # Update batch size
             batch_n += n
@@ -427,7 +436,6 @@ class SemanticKittiDataset(PointCloudDataset):
         scales = np.array(s_list, dtype=np.float32)
         rots = np.stack(R_list, axis=0)
 
-
         # Input features (Use reflectance, input height or all coordinates)
         stacked_features = np.ones_like(stacked_points[:, :1], dtype=np.float32)
         if self.config.in_features_dim == 1:
@@ -447,7 +455,8 @@ class SemanticKittiDataset(PointCloudDataset):
         else:
             raise ValueError('Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)')
 
-        t9 = time.time()
+
+        t += [time.time()]
         #######################
         # Create network inputs
         #######################
@@ -461,29 +470,80 @@ class SemanticKittiDataset(PointCloudDataset):
                                               labels.astype(np.int64),
                                               stack_lengths)
 
-        t10 = time.time()
+        t += [time.time()]
 
         # Add scale and rotation for testing
         input_list += [scales, rots, frame_inds, frame_centers, r_inds_list, r_mask_list, val_labels_list]
 
-        t11 = time.time()
+        t += [time.time()]
 
         # Display timings
-        debug = False
-        if debug:
+        debugT = False
+        if debugT:
             print('\n************************\n')
             print('Timings:')
-            print('Lock ...... {:.1f}ms'.format(1000 * (t1 - t0)))
-            print('Init ...... {:.1f}ms'.format(1000 * (t2 - t1)))
-            print('Load ...... {:.1f}ms'.format(1000 * (t3 - t2)))
-            print('subs ...... {:.1f}ms'.format(1000 * (t4 - t3)))
-            print('drop ...... {:.1f}ms'.format(1000 * (t5 - t4)))
-            print('reproj .... {:.1f}ms'.format(1000 * (t6 - t5)))
-            print('augment ... {:.1f}ms'.format(1000 * (t7 - t6)))
-            print('stack ..... {:.1f}ms'.format(1000 * (t8 - t7)))
-            print('concat .... {:.1f}ms'.format(1000 * (t9 - t8)))
-            print('input ..... {:.1f}ms'.format(1000 * (t10 - t9)))
-            print('stack ..... {:.1f}ms'.format(1000 * (t11 - t10)))
+            ti = 0
+            N = 9
+            mess = 'Init ...... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Lock ...... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Init ...... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Load ...... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Subs ...... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Drop ...... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Reproj .... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Augment ... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += 1
+            mess = 'Stack ..... {:5.1f}ms /'
+            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            for dt in loop_times:
+                mess += ' {:5.1f}'.format(dt)
+            print(mess.format(np.sum(loop_times)))
+            ti += N * (len(stack_lengths) - 1) + 1
+            print('concat .... {:5.1f}ms'.format(1000 * (t[ti+1] - t[ti])))
+            ti += 1
+            print('input ..... {:5.1f}ms'.format(1000 * (t[ti+1] - t[ti])))
+            ti += 1
+            print('stack ..... {:5.1f}ms'.format(1000 * (t[ti+1] - t[ti])))
+            ti += 1
             print('\n************************\n')
 
             # Timings: (in test configuration)
