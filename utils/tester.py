@@ -91,7 +91,8 @@ class ModelTester:
         ############
 
         # Choose test smoothing parameter (0 for no smothing, 0.99 for big smoothing)
-        test_smooth = 0.98
+        test_smooth = 0.95
+        test_radius_ratio = 0.7
         softmax = torch.nn.Softmax(1)
 
         # Number of classes including ignored labels
@@ -162,6 +163,7 @@ class ModelTester:
 
                 # Get probs and labels
                 stacked_probs = softmax(outputs).cpu().detach().numpy()
+                s_points = batch.points[0].cpu().numpy()
                 lengths = batch.lengths[0].cpu().numpy()
                 in_inds = batch.input_inds.cpu().numpy()
                 cloud_inds = batch.cloud_inds.cpu().numpy()
@@ -174,9 +176,15 @@ class ModelTester:
                 for b_i, length in enumerate(lengths):
 
                     # Get prediction
+                    points = s_points[i0:i0 + length]
                     probs = stacked_probs[i0:i0 + length]
                     inds = in_inds[i0:i0 + length]
                     c_i = cloud_inds[b_i]
+
+                    if test_radius_ratio < 0.99:
+                        mask = np.sum(points ** 2, axis=1) < (test_radius_ratio * config.in_radius) ** 2
+                        inds = inds[mask]
+                        probs = probs[mask]
 
                     # Update current probs in whole cloud
                     self.test_probs[c_i][inds] = test_smooth * self.test_probs[c_i][inds] + (1 - test_smooth) * probs
@@ -373,7 +381,7 @@ class ModelTester:
         ############
 
         # Choose validation smoothing parameter (0 for no smothing, 0.99 for big smoothing)
-        test_smooth = 0
+        test_smooth = 0.5
         last_min = -0.5
         softmax = torch.nn.Softmax(1)
 

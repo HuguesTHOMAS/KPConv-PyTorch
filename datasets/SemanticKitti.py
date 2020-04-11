@@ -853,7 +853,7 @@ class SemanticKittiSampler(Sampler):
         """
         return self.N
 
-    def calib_max_in(self, config, dataloader, untouched_ratio=0.8, verbose=True):
+    def calib_max_in(self, config, dataloader, untouched_ratio=0.8, verbose=True, force_redo=False):
         """
         Method performing batch and neighbors calibration.
             Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
@@ -869,7 +869,7 @@ class SemanticKittiSampler(Sampler):
         print('\nStarting Calibration of max_in_points value (use verbose=True for more details)')
         t0 = time.time()
 
-        redo = False
+        redo = force_redo
 
         # Batch limit
         # ***********
@@ -890,7 +890,7 @@ class SemanticKittiSampler(Sampler):
         key = '{:s}_{:.3f}_{:.3f}'.format(sampler_method,
                                           self.dataset.in_R,
                                           self.dataset.config.first_subsampling_dl)
-        if key in max_in_lim_dict:
+        if not redo and key in max_in_lim_dict:
             self.dataset.max_in_p = max_in_lim_dict[key]
         else:
             redo = True
@@ -956,6 +956,7 @@ class SemanticKittiSampler(Sampler):
                 a = 1
 
             # Save max_in_limit dictionary
+            print('New max_in_p = ', self.dataset.max_in_p)
             max_in_lim_dict[key] = self.dataset.max_in_p
             with open(max_in_lim_file, 'wb') as file:
                 pickle.dump(max_in_lim_dict, file)
@@ -969,7 +970,7 @@ class SemanticKittiSampler(Sampler):
         print('Calibration done in {:.1f}s\n'.format(time.time() - t0))
         return
 
-    def calibration(self, dataloader, untouched_ratio=0.9, verbose=False):
+    def calibration(self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False):
         """
         Method performing batch and neighbors calibration.
             Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
@@ -985,7 +986,7 @@ class SemanticKittiSampler(Sampler):
         print('\nStarting Calibration (use verbose=True for more details)')
         t0 = time.time()
 
-        redo = False
+        redo = force_redo
 
         # Batch limit
         # ***********
@@ -1008,7 +1009,7 @@ class SemanticKittiSampler(Sampler):
                                                     self.dataset.config.first_subsampling_dl,
                                                     self.dataset.batch_num,
                                                     self.dataset.max_in_p)
-        if key in batch_lim_dict:
+        if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
             redo = True
@@ -1049,7 +1050,7 @@ class SemanticKittiSampler(Sampler):
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
-        if len(neighb_limits) == self.dataset.config.num_layers:
+        if not redo and len(neighb_limits) == self.dataset.config.num_layers:
             self.dataset.neighborhood_limits = neighb_limits
         else:
             redo = True
@@ -1113,6 +1114,8 @@ class SemanticKittiSampler(Sampler):
             #####################
             # Perform calibration
             #####################
+
+            self.dataset.batch_limit = self.dataset.max_in_p * (self.dataset.batch_num - 1)
 
             for epoch in range(10):
                 for batch_i, batch in enumerate(dataloader):

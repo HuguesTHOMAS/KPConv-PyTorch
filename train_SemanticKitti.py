@@ -103,8 +103,8 @@ class SemanticKittiConfig(Config):
     in_radius = 10.0
     val_radius = 51.0
     n_frames = 1
-    max_in_points = 10000
-    max_val_points = 50000
+    max_in_points = 100000
+    max_val_points = 100000
 
     # Number of batch
     batch_num = 10
@@ -153,7 +153,7 @@ class SemanticKittiConfig(Config):
     #####################
 
     # Maximal number of epochs
-    max_epoch = 500
+    max_epoch = 800
 
     # Learning rate management
     learning_rate = 1e-2
@@ -165,7 +165,7 @@ class SemanticKittiConfig(Config):
     epoch_steps = 500
 
     # Number of validation examples per epoch
-    validation_size = 50
+    validation_size = 200
 
     # Number of epoch between each checkpoint
     checkpoint_gap = 50
@@ -185,18 +185,13 @@ class SemanticKittiConfig(Config):
     #
     #
 
-    # Inverse of proportion * 20
-    # class_w = [0.409, 40.000, 18.182, 3.571, 5.556, 28.571, 33.333, 22.222, 0.104,
-    #            1.130, 0.157, 2.985, 0.151, 0.292, 0.070, 2.857, 0.255, 6.061, 25.000]
+    # sqrt(Inverse of proportion * 100)
+    # class_w = [1.430, 14.142, 9.535, 4.226, 5.270, 11.952, 12.910, 10.541, 0.719,
+    #            2.377, 0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.505, 11.180]
 
-    # Inverse of proportion *20 capped (0.1 < X < 10)
-    # class_w = [0.409, 10.000, 10.000, 3.571, 5.556, 10.000, 10.000, 10.000, 0.104,
-    #            1.130, 0.157, 2.985, 0.151, 0.292, 0.100, 2.857, 0.255, 6.061, 10.000]
-
-    # Inverse of proportion *20 then sqrt
-    class_w = [0.639529479, 6.32455532, 4.264014327, 1.889822365, 2.357022604, 5.345224838,
-               5.773502692, 4.714045208, 0.321744726, 1.062988007, 0.396214426, 1.727736851,
-               0.388807896, 0.54073807, 0.265465937, 1.690308509, 0.504754465, 2.46182982, 5]
+    # sqrt(Inverse of proportion * 100)  capped (0.5 < X < 5)
+    class_w = [1.430, 5.000, 5.000, 4.226, 5.000, 5.000, 5.000, 5.000, 0.719, 2.377,
+               0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.000, 5.000]
 
 
     # Do we nee to save convergence
@@ -217,7 +212,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '2'
+    GPU_ID = '3'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID
@@ -291,8 +286,8 @@ if __name__ == '__main__':
                              pin_memory=True)
 
     # Calibrate max_in_point value
-    training_sampler.calib_max_in(config, training_loader, verbose=False)
-    test_sampler.calib_max_in(config, test_loader, verbose=False)
+    training_sampler.calib_max_in(config, training_loader, verbose=True)
+    test_sampler.calib_max_in(config, test_loader, verbose=True)
 
     # Calibrate samplers
     training_sampler.calibration(training_loader, verbose=True)

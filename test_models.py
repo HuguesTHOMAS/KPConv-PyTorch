@@ -95,10 +95,10 @@ if __name__ == '__main__':
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
     #       > '(old_)results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
-    chosen_log = 'results/Log_2020-04-07_18-22-18'  # => ModelNet40
+    chosen_log = 'results/Log_2020-04-05_19-19-20'  # => ModelNet40
 
     # You can also choose the index of the snapshot to load (last by default)
-    chkp_idx = None
+    chkp_idx = -1
 
     # Choose to test on validation or test split
     on_val = True
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '3'
+    GPU_ID = '1'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     #config.batch_num = 3
     #config.in_radius = 4
     config.validation_size = 200
-    config.input_threads = 0
+    config.input_threads = 10
 
     ##############
     # Prepare Data
