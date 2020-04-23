@@ -228,7 +228,7 @@ class PointCloudDataset(Dataset):
         # Add random symmetries to the scale factor
         symmetries = np.array(self.config.augment_symmetries).astype(np.int32)
         symmetries *= np.random.randint(2, size=points.shape[1])
-        scale = (scale * symmetries * 2 - 1).astype(np.float32)
+        scale = (scale * (1 - symmetries * 2)).astype(np.float32)
 
         #######
         # Noise

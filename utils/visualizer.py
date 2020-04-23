@@ -82,7 +82,7 @@ class ModelVisualizer:
         net.load_state_dict(checkpoint['model_state_dict'])
         self.epoch = checkpoint['epoch']
         net.eval()
-        print("Model and training state restored.")
+        print("\nModel state restored from {:s}.".format(chkp_path))
 
         return
 
@@ -679,139 +679,63 @@ class ModelVisualizer:
             except tf.errors.OutOfRangeError:
                 break
 
-    def show_effective_recep_field(self, model, dataset, relu_idx=0):
+    def show_effective_recep_field(self, net, loader, config, f_idx=0):
 
-        ###################################################
-        # First add a modulation variable on input features
-        ###################################################
+        ##########################################
+        # First choose the visualized deformations
+        ##########################################
 
-        # Tensorflow random seed
-        random_seed = 42
+        blocks = {}
 
-        # Create a modulated input feature op
-        with tf.variable_scope('input_modulations'):
-            initial = tf.constant(0., shape=[200000, 1])
-            input_modulations_var = tf.Variable(initial, name='alphas')
-            input_modulations = 2 * tf.sigmoid(input_modulations_var)
-            assert_op = tf.assert_less(tf.shape(model.inputs['features'])[0], tf.shape(input_modulations)[0])
-            with tf.control_dependencies([assert_op]):
-                modulated_input = model.inputs['features'] * input_modulations[:tf.shape(model.inputs['features'])[0]]
-            modulated_input = tf.identity(modulated_input, name='modulated_features')
+        named_blocks = [(m_name, m) for m_name, m in net.named_modules()
+                        if len(m_name.split('.')) == 2 and m_name.split('.')[0].endswith('_blocks')]
+        chosen_block = named_blocks[-1][0]
 
-        print('*******************************************')
-
-        # Swap the op with the normal input features
-        for op in tf.get_default_graph().get_operations():
-
-            if 'input_modulations' in op.name:
-                continue
-
-            if model.inputs['features'].name in [in_t.name for in_t in op.inputs]:
-                input_list = []
-                for in_t in op.inputs:
-                    if in_t.name == model.inputs['features'].name:
-                        input_list += [modulated_input]
-                    else:
-                        input_list += [in_t]
-                print('swapping op ', op.name)
-                print('old inputs ', [in_t.name for in_t in op.inputs])
-                print('new inputs ', [in_t.name for in_t in input_list])
-                ge.swap_inputs(op, input_list)
-
-        print('*******************************************')
-
-        ##########################
-        # Create the ERF optimizer
-        ##########################
-
-        # This optimizer only computes gradients for the feature modulation variables. We set the ERF loss, which
-        # consists of modifying the features in one location a the wanted layer
-
-        with tf.variable_scope('ERF_loss'):
-
-            # List all relu ops
-            all_ops = [op for op in tf.get_default_graph().get_operations() if op.name.startswith('KernelPointNetwork')
-                       and op.name.endswith('LeakyRelu')]
-
-            # Print the chosen one
-            features_tensor = all_ops[relu_idx].outputs[0]
-
-            # Get parameters
-            layer_idx = int(features_tensor.name.split('/')[1][6:])
-            if 'strided' in all_ops[relu_idx].name and not ('strided' in all_ops[relu_idx + 1].name):
-                layer_idx += 1
-            features_dim = int(features_tensor.shape[1])
-            radius = model.config.first_subsampling_dl * model.config.density_parameter * (2 ** layer_idx)
-
-            print('You chose to visualize the output of operation named: ' + all_ops[relu_idx].name)
-            print('It contains {:d} features.'.format(int(features_tensor.shape[1])))
-
-            print('\nPossible Relu indices:')
-            for i, t in enumerate(all_ops):
-                print(i, ': ', t.name)
-
-            print('\n****************************************************************************')
-
-            # Get the receptive field of a random point
-            N = tf.shape(features_tensor)[0]
-            #random_ind = tf.random_uniform([1], minval=0, maxval=N, dtype=np.int32, seed=random_seed)[0]
-            #chosen_i_holder = tf.placeholder(tf.int32, name='chosen_ind')
-            aimed_coordinates = tf.placeholder(tf.float32, shape=(1, 3), name='aimed_coordinates')
-            d2 = tf.reduce_sum(tf.square(model.inputs['points'][layer_idx] - aimed_coordinates), axis=1)
-            chosen_i_tf = tf.argmin(d2, output_type=tf.int32)
-
-            #test1 = tf.multiply(features_tensor, 2.0, name='test1')
-            #test2 = tf.multiply(features_tensor, 2.0, name='test2')
-
-            #  Gradient scaling operation
-            @tf.custom_gradient
-            def scale_grad_layer(x):
-                def scaled_grad(dy):
-                    p_op = tf.print(x.name,
-                                    tf.reduce_mean(tf.abs(x)),
-                                    tf.reduce_mean(tf.abs(dy)),
-                                    output_stream=sys.stdout)
-                    with tf.control_dependencies([p_op]):
-                        new_dy = 1.0 * dy
-                    return new_dy
-                return tf.identity(x), scaled_grad
-
-            #test2 = scale_grad_layer(test2)
-
-            # Get the tensor of error for these features (one for the chosen point, zero for the rest)
-            chosen_f_tf = tf.placeholder(tf.int32, name='feature_ind')
-            ERF_error = tf.expand_dims(tf.cast(tf.equal(tf.range(N), chosen_i_tf), tf.float32), 1)
-            ERF_error *= tf.expand_dims(tf.cast(tf.equal(tf.range(features_dim), chosen_f_tf), tf.float32), 0)
-
-            # Get objective for the features (with a stop gradient so that we can get a gradient on the loss)
-            objective_features = features_tensor + ERF_error
-            objective_features = tf.stop_gradient(objective_features)
-
-            # Loss is the error but with the features that can be learned to correct it
-            ERF_loss = tf.reduce_sum(tf.square(objective_features - features_tensor))
+        for mi, (m_name, m) in enumerate(named_blocks):
 
 
-        with tf.variable_scope('ERF_optimizer'):
+                c1 = bcolors.OKBLUE
+                c2 = bcolors.BOLD
+                ce = bcolors.ENDC
+                print('{:}{:}{:s}{:}{:} {:s}'.format(c1, c2, m_name, ce, ce, m.__repr__()))
+                blocks[m_name] = m
 
-            # Create the gradient descent optimizer with a dummy learning rate
-            optimizer = tf.train.GradientDescentOptimizer(1.0)
+                if mi == f_idx:
+                    chosen_block = m_name
 
-            # Get the gradients with respect to the modulation variable
-            ERF_var_grads = optimizer.compute_gradients(ERF_loss, var_list=[input_modulations_var])
+        print('\nChoose which block output you want to visualize by entering the block name in blue')
+        override_block = input('Block name: ')
 
-            # Gradient of the modulations
-            ERF_train_op = optimizer.apply_gradients(ERF_var_grads)
+        if len(override_block) > 0:
+            chosen_block = override_block
+        print('{:}{:}{:s}{:}{:} {:s}'.format(c1, c2, chosen_block, ce, ce, blocks[chosen_block].__repr__()))
+        features_dim = blocks[chosen_block].out_dim
 
-        ################################
-        # Run model on all test examples
-        ################################
+        # Fix all the trainable variables in the network (is it needed in eval mode?)
+        print('\n*************************************\n')
+        for p_name, param in net.named_parameters():
+            if param.requires_grad:
+                param.requires_grad = False
+        print('\n*************************************\n')
 
-        # Init our modulation variable
-        self.sess.run(tf.variables_initializer([input_modulations_var]))
+        # Create modulation variable that requires grad
+        input_modulations = torch.nn.Parameter(torch.zeros((200000, 1),
+                                                           dtype=torch.float32),
+                                               requires_grad=True)
 
-        # Initialise iterator with test data
-        self.sess.run(dataset.test_init_op)
-        count = 0
+        print('\n*************************************\n')
+        for p_name, param in net.named_parameters():
+            if param.requires_grad:
+                print(p_name, param.shape)
+        print('\n*************************************\n')
+
+        # Create ERF loss
+
+        # Create ERF optimizer
+
+
+
+
 
         global plots, p_scale, show_in_p, remove_h, aim_point
         aim_point = np.zeros((1, 3), dtype=np.float32)
@@ -841,10 +765,11 @@ class ModelVisualizer:
             global points, in_points, grad_values, chosen_point, aim_point, in_colors
 
             # Generate clouds until we effectively changed
+            batch = None
             if only_points:
-                for i in range(50):
-                    all_points = self.sess.run(model.inputs['points'])
-                    if all_points[0].shape[0] != in_points.shape[0]:
+                # get a new batch (index does not matter given our input pipeline)
+                for batch in loader:
+                    if batch.points[0].shape[0] != in_points.shape[0]:
                         break
 
             sum_grads = 0
@@ -853,10 +778,64 @@ class ModelVisualizer:
             else:
                 num_tries = 10
 
+            #################################################
+            # Apply ERF optim to the same batch several times
+            #################################################
+
+            if 'cuda' in self.device.type:
+                batch.to(self.device)
+
+
+
             for test_i in range(num_tries):
 
                 print('Updating ERF {:.0f}%'.format((test_i + 1) * 100 / num_tries))
                 rand_f_i = np.random.randint(features_dim)
+
+                # Reset input modulation variable
+                torch.nn.init.zeros_(input_modulations)
+
+                reset_op = input_modulations_var.assign(tf.zeros_like(input_modulations_var))
+                self.sess.run(reset_op)
+
+                # zero the parameter gradients
+                ERF_optimizer.zero_grad()
+
+                # Forward pass
+                outputs = net(batch, config)
+
+                loss = net.ERF_loss(outputs)
+
+                # Backward
+                loss.backward()
+
+                # Get result from hook here?
+
+                ERF_optimizer.step()
+                torch.cuda.synchronize(self.device)
+
+
+
+
+
+
+                # Forward pass
+                outputs = net(batch, config)
+                original_KP = deform_convs[deform_idx].kernel_points.cpu().detach().numpy()
+                stacked_deformed_KP = deform_convs[deform_idx].deformed_KP.cpu().detach().numpy()
+                count += batch.lengths[0].shape[0]
+
+                if 'cuda' in self.device.type:
+                    torch.cuda.synchronize(self.device)
+
+
+
+
+
+
+
+
+
 
                 # Reset input modulation variable
                 reset_op = input_modulations_var.assign(tf.zeros_like(input_modulations_var))
@@ -1068,6 +1047,8 @@ class ModelVisualizer:
         update_scene()
         fig1.scene.interactor.add_observer('KeyPressEvent', keyboard_callback)
         mlab.show()
+
+        return
 
     def show_deformable_kernels(self, net, loader, config, deform_idx=0):
         """

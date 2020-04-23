@@ -131,7 +131,7 @@ class S3DISDataset(PointCloudDataset):
         # Prepare ply files
         ###################
 
-        self.prepare_S3DIS_ply()
+        #self.prepare_S3DIS_ply()
 
         ################
         # Load ply files
@@ -1037,7 +1037,7 @@ class S3DISSampler(Sampler):
             if breaking:
                 break
 
-    def calibration(self, dataloader, untouched_ratio=0.9, verbose=False):
+    def calibration(self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False):
         """
         Method performing batch and neighbors calibration.
             Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
@@ -1053,7 +1053,7 @@ class S3DISSampler(Sampler):
         print('\nStarting Calibration (use verbose=True for more details)')
         t0 = time.time()
 
-        redo = False
+        redo = force_redo
 
         # Batch limit
         # ***********
@@ -1075,7 +1075,7 @@ class S3DISSampler(Sampler):
                                                self.dataset.config.in_radius,
                                                self.dataset.config.first_subsampling_dl,
                                                self.dataset.config.batch_num)
-        if key in batch_lim_dict:
+        if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
             redo = True
@@ -1116,7 +1116,7 @@ class S3DISSampler(Sampler):
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
-        if len(neighb_limits) == self.dataset.config.num_layers:
+        if not redo and len(neighb_limits) == self.dataset.config.num_layers:
             self.dataset.neighborhood_limits = neighb_limits
         else:
             redo = True

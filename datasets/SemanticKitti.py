@@ -1115,7 +1115,7 @@ class SemanticKittiSampler(Sampler):
             # Perform calibration
             #####################
 
-            self.dataset.batch_limit = self.dataset.max_in_p * (self.dataset.batch_num - 1)
+            #self.dataset.batch_limit[0] = self.dataset.max_in_p * (self.dataset.batch_num - 1)
 
             for epoch in range(10):
                 for batch_i, batch in enumerate(dataloader):
@@ -1145,7 +1145,7 @@ class SemanticKittiSampler(Sampler):
                         smooth_errors = smooth_errors[1:]
 
                     # Update batch limit with P controller
-                    self.dataset.batch_limit += Kp * error
+                    self.dataset.batch_limit[0] += Kp * error
 
                     # finer low pass filter when closing in
                     if not finer and np.abs(estim_b - target_b) < 1:
@@ -1166,7 +1166,7 @@ class SemanticKittiSampler(Sampler):
                         message = 'Step {:5d}  estim_b ={:5.2f} batch_limit ={:7d}'
                         print(message.format(i,
                                              estim_b,
-                                             int(self.dataset.batch_limit)))
+                                             int(self.dataset.batch_limit[0])))
 
                 if breaking:
                     break
@@ -1224,7 +1224,7 @@ class SemanticKittiSampler(Sampler):
                                                         self.dataset.config.first_subsampling_dl,
                                                         self.dataset.batch_num,
                                                         self.dataset.max_in_p)
-            batch_lim_dict[key] = float(self.dataset.batch_limit)
+            batch_lim_dict[key] = float(self.dataset.batch_limit[0])
             with open(batch_lim_file, 'wb') as file:
                 pickle.dump(batch_lim_dict, file)
 

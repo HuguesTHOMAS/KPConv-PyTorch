@@ -100,21 +100,21 @@ class SemanticKittiConfig(Config):
     ###################
 
     # Radius of the input sphere
-    in_radius = 10.0
+    in_radius = 6.0
     val_radius = 51.0
     n_frames = 1
     max_in_points = 100000
-    max_val_points = 100000
+    max_val_points = 200000
 
     # Number of batch
-    batch_num = 10
+    batch_num = 8
     val_batch_num = 1
 
     # Number of kernel points
     num_kernel_points = 15
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.08
+    first_subsampling_dl = 0.06
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -133,7 +133,7 @@ class SemanticKittiConfig(Config):
 
     # Choice of input features
     first_features_dim = 128
-    in_features_dim = 5
+    in_features_dim = 2
 
     # Can the network learn modulations
     modulated = False
@@ -158,7 +158,7 @@ class SemanticKittiConfig(Config):
     # Learning rate management
     learning_rate = 1e-2
     momentum = 0.98
-    lr_decays = {i: 0.1 ** (1 / 100) for i in range(1, max_epoch)}
+    lr_decays = {i: 0.1 ** (1 / 150) for i in range(1, max_epoch)}
     grad_clip_norm = 100.0
 
     # Number of steps per epochs
@@ -190,8 +190,8 @@ class SemanticKittiConfig(Config):
     #            2.377, 0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.505, 11.180]
 
     # sqrt(Inverse of proportion * 100)  capped (0.5 < X < 5)
-    class_w = [1.430, 5.000, 5.000, 4.226, 5.000, 5.000, 5.000, 5.000, 0.719, 2.377,
-               0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.000, 5.000]
+    # class_w = [1.430, 5.000, 5.000, 4.226, 5.000, 5.000, 5.000, 5.000, 0.719, 2.377,
+    #            0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.000, 5.000]
 
 
     # Do we nee to save convergence
@@ -212,7 +212,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '3'
+    GPU_ID = '2'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID

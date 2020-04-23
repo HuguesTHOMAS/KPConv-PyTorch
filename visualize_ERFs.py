@@ -95,14 +95,14 @@ if __name__ == '__main__':
     #       > '(old_)results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
     # chosen_log = 'results/Log_2020-04-04_10-04-42'  # => ModelNet40
-    # chosen_log = 'results/Log_2020-04-22_11-53-45'  # => S3DIS
+    # chosen_log = 'results/Log_2020-04-04_10-04-42'  # => S3DIS
     chosen_log = 'results/Log_2020-04-22_12-28-37'  # => S3DIS corrected
 
     # You can also choose the index of the snapshot to load (last by default)
     chkp_idx = -1
 
     # Eventually you can choose which feature is visualized (index of the deform operation in the network)
-    deform_idx = 0
+    f_idx = -1
 
     # Deal with 'last_XXX' choices
     chosen_log = model_choice(chosen_log)
@@ -199,7 +199,7 @@ if __name__ == '__main__':
     print('*******************')
 
     # Training
-    visualizer.show_deformable_kernels(net, test_loader, config, deform_idx)
+    visualizer.show_effective_recep_field(net, test_loader, config, f_idx)
 
 
 

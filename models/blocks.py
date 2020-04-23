@@ -421,6 +421,7 @@ class BatchNormBlock(nn.Module):
         super(BatchNormBlock, self).__init__()
         self.bn_momentum = bn_momentum
         self.use_bn = use_bn
+        self.in_dim = in_dim
         if self.use_bn:
             self.batch_norm = nn.BatchNorm1d(in_dim, momentum=bn_momentum)
             #self.batch_norm = nn.InstanceNorm1d(in_dim, momentum=bn_momentum)
@@ -442,6 +443,11 @@ class BatchNormBlock(nn.Module):
         else:
             return x + self.bias
 
+    def __repr__(self):
+        return 'BatchNormBlock(in_feat: {:d}, momentum: {:.3f}, only_bias: {:s})'.format(self.in_dim,
+                                                                                         self.bn_momentum,
+                                                                                         str(not self.use_bn))
+
 
 class UnaryBlock(nn.Module):
 
@@ -458,6 +464,8 @@ class UnaryBlock(nn.Module):
         self.bn_momentum = bn_momentum
         self.use_bn = use_bn
         self.no_relu = no_relu
+        self.in_dim = in_dim
+        self.out_dim = out_dim
         self.mlp = nn.Linear(in_dim, out_dim, bias=False)
         self.batch_norm = BatchNormBlock(out_dim, self.use_bn, self.bn_momentum)
         if not no_relu:
@@ -470,6 +478,12 @@ class UnaryBlock(nn.Module):
         if not self.no_relu:
             x = self.leaky_relu(x)
         return x
+
+    def __repr__(self):
+        return 'UnaryBlock(in_feat: {:d}, out_feat: {:d}, BN: {:s}, ReLU: {:s})'.format(self.in_dim,
+                                                                                        self.out_dim,
+                                                                                        str(self.use_bn),
+                                                                                        str(not self.no_relu))
 
 
 class SimpleBlock(nn.Module):
@@ -492,6 +506,8 @@ class SimpleBlock(nn.Module):
         self.use_bn = config.use_batch_norm
         self.layer_ind = layer_ind
         self.block_name = block_name
+        self.in_dim = in_dim
+        self.out_dim = out_dim
 
         # Define the KPConv class
         self.KPConv = KPConv(config.num_kernel_points,
@@ -547,6 +563,8 @@ class ResnetBottleneckBlock(nn.Module):
         self.use_bn = config.use_batch_norm
         self.block_name = block_name
         self.layer_ind = layer_ind
+        self.in_dim = in_dim
+        self.out_dim = out_dim
 
         # First downscaling mlp
         if in_dim != out_dim // 4:
@@ -638,6 +656,10 @@ class NearestUpsampleBlock(nn.Module):
 
     def forward(self, x, batch):
         return closest_pool(x, batch.upsamples[self.layer_ind - 1])
+
+    def __repr__(self):
+        return 'NearestUpsampleBlock(layer: {:d} -> {:d})'.format(self.layer_ind,
+                                                                  self.layer_ind - 1)
 
 
 class MaxPoolBlock(nn.Module):

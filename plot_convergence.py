@@ -1445,12 +1445,14 @@ def S3DIS_go(old_result_limit):
 
 def SemanticKittiFirst(old_result_limit):
     """
-    Test SematicKitti. First exps
+    Test SematicKitti. First exps.
+    Try some class weight strategies. It seems that the final score is not impacted so much. With weights, some classes
+    are better while other are worse, for a final score that remains the same.
     """
 
     # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
     start = 'Log_2020-04-07_15-30-17'
-    end = 'Log_2020-05-07_15-30-17'
+    end = 'Log_2020-04-11_21-34-16'
 
     if end < old_result_limit:
         res_path = 'old_results'
@@ -1464,13 +1466,83 @@ def SemanticKittiFirst(old_result_limit):
     logs_names = ['R=5.0_dl=0.04',
                   'R=5.0_dl=0.08',
                   'R=10.0_dl=0.08',
-                  'R=10.0_dl=0.08_weigths',
-                  'R=10.0_dl=0.08_sqrt_weigths',
+                  'R=10.0_dl=0.08_20*weigths',
+                  'R=10.0_dl=0.08_20*sqrt_weigths',
+                  'R=10.0_dl=0.08_100*sqrt_w',
+                  'R=10.0_dl=0.08_100*sqrt_w_capped',
+                  'R=10.0_dl=0.08_no_w']
+
+    logs_names = np.array(logs_names[:len(logs)])
+
+    return logs, logs_names
+
+
+def SemanticKitti_scale(old_result_limit):
+    """
+    Test SematicKitti. Try different scales of input raduis / subsampling.
+    """
+
+    # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
+    start = 'Log_2020-04-11_21-34-15'
+    end = 'Log_2020-04-20_11-52-58'
+
+    if end < old_result_limit:
+        res_path = 'old_results'
+    else:
+        res_path = 'results'
+
+    logs = np.sort([join(res_path, l) for l in listdir(res_path) if start <= l <= end])
+    logs = logs.astype('<U50')
+
+    # Give names to the logs (for legends)
+    logs_names = ['R=10.0_dl=0.08',
+                  'R=4.0_dl=0.04',
+                  'R=6.0_dl=0.06',
+                  'R=6.0_dl=0.06_inF=2',
+                  'test',
+                  'test',
+                  'test',
+                  'test',
                   'test']
 
     logs_names = np.array(logs_names[:len(logs)])
 
     return logs, logs_names
+
+
+def S3DIS_deform(old_result_limit):
+    """
+    Debug S3DIS deformable.
+    At checkpoint 50, the points seem to start fitting the shape, but then, they just get further away from each other
+    and do not care about input points. The fitting loss seems broken?
+    """
+
+    # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
+    start = 'Log_2020-04-22_11-52-58'
+    end = 'Log_2020-05-22_11-52-58'
+
+    if end < old_result_limit:
+        res_path = 'old_results'
+    else:
+        res_path = 'results'
+
+    logs = np.sort([join(res_path, l) for l in listdir(res_path) if start <= l <= end])
+    logs = logs.astype('<U50')
+    logs = np.insert(logs, 0, 'results/Log_2020-04-04_10-04-42')
+
+    # Give names to the logs (for legends)
+    logs_names = ['off_d=0.01_baseline',
+                  'off_d=0.01',
+                  'off_d=0.05',
+                  'off_d=0.05_corrected',
+                  'off_d=0.05_norepulsive',
+                  'off_d=0.05_repulsive0.5',
+                  'test']
+
+    logs_names = np.array(logs_names[:len(logs)])
+
+    return logs, logs_names
+
 
 
 
@@ -1489,7 +1561,7 @@ if __name__ == '__main__':
     old_res_lim = 'Log_2020-03-25_19-30-17'
 
     # My logs: choose the logs to show
-    logs, logs_names = SemanticKittiFirst(old_res_lim)
+    logs, logs_names = S3DIS_deform(old_res_lim)
     #os.environ['QT_DEBUG_PLUGINS'] = '1'
 
     ######################################################

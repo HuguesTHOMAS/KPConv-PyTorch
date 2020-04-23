@@ -181,7 +181,7 @@ class ModelTester:
                     inds = in_inds[i0:i0 + length]
                     c_i = cloud_inds[b_i]
 
-                    if test_radius_ratio < 0.99:
+                    if 0 < test_radius_ratio < 1:
                         mask = np.sum(points ** 2, axis=1) < (test_radius_ratio * config.in_radius) ** 2
                         inds = inds[mask]
                         probs = probs[mask]

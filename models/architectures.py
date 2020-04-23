@@ -183,7 +183,7 @@ class KPCNN(nn.Module):
                     other_KP = torch.cat([KP_locs[:, :i, :], KP_locs[:, i + 1:, :]], dim=1).detach()
                     distances = torch.sqrt(torch.sum((other_KP - KP_locs[:, i:i + 1, :]) ** 2, dim=2))
                     rep_loss = torch.sum(torch.clamp_max(distances - 1.5, max=0.0) ** 2, dim=1)
-                    repulsive_loss += self.l1(rep_loss, torch.zeros_like(rep_loss))
+                    repulsive_loss += self.l1(rep_loss, torch.zeros_like(rep_loss)) / self.K
 
 
 
@@ -218,7 +218,7 @@ class KPFCNN(nn.Module):
         #####################
 
         # Save all block operations in a list of modules
-        self.encoder_blocs = nn.ModuleList()
+        self.encoder_blocks = nn.ModuleList()
         self.encoder_skip_dims = []
         self.encoder_skips = []
 
@@ -239,7 +239,7 @@ class KPFCNN(nn.Module):
                 break
 
             # Apply the good block function defining tf ops
-            self.encoder_blocs.append(block_decider(block,
+            self.encoder_blocks.append(block_decider(block,
                                                     r,
                                                     in_dim,
                                                     out_dim,
@@ -264,7 +264,7 @@ class KPFCNN(nn.Module):
         #####################
 
         # Save all block operations in a list of modules
-        self.decoder_blocs = nn.ModuleList()
+        self.decoder_blocks = nn.ModuleList()
         self.decoder_concats = []
 
         # Find first upsampling block
@@ -283,7 +283,7 @@ class KPFCNN(nn.Module):
                 self.decoder_concats.append(block_i)
 
             # Apply the good block function defining tf ops
-            self.decoder_blocs.append(block_decider(block,
+            self.decoder_blocks.append(block_decider(block,
                                                     r,
                                                     in_dim,
                                                     out_dim,
@@ -331,12 +331,12 @@ class KPFCNN(nn.Module):
 
         # Loop over consecutive blocks
         skip_x = []
-        for block_i, block_op in enumerate(self.encoder_blocs):
+        for block_i, block_op in enumerate(self.encoder_blocks):
             if block_i in self.encoder_skips:
                 skip_x.append(x)
             x = block_op(x, batch)
 
-        for block_i, block_op in enumerate(self.decoder_blocs):
+        for block_i, block_op in enumerate(self.decoder_blocks):
             if block_i in self.decoder_concats:
                 x = torch.cat([x, skip_x.pop()], dim=1)
             x = block_op(x, batch)
@@ -434,9 +434,8 @@ class KPFCNN(nn.Module):
 
                     other_KP = torch.cat([KP_locs[:, :i, :], KP_locs[:, i + 1:, :]], dim=1).detach()
                     distances = torch.sqrt(torch.sum((other_KP - KP_locs[:, i:i + 1, :]) ** 2, dim=2))
-                    rep_loss = torch.sum(torch.clamp_max(distances - 1.5, max=0.0) ** 2, dim=1)
-                    repulsive_loss += self.l1(rep_loss, torch.zeros_like(rep_loss))
-
+                    rep_loss = torch.sum(torch.clamp_max(distances - 0.5, max=0.0) ** 2, dim=1)
+                    repulsive_loss += self.l1(rep_loss, torch.zeros_like(rep_loss)) / self.K
 
 
         return self.offset_decay * (fitting_loss + repulsive_loss)
