@@ -159,9 +159,10 @@ class Config:
     # Choose weights for class (used in segmentation loss). Empty list for no weights
     class_w = []
 
-    # Offset regularization loss
-    offsets_loss = 'permissive'
-    offsets_decay = 1e-2
+    # New offset regularization parameters
+    deform_fitting_mode = 'point2point'
+    deform_fitting_power = 0.05
+    deform_loss_power = 0.5
 
     # Number of batch
     batch_num = 10
@@ -259,7 +260,7 @@ class Config:
                 elif line_info[0] == 'class_w':
                     self.class_w = [float(w) for w in line_info[2:]]
 
-                else:
+                elif hasattr(self, line_info[0]):
                     attr_type = type(getattr(self, line_info[0]))
                     if attr_type == bool:
                         setattr(self, line_info[0], attr_type(int(line_info[2])))
@@ -362,8 +363,9 @@ class Config:
             for a in self.class_w:
                 text_file.write(' {:.3f}'.format(a))
             text_file.write('\n')
-            text_file.write('offsets_loss = {:s}\n'.format(self.offsets_loss))
-            text_file.write('offsets_decay = {:f}\n'.format(self.offsets_decay))
+            text_file.write('deform_fitting_mode = {:s}\n'.format(self.deform_fitting_mode))
+            text_file.write('deform_fitting_power = {:f}\n'.format(self.deform_fitting_power))
+            text_file.write('deform_loss_power = {:f}\n'.format(self.deform_loss_power))
             text_file.write('batch_num = {:d}\n'.format(self.batch_num))
             text_file.write('val_batch_num = {:d}\n'.format(self.val_batch_num))
             text_file.write('max_epoch = {:d}\n'.format(self.max_epoch))

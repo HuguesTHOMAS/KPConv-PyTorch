@@ -79,7 +79,14 @@ class ModelVisualizer:
         ##########################
 
         checkpoint = torch.load(chkp_path)
-        net.load_state_dict(checkpoint['model_state_dict'])
+
+        new_dict = {}
+        for k, v in checkpoint['model_state_dict'].items():
+            if 'blocs' in k:
+                k = k.replace('blocs', 'blocks')
+            new_dict[k] = v
+
+        net.load_state_dict(new_dict)
         self.epoch = checkpoint['epoch']
         net.eval()
         print("\nModel state restored from {:s}.".format(chkp_path))

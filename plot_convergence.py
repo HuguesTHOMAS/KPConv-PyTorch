@@ -1515,6 +1515,9 @@ def S3DIS_deform(old_result_limit):
     Debug S3DIS deformable.
     At checkpoint 50, the points seem to start fitting the shape, but then, they just get further away from each other
     and do not care about input points. The fitting loss seems broken?
+
+    10* fitting loss seems pretty good fitting the point cloud. It seems that the offset decay was a bit to low,
+    because the same happens without the 0.1 hook. So we can try to keep a 0.5 hook and multiply offset decay by 2.
     """
 
     # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
@@ -1537,6 +1540,10 @@ def S3DIS_deform(old_result_limit):
                   'off_d=0.05_corrected',
                   'off_d=0.05_norepulsive',
                   'off_d=0.05_repulsive0.5',
+                  'off_d=0.05_10*fitting',
+                  'off_d=0.05_no_hook0.1',
+                  'NEWPARAMS_fit=0.05_loss=0.5_(=off_d=0.1_hook0.5)',
+                  'same_normal'
                   'test']
 
     logs_names = np.array(logs_names[:len(logs)])

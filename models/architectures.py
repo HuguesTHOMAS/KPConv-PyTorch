@@ -17,6 +17,61 @@
 from models.blocks import *
 import numpy as np
 
+
+def p2p_fitting_regularizer(net):
+
+    fitting_loss = 0
+    repulsive_loss = 0
+
+    for m in net.modules():
+
+        if isinstance(m, KPConv) and m.deformable:
+
+            ########################
+            # divide offset gradient
+            ########################
+            #
+            # The offset gradient comes from two different losses. The regularizer loss (fitting deformation to point
+            # cloud) and the output loss (which should force deformations to help get a better score). The strength of
+            # the regularizer loss is set with the parameter deform_fitting_power. Therefore, this hook control the
+            # strength of the output loss. This strength can be set with the parameter deform_loss_power
+            #
+
+            m.offset_features.register_hook(lambda grad: grad * net.deform_loss_power)
+            # m.offset_features.register_hook(lambda grad: print('GRAD2', grad[10, 5, :]))
+
+            ##############
+            # Fitting loss
+            ##############
+
+            # Get the distance to closest input point
+
+            KP_min_d2, _ = torch.min(m.deformed_d2, dim=1)
+
+            # Normalize KP locations to be independant from layers
+            KP_min_d2 = KP_min_d2 / (m.KP_extent ** 2)
+
+            # Loss will be the square distance to closest input point. We use L1 because dist is already squared
+            fitting_loss += net.l1(KP_min_d2, torch.zeros_like(KP_min_d2))
+
+            ################
+            # Repulsive loss
+            ################
+
+            # Normalized KP locations
+            KP_locs = m.deformed_KP / m.KP_extent
+
+            # Point should not be close to each other
+            for i in range(net.K):
+                other_KP = torch.cat([KP_locs[:, :i, :], KP_locs[:, i + 1:, :]], dim=1).detach()
+                distances = torch.sqrt(torch.sum((other_KP - KP_locs[:, i:i + 1, :]) ** 2, dim=2))
+                rep_loss = torch.sum(torch.clamp_max(distances - 1.0, max=0.0) ** 2, dim=1)
+                repulsive_loss += net.l1(rep_loss, torch.zeros_like(rep_loss)) / net.K
+
+    # The hook effectively affect both regularizer and output loss. So here we have to divide by  deform_loss_power
+    return (net.deform_fitting_power / net.deform_loss_power) * (fitting_loss + repulsive_loss)
+
+
 class KPCNN(nn.Module):
     """
     Class defining KPCNN
@@ -86,8 +141,9 @@ class KPCNN(nn.Module):
         ################
 
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.offset_loss = config.offsets_loss
-        self.offset_decay = config.offsets_decay
+        self.deform_fitting_mode = config.deform_fitting_mode
+        self.deform_fitting_power = config.deform_fitting_power
+        self.deform_loss_power = config.deform_loss_power
         self.output_loss = 0
         self.reg_loss = 0
         self.l1 = nn.L1Loss()
@@ -121,7 +177,12 @@ class KPCNN(nn.Module):
         self.output_loss = self.criterion(outputs, labels)
 
         # Regularization of deformable offsets
-        self.reg_loss = self.offset_regularizer()
+        if self.deform_fitting_mode == 'point2point':
+            self.reg_loss = p2p_fitting_regularizer(self)
+        elif self.deform_fitting_mode == 'point2plane':
+            raise ValueError('point2plane fitting mode not implemented yet.')
+        else:
+            raise ValueError('Unknown fitting mode: ' + self.deform_fitting_mode)
 
         # Combined loss
         return self.output_loss + self.reg_loss
@@ -140,57 +201,6 @@ class KPCNN(nn.Module):
         correct = (predicted == labels).sum().item()
 
         return correct / total
-
-    def offset_regularizer(self):
-
-        fitting_loss = 0
-        repulsive_loss = 0
-
-        for m in self.modules():
-
-            if isinstance(m, KPConv) and m.deformable:
-
-                ##############################
-                # divide offset gradient by 10
-                ##############################
-
-                m.unscaled_offsets.register_hook(lambda grad: grad * 0.1)
-                #m.unscaled_offsets.register_hook(lambda grad: print('GRAD2', grad[10, 5, :]))
-
-                ##############
-                # Fitting loss
-                ##############
-
-                # Get the distance to closest input point
-                KP_min_d2, _ = torch.min(m.deformed_d2, dim=1)
-
-                # Normalize KP locations to be independant from layers
-                KP_min_d2 = KP_min_d2 / (m.KP_extent ** 2)
-
-                # Loss will be the square distance to closest input point. We use L1 because dist is already squared
-                fitting_loss += self.l1(KP_min_d2, torch.zeros_like(KP_min_d2))
-
-                ################
-                # Repulsive loss
-                ################
-
-                # Normalized KP locations
-                KP_locs = m.deformed_KP / m.KP_extent
-
-                # Point should not be close to each other
-                for i in range(self.K):
-
-                    other_KP = torch.cat([KP_locs[:, :i, :], KP_locs[:, i + 1:, :]], dim=1).detach()
-                    distances = torch.sqrt(torch.sum((other_KP - KP_locs[:, i:i + 1, :]) ** 2, dim=2))
-                    rep_loss = torch.sum(torch.clamp_max(distances - 1.5, max=0.0) ** 2, dim=1)
-                    repulsive_loss += self.l1(rep_loss, torch.zeros_like(rep_loss)) / self.K
-
-
-
-        return self.offset_decay * (fitting_loss + repulsive_loss)
-
-
-
 
 
 class KPFCNN(nn.Module):
@@ -316,8 +326,9 @@ class KPFCNN(nn.Module):
             self.criterion = torch.nn.CrossEntropyLoss(weight=class_w, ignore_index=-1)
         else:
             self.criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
-        self.offset_loss = config.offsets_loss
-        self.offset_decay = config.offsets_decay
+        self.deform_fitting_mode = config.deform_fitting_mode
+        self.deform_fitting_power = config.deform_fitting_power
+        self.deform_loss_power = config.deform_loss_power
         self.output_loss = 0
         self.reg_loss = 0
         self.l1 = nn.L1Loss()
@@ -369,7 +380,12 @@ class KPFCNN(nn.Module):
         self.output_loss = self.criterion(outputs, target)
 
         # Regularization of deformable offsets
-        self.reg_loss = self.offset_regularizer()
+        if self.deform_fitting_mode == 'point2point':
+            self.reg_loss = p2p_fitting_regularizer(self)
+        elif self.deform_fitting_mode == 'point2plane':
+            raise ValueError('point2plane fitting mode not implemented yet.')
+        else:
+            raise ValueError('Unknown fitting mode: ' + self.deform_fitting_mode)
 
         # Combined loss
         return self.output_loss + self.reg_loss
@@ -392,57 +408,6 @@ class KPFCNN(nn.Module):
         correct = (predicted == target).sum().item()
 
         return correct / total
-
-    def offset_regularizer(self):
-
-        fitting_loss = 0
-        repulsive_loss = 0
-
-        for m in self.modules():
-
-            if isinstance(m, KPConv) and m.deformable:
-
-                ##############################
-                # divide offset gradient by 10
-                ##############################
-
-                m.unscaled_offsets.register_hook(lambda grad: grad * 0.1)
-                #m.unscaled_offsets.register_hook(lambda grad: print('GRAD2', grad[10, 5, :]))
-
-                ##############
-                # Fitting loss
-                ##############
-
-                # Get the distance to closest input point
-                KP_min_d2, _ = torch.min(m.deformed_d2, dim=1)
-
-                # Normalize KP locations to be independant from layers
-                KP_min_d2 = KP_min_d2 / (m.KP_extent ** 2)
-
-                # Loss will be the square distance to closest input point. We use L1 because dist is already squared
-                fitting_loss += self.l1(KP_min_d2, torch.zeros_like(KP_min_d2))
-
-                ################
-                # Repulsive loss
-                ################
-
-                # Normalized KP locations
-                KP_locs = m.deformed_KP / m.KP_extent
-
-                # Point should not be close to each other
-                for i in range(self.K):
-
-                    other_KP = torch.cat([KP_locs[:, :i, :], KP_locs[:, i + 1:, :]], dim=1).detach()
-                    distances = torch.sqrt(torch.sum((other_KP - KP_locs[:, i:i + 1, :]) ** 2, dim=2))
-                    rep_loss = torch.sum(torch.clamp_max(distances - 0.5, max=0.0) ** 2, dim=1)
-                    repulsive_loss += self.l1(rep_loss, torch.zeros_like(rep_loss)) / self.K
-
-
-        return self.offset_decay * (fitting_loss + repulsive_loss)
-
-
-
-
 
 
 

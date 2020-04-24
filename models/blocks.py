@@ -177,7 +177,7 @@ class KPConv(nn.Module):
         # Running variable containing deformed KP distance to input points. (used in regularization loss)
         self.deformed_d2 = None
         self.deformed_KP = None
-        self.unscaled_offsets = None
+        self.offset_features = None
 
         # Initialize weights
         self.weights = Parameter(torch.zeros((self.K, in_channels, out_channels), dtype=torch.float32),
@@ -241,27 +241,27 @@ class KPConv(nn.Module):
         ###################
 
         if self.deformable:
-            offset_features = self.offset_conv(q_pts, s_pts, neighb_inds, x) + self.offset_bias
+            self.offset_features = self.offset_conv(q_pts, s_pts, neighb_inds, x) + self.offset_bias
 
             if self.modulated:
 
                 # Get offset (in normalized scale) from features
-                offsets = offset_features[:, :self.p_dim * self.K]
-                self.unscaled_offsets = offsets.view(-1, self.K, self.p_dim)
+                unscaled_offsets = self.offset_features[:, :self.p_dim * self.K]
+                unscaled_offsets = unscaled_offsets.view(-1, self.K, self.p_dim)
 
                 # Get modulations
-                modulations = 2 * torch.sigmoid(offset_features[:, self.p_dim * self.K:])
+                modulations = 2 * torch.sigmoid(self.offset_features[:, self.p_dim * self.K:])
 
             else:
 
                 # Get offset (in normalized scale) from features
-                self.unscaled_offsets = offset_features.view(-1, self.K, self.p_dim)
+                unscaled_offsets = self.offset_features.view(-1, self.K, self.p_dim)
 
                 # No modulations
                 modulations = None
 
             # Rescale offset for this layer
-            offsets = self.unscaled_offsets * self.KP_extent
+            offsets = unscaled_offsets * self.KP_extent
 
         else:
             offsets = None

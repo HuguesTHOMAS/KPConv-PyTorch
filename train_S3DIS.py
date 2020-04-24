@@ -78,11 +78,11 @@ class S3DISConfig(Config):
                     'resnetb',
                     'resnetb',
                     'resnetb_strided',
-                    'resnetb_deformable',
-                    'resnetb_deformable',
-                    'resnetb_deformable_strided',
-                    'resnetb_deformable',
-                    'resnetb_deformable',
+                    'resnetb',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb',
+                    'resnetb',
                     'nearest_upsample',
                     'unary',
                     'nearest_upsample',
@@ -132,10 +132,11 @@ class S3DISConfig(Config):
     batch_norm_momentum = 0.02
 
     # Offset loss
-    # 'permissive' only constrains offsets inside the deform radius (NOT implemented yet)
-    # 'fitting' helps deformed kernels to adapt to the geometry by penalizing distance to input points
-    offsets_loss = 'fitting'
-    offsets_decay = 0.05
+    # 'point2point' fitting geometry by penalizing distance from deform point to input points
+    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet
+    deform_fitting_mode = 'point2point'
+    deform_fitting_power = 0.05
+    deform_loss_power = 0.5
 
     #####################
     # Training parameters
@@ -195,7 +196,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '3'
+    GPU_ID = '2'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID

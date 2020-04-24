@@ -96,7 +96,12 @@ if __name__ == '__main__':
 
     # chosen_log = 'results/Log_2020-04-04_10-04-42'  # => ModelNet40
     # chosen_log = 'results/Log_2020-04-22_11-53-45'  # => S3DIS
-    chosen_log = 'results/Log_2020-04-22_12-28-37'  # => S3DIS corrected
+    # chosen_log = 'results/Log_2020-04-22_12-28-37'  # => S3DIS corrected
+    # chosen_log = 'results/Log_2020-04-23_09-48-15'  # => S3DIS no repulsive
+    # chosen_log = 'results/Log_2020-04-23_09-49-49'  # => S3DIS repulsive 0.5
+    # chosen_log = 'results/Log_2020-04-23_19-41-12'  # => S3DIS 10*fitting
+    chosen_log = 'results/Log_2020-04-23_19-42-18'  # => S3DIS no hook
+
 
     # You can also choose the index of the snapshot to load (last by default)
     chkp_idx = -1
