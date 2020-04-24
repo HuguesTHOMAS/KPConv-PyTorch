@@ -224,5 +224,3 @@ if __name__ == '__main__':
 
     # TODO: We have to verify if training on smaller spheres and testing on whole frame changes the score because
     #  batchnorm may not have the same result as distribution of points will be different.
-
-    # ET BOOM
