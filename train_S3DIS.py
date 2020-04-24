@@ -24,9 +24,6 @@
 # Common libs
 import signal
 import os
-import numpy as np
-import sys
-import torch
 
 # Dataset
 from datasets.S3DIS import *
@@ -271,6 +268,7 @@ if __name__ == '__main__':
     training_sampler.calibration(training_loader, verbose=True)
     test_sampler.calibration(test_loader, verbose=True)
 
+    # Optional debug functions
     # debug_timing(training_dataset, training_loader)
     # debug_timing(test_dataset, test_loader)
     # debug_upsampling(training_dataset, training_loader)
