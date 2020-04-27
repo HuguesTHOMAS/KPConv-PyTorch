@@ -130,7 +130,7 @@ class S3DISDataset(PointCloudDataset):
         # Prepare ply files
         ###################
 
-        #self.prepare_S3DIS_ply()
+        self.prepare_S3DIS_ply()
 
         ################
         # Load ply files
