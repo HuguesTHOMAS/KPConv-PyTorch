@@ -74,7 +74,8 @@ def grid_subsampling(points, features=None, labels=None, sampleDl=0.1, verbose=0
                                          verbose=verbose)
 
 
-def batch_grid_subsampling(points, batches_len, features=None, labels=None, sampleDl=0.1, max_p=0, verbose=0):
+def batch_grid_subsampling(points, batches_len, features=None, labels=None,
+                           sampleDl=0.1, max_p=0, verbose=0, random_grid_orient=True):
     """
     CPP wrapper for a grid subsampling (method = barycenter for points and features)
     :param points: (N, 3) matrix of input points
@@ -85,34 +86,100 @@ def batch_grid_subsampling(points, batches_len, features=None, labels=None, samp
     :return: subsampled points, with features and/or labels depending of the input
     """
 
+    R = None
+    B = len(batches_len)
+    if random_grid_orient:
+
+        ########################################################
+        # Create a random rotation matrix for each batch element
+        ########################################################
+
+        # Choose two random angles for the first vector in polar coordinates
+        theta = np.random.rand(B) * 2 * np.pi
+        phi = (np.random.rand(B) - 0.5) * np.pi
+
+        # Create the first vector in carthesian coordinates
+        u = np.vstack([np.cos(theta) * np.cos(phi), np.sin(theta) * np.cos(phi), np.sin(phi)])
+
+        # Choose a random rotation angle
+        alpha = np.random.rand(B) * 2 * np.pi
+
+        # Create the rotation matrix with this vector and angle
+        R = create_3D_rotations(u.T, alpha).astype(np.float32)
+
+        #################
+        # Apply rotations
+        #################
+
+        i0 = 0
+        points = points.copy()
+        for bi, length in enumerate(batches_len):
+            # Apply the rotation
+            points[i0:i0 + length, :] = np.sum(np.expand_dims(points[i0:i0 + length, :], 2) * R[bi], axis=1)
+            i0 += length
+
+    #######################
+    # Sunsample and realign
+    #######################
+
     if (features is None) and (labels is None):
-        return cpp_subsampling.subsample_batch(points,
-                                               batches_len,
-                                               sampleDl=sampleDl,
-                                               max_p=max_p,
-                                               verbose=verbose)
+        s_points, s_len = cpp_subsampling.subsample_batch(points,
+                                                          batches_len,
+                                                          sampleDl=sampleDl,
+                                                          max_p=max_p,
+                                                          verbose=verbose)
+        if random_grid_orient:
+            i0 = 0
+            for bi, length in enumerate(s_len):
+                s_points[i0:i0 + length, :] = np.sum(np.expand_dims(s_points[i0:i0 + length, :], 2) * R[bi].T, axis=1)
+                i0 += length
+        return s_points, s_len
+
     elif (labels is None):
-        return cpp_subsampling.subsample_batch(points,
-                                               batches_len,
-                                               features=features,
-                                               sampleDl=sampleDl,
-                                               max_p=max_p,
-                                               verbose=verbose)
+        s_points, s_len, s_features = cpp_subsampling.subsample_batch(points,
+                                                                      batches_len,
+                                                                      features=features,
+                                                                      sampleDl=sampleDl,
+                                                                      max_p=max_p,
+                                                                      verbose=verbose)
+        if random_grid_orient:
+            i0 = 0
+            for bi, length in enumerate(s_len):
+                # Apply the rotation
+                s_points[i0:i0 + length, :] = np.sum(np.expand_dims(s_points[i0:i0 + length, :], 2) * R[bi].T, axis=1)
+                i0 += length
+        return s_points, s_len, s_features
+
     elif (features is None):
-        return cpp_subsampling.subsample_batch(points,
-                                               batches_len,
-                                               classes=labels,
-                                               sampleDl=sampleDl,
-                                               max_p=max_p,
-                                               verbose=verbose)
+        s_points, s_len, s_labels = cpp_subsampling.subsample_batch(points,
+                                                                    batches_len,
+                                                                    classes=labels,
+                                                                    sampleDl=sampleDl,
+                                                                    max_p=max_p,
+                                                                    verbose=verbose)
+        if random_grid_orient:
+            i0 = 0
+            for bi, length in enumerate(s_len):
+                # Apply the rotation
+                s_points[i0:i0 + length, :] = np.sum(np.expand_dims(s_points[i0:i0 + length, :], 2) * R[bi].T, axis=1)
+                i0 += length
+        return s_points, s_len, s_labels
+
     else:
-        return cpp_subsampling.subsample_batch(points,
-                                               batches_len,
-                                               features=features,
-                                               classes=labels,
-                                               sampleDl=sampleDl,
-                                               max_p=max_p,
-                                               verbose=verbose)
+        s_points, s_len, s_features, s_labels = cpp_subsampling.subsample_batch(points,
+                                                                              batches_len,
+                                                                              features=features,
+                                                                              classes=labels,
+                                                                              sampleDl=sampleDl,
+                                                                              max_p=max_p,
+                                                                              verbose=verbose)
+        if random_grid_orient:
+            i0 = 0
+            for bi, length in enumerate(s_len):
+                # Apply the rotation
+                s_points[i0:i0 + length, :] = np.sum(np.expand_dims(s_points[i0:i0 + length, :], 2) * R[bi].T, axis=1)
+                i0 += length
+        return s_points, s_len, s_features, s_labels
 
 
 def batch_neighbors(queries, supports, q_batches, s_batches, radius):
@@ -498,8 +565,6 @@ class PointCloudDataset(Dataset):
         ###############
         # Return inputs
         ###############
-
-        # Save deform layers
 
         # list of network inputs
         li = input_points + input_neighbors + input_pools + input_upsamples + input_stack_lengths

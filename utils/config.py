@@ -159,10 +159,13 @@ class Config:
     # Choose weights for class (used in segmentation loss). Empty list for no weights
     class_w = []
 
-    # New offset regularization parameters
+    # Deformable offset loss
+    # 'point2point' fitting geometry by penalizing distance from deform point to input points
+    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
     deform_fitting_mode = 'point2point'
-    deform_fitting_power = 0.05
-    deform_loss_power = 0.5
+    deform_fitting_power = 0.1              # Multiplier for the fitting/repulsive loss
+    deform_loss_power = 0.1                 # Multiplier for output loss applied to the deformations
+    repulse_extent = 1.0                    # Distance of repulsion for deformed kernel points
 
     # Number of batch
     batch_num = 10
@@ -293,7 +296,7 @@ class Config:
                 text_file.write('num_classes = {:d}\n'.format(self.num_classes))
             text_file.write('in_points_dim = {:d}\n'.format(self.in_points_dim))
             text_file.write('in_features_dim = {:d}\n'.format(self.in_features_dim))
-            text_file.write('in_radius = {:.3f}\n'.format(self.in_radius))
+            text_file.write('in_radius = {:.6f}\n'.format(self.in_radius))
             text_file.write('input_threads = {:d}\n\n'.format(self.input_threads))
 
             # Model parameters
@@ -309,26 +312,26 @@ class Config:
             text_file.write('num_layers = {:d}\n'.format(self.num_layers))
             text_file.write('first_features_dim = {:d}\n'.format(self.first_features_dim))
             text_file.write('use_batch_norm = {:d}\n'.format(int(self.use_batch_norm)))
-            text_file.write('batch_norm_momentum = {:.3f}\n\n'.format(self.batch_norm_momentum))
-            text_file.write('segmentation_ratio = {:.3f}\n\n'.format(self.segmentation_ratio))
+            text_file.write('batch_norm_momentum = {:.6f}\n\n'.format(self.batch_norm_momentum))
+            text_file.write('segmentation_ratio = {:.6f}\n\n'.format(self.segmentation_ratio))
 
             # KPConv parameters
             text_file.write('# KPConv parameters\n')
             text_file.write('# *****************\n\n')
 
-            text_file.write('first_subsampling_dl = {:.3f}\n'.format(self.first_subsampling_dl))
+            text_file.write('first_subsampling_dl = {:.6f}\n'.format(self.first_subsampling_dl))
             text_file.write('num_kernel_points = {:d}\n'.format(self.num_kernel_points))
-            text_file.write('conv_radius = {:.3f}\n'.format(self.conv_radius))
-            text_file.write('deform_radius = {:.3f}\n'.format(self.deform_radius))
+            text_file.write('conv_radius = {:.6f}\n'.format(self.conv_radius))
+            text_file.write('deform_radius = {:.6f}\n'.format(self.deform_radius))
             text_file.write('fixed_kernel_points = {:s}\n'.format(self.fixed_kernel_points))
-            text_file.write('KP_extent = {:.3f}\n'.format(self.KP_extent))
+            text_file.write('KP_extent = {:.6f}\n'.format(self.KP_extent))
             text_file.write('KP_influence = {:s}\n'.format(self.KP_influence))
             text_file.write('aggregation_mode = {:s}\n'.format(self.aggregation_mode))
             text_file.write('modulated = {:d}\n'.format(int(self.modulated)))
             text_file.write('n_frames = {:d}\n'.format(self.n_frames))
             text_file.write('max_in_points = {:d}\n\n'.format(self.max_in_points))
             text_file.write('max_val_points = {:d}\n\n'.format(self.max_val_points))
-            text_file.write('val_radius = {:.3f}\n\n'.format(self.val_radius))
+            text_file.write('val_radius = {:.6f}\n\n'.format(self.val_radius))
 
             # Training parameters
             text_file.write('# Training parameters\n')
@@ -350,22 +353,23 @@ class Config:
             text_file.write('augment_rotation = {:s}\n'.format(self.augment_rotation))
             text_file.write('augment_noise = {:f}\n'.format(self.augment_noise))
             text_file.write('augment_occlusion = {:s}\n'.format(self.augment_occlusion))
-            text_file.write('augment_occlusion_ratio = {:.3f}\n'.format(self.augment_occlusion_ratio))
+            text_file.write('augment_occlusion_ratio = {:.6f}\n'.format(self.augment_occlusion_ratio))
             text_file.write('augment_occlusion_num = {:d}\n'.format(self.augment_occlusion_num))
             text_file.write('augment_scale_anisotropic = {:d}\n'.format(int(self.augment_scale_anisotropic)))
-            text_file.write('augment_scale_min = {:.3f}\n'.format(self.augment_scale_min))
-            text_file.write('augment_scale_max = {:.3f}\n'.format(self.augment_scale_max))
-            text_file.write('augment_color = {:.3f}\n\n'.format(self.augment_color))
+            text_file.write('augment_scale_min = {:.6f}\n'.format(self.augment_scale_min))
+            text_file.write('augment_scale_max = {:.6f}\n'.format(self.augment_scale_max))
+            text_file.write('augment_color = {:.6f}\n\n'.format(self.augment_color))
 
             text_file.write('weight_decay = {:f}\n'.format(self.weight_decay))
             text_file.write('segloss_balance = {:s}\n'.format(self.segloss_balance))
             text_file.write('class_w =')
             for a in self.class_w:
-                text_file.write(' {:.3f}'.format(a))
+                text_file.write(' {:.6f}'.format(a))
             text_file.write('\n')
             text_file.write('deform_fitting_mode = {:s}\n'.format(self.deform_fitting_mode))
-            text_file.write('deform_fitting_power = {:f}\n'.format(self.deform_fitting_power))
-            text_file.write('deform_loss_power = {:f}\n'.format(self.deform_loss_power))
+            text_file.write('deform_fitting_power = {:.6f}\n'.format(self.deform_fitting_power))
+            text_file.write('deform_loss_power = {:.6f}\n'.format(self.deform_loss_power))
+            text_file.write('repulse_extent = {:.6f}\n'.format(self.repulse_extent))
             text_file.write('batch_num = {:d}\n'.format(self.batch_num))
             text_file.write('val_batch_num = {:d}\n'.format(self.val_batch_num))
             text_file.write('max_epoch = {:d}\n'.format(self.max_epoch))

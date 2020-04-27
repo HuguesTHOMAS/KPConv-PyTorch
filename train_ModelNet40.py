@@ -70,14 +70,19 @@ class Modelnet40Config(Config):
 
     # Define layers
     architecture = ['simple',
-                    'resnetb_strided',
                     'resnetb',
                     'resnetb_strided',
                     'resnetb',
+                    'resnetb',
                     'resnetb_strided',
-                    'resnetb_deformable',
-                    'resnetb_deformable_strided',
-                    'resnetb_deformable',
+                    'resnetb',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb',
+                    'resnetb',
                     'global_average']
 
     ###################
@@ -97,7 +102,7 @@ class Modelnet40Config(Config):
     deform_radius = 6.0
 
     # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
-    KP_extent = 1.5
+    KP_extent = 1.2
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
     KP_influence = 'linear'
@@ -115,11 +120,13 @@ class Modelnet40Config(Config):
     use_batch_norm = True
     batch_norm_momentum = 0.05
 
-    # Offset loss
-    # 'permissive' only constrains offsets inside the deform radius
-    # 'fitting' helps deformed kernels to adapt to the geometry by penalizing distance to input points
-    offsets_loss = 'fitting'
-    offsets_decay = 0.1
+    # Deformable offset loss
+    # 'point2point' fitting geometry by penalizing distance from deform point to input points
+    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
+    deform_fitting_mode = 'point2point'
+    deform_fitting_power = 0.1              # Multiplier for the fitting/repulsive loss
+    deform_loss_power = 0.1                 # Multiplier for output loss applied to the deformations
+    repulse_extent = 0.8                    # Distance of repulsion for deformed kernel points
 
     #####################
     # Training parameters
@@ -131,11 +138,11 @@ class Modelnet40Config(Config):
     # Learning rate management
     learning_rate = 1e-2
     momentum = 0.98
-    lr_decays = {i: 0.1**(1/80) for i in range(1, max_epoch)}
+    lr_decays = {i: 0.1**(1/100) for i in range(1, max_epoch)}
     grad_clip_norm = 100.0
 
     # Number of batch
-    batch_num = 16
+    batch_num = 10
 
     # Number of steps per epochs
     epoch_steps = 300
@@ -179,7 +186,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '3'
+    GPU_ID = '0'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID

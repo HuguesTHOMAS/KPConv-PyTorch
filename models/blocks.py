@@ -174,8 +174,10 @@ class KPConv(nn.Module):
         self.deformable = deformable
         self.modulated = modulated
 
+        self.in_offset_channels = in_channels
+
         # Running variable containing deformed KP distance to input points. (used in regularization loss)
-        self.deformed_d2 = None
+        self.min_d2 = None
         self.deformed_KP = None
         self.offset_features = None
 
@@ -191,7 +193,7 @@ class KPConv(nn.Module):
                 self.offset_dim = self.p_dim * self.K
             self.offset_conv = KPConv(self.K,
                                       self.p_dim,
-                                      in_channels,
+                                      self.in_offset_channels,
                                       self.offset_dim,
                                       KP_extent,
                                       radius,
@@ -241,7 +243,10 @@ class KPConv(nn.Module):
         ###################
 
         if self.deformable:
-            self.offset_features = self.offset_conv(q_pts, s_pts, neighb_inds, x) + self.offset_bias
+
+            # Get offsets with a KPConv that only takes part of the features
+            x_offsets = x[:, :self.in_offset_channels]
+            self.offset_features = self.offset_conv(q_pts, s_pts, neighb_inds, x_offsets) + self.offset_bias
 
             if self.modulated:
 
@@ -295,18 +300,33 @@ class KPConv(nn.Module):
         sq_distances = torch.sum(differences ** 2, dim=3)
 
         # Optimization by ignoring points outside a deformed KP range
-        if False and self.deformable:
+        if self.deformable:
+
+            # Save distances for loss
+            self.min_d2, _ = torch.min(sq_distances, dim=1)
+
             # Boolean of the neighbors in range of a kernel point [n_points, n_neighbors]
-            in_range = torch.any(sq_distances < self.KP_extent ** 2, dim=2)
+            in_range = torch.any(sq_distances < self.KP_extent ** 2, dim=2).type(torch.int32)
 
             # New value of max neighbors
             new_max_neighb = torch.max(torch.sum(in_range, dim=1))
 
-            print(sq_distances.shape[1], '=>', new_max_neighb.item())
+            # For each row of neighbors, indices of the ones that are in range [n_points, new_max_neighb]
+            neighb_row_bool, neighb_row_inds = torch.topk(in_range, new_max_neighb.item(), dim=1)
 
-        # Save distances for loss
-        if self.deformable:
-            self.deformed_d2 = sq_distances
+            # Gather new neighbor indices [n_points, new_max_neighb]
+            new_neighb_inds = neighb_inds.gather(1, neighb_row_inds, sparse_grad=False)
+
+            # Gather new distances to KP [n_points, new_max_neighb, n_kpoints]
+            neighb_row_inds.unsqueeze_(2)
+            neighb_row_inds = neighb_row_inds.expand(-1, -1, self.K)
+            sq_distances = sq_distances.gather(1, neighb_row_inds, sparse_grad=False)
+
+            # New shadow neighbors have to point to the last shadow point
+            new_neighb_inds *= neighb_row_bool
+            new_neighb_inds -= (neighb_row_bool.type(torch.int64) - 1) * int(s_pts.shape[0] - 1)
+        else:
+            new_neighb_inds = neighb_inds
 
         # Get Kernel point influences [n_points, n_kpoints, n_neighbors]
         if self.KP_influence == 'constant':
@@ -339,7 +359,7 @@ class KPConv(nn.Module):
         x = torch.cat((x, torch.zeros_like(x[:1, :])), 0)
 
         # Get the features of each neighborhood [n_points, n_neighbors, in_fdim]
-        neighb_x = gather(x, neighb_inds)
+        neighb_x = gather(x, new_neighb_inds)
 
         # Apply distance weights [n_points, n_kpoints, in_fdim]
         weighted_features = torch.matmul(all_weights, neighb_x)

@@ -28,7 +28,6 @@ import numpy as np
 import pickle
 import torch
 import math
-#from mayavi import mlab
 from multiprocessing import Lock
 
 
@@ -875,7 +874,6 @@ class S3DISDataset(PointCloudDataset):
         # Get original points
         data = read_ply(file_path)
         return np.vstack((data['x'], data['y'], data['z'])).T
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------

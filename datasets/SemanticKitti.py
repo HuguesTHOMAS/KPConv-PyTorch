@@ -28,7 +28,6 @@ import numpy as np
 import pickle
 import torch
 import yaml
-#from mayavi import mlab
 from multiprocessing import Lock
 
 
@@ -245,9 +244,6 @@ class SemanticKittiDataset(PointCloudDataset):
             merged_labels = np.zeros((0,), dtype=np.int32)
             merged_coords = np.zeros((0, 4), dtype=np.float32)
 
-            # In case of validation also keep original point and reproj indices
-
-
             # Get center of the first frame in world coordinates
             p_origin = np.zeros((1, 4))
             p_origin[0, 3] = 1
@@ -345,11 +341,6 @@ class SemanticKittiDataset(PointCloudDataset):
             #########################
             # Merge n_frames together
             #########################
-
-            # Too see yielding speed with debug timings method, collapse points (reduce mapping time to nearly 0)
-            #merged_points = merged_points[:100, :]
-            #merged_labels = merged_labels[:100]
-            #merged_points *= 0.1
 
             # Subsample merged frames
             in_pts, in_fts, in_lbls = grid_subsampling(merged_points,
@@ -455,8 +446,8 @@ class SemanticKittiDataset(PointCloudDataset):
         else:
             raise ValueError('Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)')
 
-
         t += [time.time()]
+
         #######################
         # Create network inputs
         #######################
@@ -545,27 +536,6 @@ class SemanticKittiDataset(PointCloudDataset):
             print('stack ..... {:5.1f}ms'.format(1000 * (t[ti+1] - t[ti])))
             ti += 1
             print('\n************************\n')
-
-            # Timings: (in test configuration)
-            # Lock ...... 0.1ms
-            # Init ...... 0.0ms
-            # Load ...... 40.0ms
-            # subs ...... 143.6ms
-            # drop ...... 4.6ms
-            # reproj .... 297.4ms
-            # augment ... 7.5ms
-            # stack ..... 0.0ms
-            # concat .... 1.4ms
-            # input ..... 816.0ms
-            # stack ..... 0.0ms
-
-            # TODO: Where can we gain time for the robot real time test?
-            #  > Load: no disk read necessary + pose useless if we only use one frame for testing
-            #  > Drop: We can drop even more points. Random choice could be faster without replace=False
-            #  > reproj: No reprojection needed
-            #  > Augment: See which data agment we want at test time
-            #  > input: MAIN BOTTLENECK. We need to see if we can do faster, maybe with some parallelisation. neighbors
-            #           and subsampling accelerated with lidar frame order
 
         return [self.config.num_layers] + input_list
 
@@ -742,6 +712,12 @@ class SemanticKittiDataset(PointCloudDataset):
             poses.append(np.matmul(Tr_inv, np.matmul(pose, Tr)))
 
         return poses
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+#
+#           Utility classes definition
+#       \********************************/
 
 
 class SemanticKittiSampler(Sampler):
@@ -1388,6 +1364,12 @@ class SemanticKittiCustomBatch:
 
 def SemanticKittiCollate(batch_data):
     return SemanticKittiCustomBatch(batch_data)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+#
+#           Debug functions
+#       \*********************/
 
 
 def debug_timing(dataset, loader):

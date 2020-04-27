@@ -92,21 +92,14 @@ if __name__ == '__main__':
     #   Here you can choose which model you want to test with the variable test_model. Here are the possible values :
     #
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
-    #       > '(old_)results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
+    #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
-    # chosen_log = 'results/Log_2020-04-04_10-04-42'  # => ModelNet40
-    # chosen_log = 'results/Log_2020-04-22_11-53-45'  # => S3DIS
-    # chosen_log = 'results/Log_2020-04-22_12-28-37'  # => S3DIS corrected
-    # chosen_log = 'results/Log_2020-04-23_09-48-15'  # => S3DIS no repulsive
-    # chosen_log = 'results/Log_2020-04-23_09-49-49'  # => S3DIS repulsive 0.5
-    # chosen_log = 'results/Log_2020-04-23_19-41-12'  # => S3DIS 10*fitting
-    chosen_log = 'results/Log_2020-04-23_19-42-18'  # => S3DIS no hook
+    chosen_log = 'results/Log_2020-04-23_19-42-18'
 
+    # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
+    chkp_idx = None
 
-    # You can also choose the index of the snapshot to load (last by default)
-    chkp_idx = -1
-
-    # Eventually you can choose which feature is visualized (index of the deform operation in the network)
+    # Eventually you can choose which feature is visualized (index of the deform convolution in the network)
     deform_idx = 0
 
     # Deal with 'last_XXX' choices
@@ -148,7 +141,6 @@ if __name__ == '__main__':
     # Change parameters for the test here. For example, you can stop augmenting the input data.
 
     config.augment_noise = 0.0001
-    #config.augment_symmetries = False
     config.batch_num = 1
     config.in_radius = 2.0
     config.input_threads = 0

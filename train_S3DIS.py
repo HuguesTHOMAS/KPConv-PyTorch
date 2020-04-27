@@ -59,7 +59,7 @@ class S3DISConfig(Config):
     dataset_task = ''
 
     # Number of CPU threads for the input pipeline
-    input_threads = 20
+    input_threads = 10
 
     #########################
     # Architecture definition
@@ -72,14 +72,14 @@ class S3DISConfig(Config):
                     'resnetb',
                     'resnetb',
                     'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
+                    'resnetb_deformable',
+                    'resnetb_deformable',
+                    'resnetb_deformable_strided',
+                    'resnetb_deformable',
+                    'resnetb_deformable',
+                    'resnetb_deformable_strided',
+                    'resnetb_deformable',
+                    'resnetb_deformable',
                     'nearest_upsample',
                     'unary',
                     'nearest_upsample',
@@ -109,7 +109,7 @@ class S3DISConfig(Config):
     deform_radius = 6.0
 
     # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
-    KP_extent = 1.5
+    KP_extent = 1.2
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
     KP_influence = 'linear'
@@ -128,12 +128,13 @@ class S3DISConfig(Config):
     use_batch_norm = True
     batch_norm_momentum = 0.02
 
-    # Offset loss
+    # Deformable offset loss
     # 'point2point' fitting geometry by penalizing distance from deform point to input points
-    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet
+    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
     deform_fitting_mode = 'point2point'
-    deform_fitting_power = 0.05
-    deform_loss_power = 0.5
+    deform_fitting_power = 0.1              # Multiplier for the fitting/repulsive loss
+    deform_loss_power = 0.1                 # Multiplier for output loss applied to the deformations
+    repulse_extent = 0.8                    # Distance of repulsion for deformed kernel points
 
     #####################
     # Training parameters
@@ -193,7 +194,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '2'
+    GPU_ID = '0'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID

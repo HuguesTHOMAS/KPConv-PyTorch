@@ -74,6 +74,7 @@ def create_3D_rotations(axis, angle):
 
     return np.reshape(R, (-1, 3, 3))
 
+
 def spherical_Lloyd(radius, num_cells, dimension=3, fixed='center', approximation='monte-carlo',
                     approx_n=5000, max_iter=500, momentum=0.9, verbose=0):
     """

@@ -123,7 +123,7 @@ class SemanticKittiConfig(Config):
     deform_radius = 6.0
 
     # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
-    KP_extent = 1.5
+    KP_extent = 1.2
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
     KP_influence = 'linear'
@@ -142,11 +142,13 @@ class SemanticKittiConfig(Config):
     use_batch_norm = True
     batch_norm_momentum = 0.02
 
-    # Offset loss
-    # 'permissive' only constrains offsets inside the deform radius (NOT implemented yet)
-    # 'fitting' helps deformed kernels to adapt to the geometry by penalizing distance to input points
-    offsets_loss = 'fitting'
-    offsets_decay = 0.01
+    # Deformable offset loss
+    # 'point2point' fitting geometry by penalizing distance from deform point to input points
+    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
+    deform_fitting_mode = 'point2point'
+    deform_fitting_power = 0.1              # Multiplier for the fitting/repulsive loss
+    deform_loss_power = 0.1                 # Multiplier for output loss applied to the deformations
+    repulse_extent = 0.8                    # Distance of repulsion for deformed kernel points
 
     #####################
     # Training parameters
@@ -193,7 +195,6 @@ class SemanticKittiConfig(Config):
     # class_w = [1.430, 5.000, 5.000, 4.226, 5.000, 5.000, 5.000, 5.000, 0.719, 2.377,
     #            0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.000, 5.000]
 
-
     # Do we nee to save convergence
     saving = True
     saving_path = None
@@ -212,7 +213,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '2'
+    GPU_ID = '0'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID

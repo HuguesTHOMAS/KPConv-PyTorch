@@ -97,8 +97,8 @@ if __name__ == '__main__':
 
     chosen_log = 'results/Log_2020-04-05_19-19-20'  # => ModelNet40
 
-    # You can also choose the index of the snapshot to load (last by default)
-    chkp_idx = -1
+    # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
+    chkp_idx = None
 
     # Choose to test on validation or test split
     on_val = True
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '1'
+    GPU_ID = '0'
 
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID
@@ -216,11 +216,3 @@ if __name__ == '__main__':
         tester.slam_segmentation_test(net, test_loader, config)
     else:
         raise ValueError('Unsupported dataset_task for testing: ' + config.dataset_task)
-
-
-    # TODO: For test and also for training. When changing epoch do not restart the worker initiation. Keep workers
-    #  active with a while loop instead of using for loops.
-    #  For training and validation, keep two sets of worker active in parallel? is it possible?
-
-    # TODO: We have to verify if training on smaller spheres and testing on whole frame changes the score because
-    #  batchnorm may not have the same result as distribution of points will be different.

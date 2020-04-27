@@ -805,36 +805,8 @@ class ModelNet40CustomBatch:
         return all_p_list
 
 
-
-
 def ModelNet40Collate(batch_data):
     return ModelNet40CustomBatch(batch_data)
-
-
-class ModelNet40WorkerInitDebug():
-    """Callable class that Initializes workers."""
-
-    def __init__(self, dataset):
-        self.dataset = dataset
-        return
-
-    def __call__(self, worker_id):
-
-        # Print workers info
-        worker_info = get_worker_info()
-        print(worker_info)
-
-        # Get associated dataset
-        dataset = worker_info.dataset  # the dataset copy in this worker process
-
-        # In windows, each worker has its own copy of the dataset. In Linux, this is shared in memory
-        print(dataset.input_labels.__array_interface__['data'])
-        print(worker_info.dataset.input_labels.__array_interface__['data'])
-        print(self.dataset.input_labels.__array_interface__['data'])
-
-        # configure the dataset to only process the split workload
-
-        return
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -994,3 +966,30 @@ def debug_batch_and_neighbors_calib(dataset, sampler, loader):
 
     _, counts = np.unique(dataset.input_labels, return_counts=True)
     print(counts)
+
+
+class ModelNet40WorkerInitDebug:
+    """Callable class that Initializes workers."""
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+        return
+
+    def __call__(self, worker_id):
+
+        # Print workers info
+        worker_info = get_worker_info()
+        print(worker_info)
+
+        # Get associated dataset
+        dataset = worker_info.dataset  # the dataset copy in this worker process
+
+        # In windows, each worker has its own copy of the dataset. In Linux, this is shared in memory
+        print(dataset.input_labels.__array_interface__['data'])
+        print(worker_info.dataset.input_labels.__array_interface__['data'])
+        print(self.dataset.input_labels.__array_interface__['data'])
+
+        # configure the dataset to only process the split workload
+
+        return
+
