@@ -40,8 +40,6 @@ experiments are in the [doc](./doc) folder.
 * [SLAM Segmentation](./doc/slam_segmentation_guide.md): Instructions to train KP-FCNN on a slam segmentation 
  task (SemanticKitti).
  
-* [New Dataset](./doc/new_dataset_guide.md): Instructions to train KPConv networks on your own data.
- 
 * [Pretrained models](./doc/pretrained_models_guide.md): We provide pretrained weights and instructions to load them.
  
 * [Visualization scripts](./doc/visualization_guide.md): For now only one visualization script has been implemented: 
