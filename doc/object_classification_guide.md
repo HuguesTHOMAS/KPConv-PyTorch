@@ -3,9 +3,16 @@
 
 ### Data
 
-Regularly sampled clouds from ModelNet40 dataset can be downloaded <a href="https://shapenet.cs.stanford.edu/media/modelnet40_normal_resampled.zip">here (1.6 GB)</a>. Uncompress the folder and move it to `Data/ModelNet40/modelnet40_normal_resampled`.
+We consider our experiment folder is located at `XXXX/Experiments/KPConv-PyTorch`. And we use a common Data folder 
+loacated at `XXXX/Data`. Therefore the relative path to the Data folder is `../../Data`.
 
-N.B. If you want to place your data anywhere else, you just have to change the variable `self.path` of `ModelNet40Dataset` class (in the file `datasets/ModelNet40.py`).
+Regularly sampled clouds from ModelNet40 dataset can be downloaded 
+<a href="https://shapenet.cs.stanford.edu/media/modelnet40_normal_resampled.zip">here (1.6 GB)</a>. 
+Uncompress the data and move it inside the folder `../../Data/ModelNet40`.
+
+N.B. If you want to place your data anywhere else, you just have to change the variable 
+`self.path` of `ModelNet40Dataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/e9d328135c0a3818ee0cf1bb5bb63434ce15c22e/datasets/ModelNet40.py#L113)).
+
 
 ### Training a model
 
@@ -17,7 +24,7 @@ This file contains a configuration subclass `ModelNet40Config`, inherited from t
         
 ### Plot a logged training
 
-When you start a new training, it is saved in a `results` folder. A dated log folder will be created, containing many information including loss values, validation metrics, model snapshots, etc.
+When you start a new training, it is saved in a `results` folder. A dated log folder will be created, containing many information including loss values, validation metrics, model checkpoints, etc.
 
 In `plot_convergence.py`, you will find detailed comments explaining how to choose which training log you want to plot. Follow them and then run the script :
 

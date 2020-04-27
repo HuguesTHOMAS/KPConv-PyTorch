@@ -15,7 +15,7 @@ Similarly to ModelNet40 training, the parameters can be modified in a configurat
        
 ### Plot a logged training
 
-When you start a new training, it is saved in a `results` folder. A dated log folder will be created, containing many information including loss values, validation metrics, model snapshots, etc.
+When you start a new training, it is saved in a `results` folder. A dated log folder will be created, containing many information including loss values, validation metrics, model checkpoints, etc.
 
 In `plot_convergence.py`, you will find detailed comments explaining how to choose which training log you want to plot. Follow them and then run the script :
 
