@@ -47,8 +47,6 @@ experiments are in the [doc](./doc) folder.
 * [Visualization scripts](./doc/visualization_guide.md): For now only one visualization script has been implemented: 
 the kernel deformations display.
 
-TODO: Guide for these experiments
-
 ## Acknowledgment
 
 Our code uses the <a href="https://github.com/jlblancoc/nanoflann">nanoflann</a> library.
