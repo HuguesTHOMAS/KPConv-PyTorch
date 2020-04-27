@@ -1,5 +1,5 @@
 
-## Scene Segmentation on S3DIS
+## Scene Segmentation on SemanticKitti
 
 ### Data
 
@@ -12,22 +12,24 @@ Download the three file named:
  * [`data_odometry_calib.zip` (1 MB)](http://www.cvlibs.net/download.php?file=data_odometry_calib.zip)
  * [`data_odometry_labels.zip` (179 MB)](http://semantic-kitti.org/assets/data_odometry_labels.zip)
 
-
 uncompress the data and move it to `../../Data/SemanticKitti`.
 
-http://www.cvlibs.net/download.php?file=data_odometry_velodyne.zip
-
+You also need to download the files 
+[`semantic-kitti-all.yaml`](https://github.com/PRBonn/semantic-kitti-api/blob/master/config/semantic-kitti-all.yaml)
+and
+[`semantic-kitti.yaml`](https://github.com/PRBonn/semantic-kitti-api/blob/master/config/semantic-kitti.yaml).
+Place them in your `../../Data/SemanticKitti` folder.
 
 N.B. If you want to place your data anywhere else, you just have to change the variable 
-`self.path` of `S3DISDataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/afa18c92f00c6ed771b61cb08b285d2f93446ea4/datasets/S3DIS.py#L88)).
+`self.path` of `SemanticKittiDataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/c32e6ce94ed34a3dd9584f98d8dc0be02535dfb4/datasets/SemanticKitti.py#L65)).
 
 ### Training
 
 Simply run the following script to start the training:
 
-        python3 training_S3DIS.py
+        python3 training_SemanticKitti.py
         
-Similarly to ModelNet40 training, the parameters can be modified in a configuration subclass called `S3DISConfig`, and the first run of this script might take some time to precompute dataset structures.
+Similarly to ModelNet40 training, the parameters can be modified in a configuration subclass called `SemanticKittiConfig`, and the first run of this script might take some time to precompute dataset structures.
 
 
 ### Plot a logged training
