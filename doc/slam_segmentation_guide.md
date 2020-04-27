@@ -8,9 +8,12 @@ loacated at `XXXX/Data`. Therefore the relative path to the Data folder is `../.
 
 SemanticKitti dataset can be downloaded <a href="http://semantic-kitti.org/dataset.html#download">here (80 GB)</a>. 
 Download the three file named:
- * `data_odometry_velodyne.zip`, [`data_odometry_velodyne.zip`](http://www.cvlibs.net/download.php?file=data_odometry_velodyne.zip)
+ * [`data_odometry_velodyne.zip` (80 GB)](http://www.cvlibs.net/download.php?file=data_odometry_velodyne.zip)
+ * [`data_odometry_calib.zip` (1 MB)](http://www.cvlibs.net/download.php?file=data_odometry_calib.zip)
+ * [`data_odometry_labels.zip` (179 MB)](http://semantic-kitti.org/assets/data_odometry_labels.zip)
 
-uncompress the data and move it to `../../Data/S3DIS`.
+
+uncompress the data and move it to `../../Data/SemanticKitti`.
 
 http://www.cvlibs.net/download.php?file=data_odometry_velodyne.zip
 
