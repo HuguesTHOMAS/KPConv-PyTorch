@@ -34,7 +34,9 @@ You should now be able to train Kernel-Point Convolution models
      
 * Follow <a href="https://pytorch.org/get-started/locally/">PyTorch installation procedure</a>.
      
-* We used the PyCharm IDE to pip install all python dependencies (including PyTorch):
+* We used the PyCharm IDE to pip install all python dependencies (including PyTorch) in a venv:
+     - torch
+     - torchvision
      - numpy
      - scikit-learn
      - PyYAML
@@ -46,7 +48,7 @@ You should now be able to train Kernel-Point Convolution models
 
         cpp_wrappers/cpp_neighbors/build.bat
         
-and
+  and
         
         cpp_wrappers/cpp_subsampling/build.bat
         
