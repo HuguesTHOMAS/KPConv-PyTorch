@@ -1,10 +1,16 @@
 
-
 ## Scene Segmentation on S3DIS
 
 ### Data
 
-S3DIS dataset can be downloaded <a href="https://goo.gl/forms/4SoGp4KtH1jfRqEj2">here (4.8 GB)</a>. Download the file named `Stanford3dDataset_v1.2.zip`, uncompress the folder and move it to `Data/S3DIS/Stanford3dDataset_v1.2`.
+We consider our experiment folder is located at `XXXX/Experiments/KPConv-PyTorch`. And we use a common Data folder 
+loacated at `XXXX/Data`. Therefore the relative path to the Data folder is `../../Data`.
+
+S3DIS dataset can be downloaded <a href="https://goo.gl/forms/4SoGp4KtH1jfRqEj2">here (4.8 GB)</a>. 
+Download the file named `Stanford3dDataset_v1.2.zip`, uncompress the data and move it to `../../Data/S3DIS`.
+
+N.B. If you want to place your data anywhere else, you just have to change the variable 
+`self.path` of `S3DISDataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/afa18c92f00c6ed771b61cb08b285d2f93446ea4/datasets/S3DIS.py#L88)).
 
 ### Training
 
@@ -14,33 +20,6 @@ Simply run the following script to start the training:
         
 Similarly to ModelNet40 training, the parameters can be modified in a configuration subclass called `S3DISConfig`, and the first run of this script might take some time to precompute dataset structures.
 
-
-## Scene Segmentation on Scannet
-
-Incoming
-
-## Scene Segmentation on Semantic3D
-
-### Data
-
-Semantic3D dataset can be found <a href="http://www.semantic3d.net/view_dbase.php?chl=2">here</a>. Download and unzip every point cloud as ascii files and place them in a folder called `Data/Semantic3D/original_data`. You also have to download and unzip the groundthruth labels as ascii files in the same folder
-
-
-### Training
-
-Simply run the following script to start the training:
-
-        python3 training_Semantic3D.py
-        
-Similarly to ModelNet40 training, the parameters can be modified in a configuration subclass called `Semantic3DConfig`, and the first run of this script might take some time to precompute dataset structures.
-
-
-## Scene Segmentation on NPM3D
-
-Incoming
-
-       
-## Plot and test trained models
 
 ### Plot a logged training
 
