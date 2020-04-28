@@ -148,7 +148,7 @@ class SemanticKittiConfig(Config):
     deform_fitting_mode = 'point2point'
     deform_fitting_power = 1.0              # Multiplier for the fitting/repulsive loss
     deform_lr_factor = 0.1                  # Multiplier for learning rate applied to the deformations
-    repulse_extent = 0.8                    # Distance of repulsion for deformed kernel points
+    repulse_extent = 1.2                    # Distance of repulsion for deformed kernel points
 
     #####################
     # Training parameters
