@@ -27,19 +27,6 @@ def p2p_fitting_regularizer(net):
 
         if isinstance(m, KPConv) and m.deformable:
 
-            ########################
-            # divide offset gradient
-            ########################
-            #
-            # The offset gradient comes from two different losses. The regularizer loss (fitting deformation to point
-            # cloud) and the output loss (which should force deformations to help get a better score). The strength of
-            # the regularizer loss is set with the parameter deform_fitting_power. Therefore, this hook control the
-            # strength of the output loss. This strength can be set with the parameter deform_loss_power
-            #
-
-            m.offset_features.register_hook(lambda grad: grad * net.deform_loss_power)
-            # m.offset_features.register_hook(lambda grad: print('GRAD2', grad[10, 5, :]))
-
             ##############
             # Fitting loss
             ##############
@@ -64,8 +51,7 @@ def p2p_fitting_regularizer(net):
                 rep_loss = torch.sum(torch.clamp_max(distances - net.repulse_extent, max=0.0) ** 2, dim=1)
                 repulsive_loss += net.l1(rep_loss, torch.zeros_like(rep_loss)) / net.K
 
-    # The hook effectively affect both regularizer and output loss. So here we have to divide by  deform_loss_power
-    return (net.deform_fitting_power / net.deform_loss_power) * (2 * fitting_loss + repulsive_loss)
+    return net.deform_fitting_power * (2 * fitting_loss + repulsive_loss)
 
 
 class KPCNN(nn.Module):
@@ -139,7 +125,7 @@ class KPCNN(nn.Module):
         self.criterion = torch.nn.CrossEntropyLoss()
         self.deform_fitting_mode = config.deform_fitting_mode
         self.deform_fitting_power = config.deform_fitting_power
-        self.deform_loss_power = config.deform_loss_power
+        self.deform_lr_factor = config.deform_lr_factor
         self.repulse_extent = config.repulse_extent
         self.output_loss = 0
         self.reg_loss = 0
@@ -325,7 +311,7 @@ class KPFCNN(nn.Module):
             self.criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
         self.deform_fitting_mode = config.deform_fitting_mode
         self.deform_fitting_power = config.deform_fitting_power
-        self.deform_loss_power = config.deform_loss_power
+        self.deform_lr_factor = config.deform_lr_factor
         self.repulse_extent = config.repulse_extent
         self.output_loss = 0
         self.reg_loss = 0

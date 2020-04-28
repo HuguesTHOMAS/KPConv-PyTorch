@@ -124,8 +124,8 @@ class Modelnet40Config(Config):
     # 'point2point' fitting geometry by penalizing distance from deform point to input points
     # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
     deform_fitting_mode = 'point2point'
-    deform_fitting_power = 0.1              # Multiplier for the fitting/repulsive loss
-    deform_loss_power = 0.1                 # Multiplier for output loss applied to the deformations
+    deform_fitting_power = 1.0              # Multiplier for the fitting/repulsive loss
+    deform_lr_factor = 0.1                  # Multiplier for learning rate applied to the deformations
     repulse_extent = 0.8                    # Distance of repulsion for deformed kernel points
 
     #####################

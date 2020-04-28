@@ -163,8 +163,8 @@ class Config:
     # 'point2point' fitting geometry by penalizing distance from deform point to input points
     # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
     deform_fitting_mode = 'point2point'
-    deform_fitting_power = 0.1              # Multiplier for the fitting/repulsive loss
-    deform_loss_power = 0.1                 # Multiplier for output loss applied to the deformations
+    deform_fitting_power = 1.0              # Multiplier for the fitting/repulsive loss
+    deform_lr_factor = 0.1                  # Multiplier for learning rate applied to the deformations
     repulse_extent = 1.0                    # Distance of repulsion for deformed kernel points
 
     # Number of batch
@@ -368,7 +368,7 @@ class Config:
             text_file.write('\n')
             text_file.write('deform_fitting_mode = {:s}\n'.format(self.deform_fitting_mode))
             text_file.write('deform_fitting_power = {:.6f}\n'.format(self.deform_fitting_power))
-            text_file.write('deform_loss_power = {:.6f}\n'.format(self.deform_loss_power))
+            text_file.write('deform_lr_factor = {:.6f}\n'.format(self.deform_lr_factor))
             text_file.write('repulse_extent = {:.6f}\n'.format(self.repulse_extent))
             text_file.write('batch_num = {:d}\n'.format(self.batch_num))
             text_file.write('val_batch_num = {:d}\n'.format(self.val_batch_num))

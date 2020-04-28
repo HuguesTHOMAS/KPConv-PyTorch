@@ -174,8 +174,6 @@ class KPConv(nn.Module):
         self.deformable = deformable
         self.modulated = modulated
 
-        self.in_offset_channels = in_channels
-
         # Running variable containing deformed KP distance to input points. (used in regularization loss)
         self.min_d2 = None
         self.deformed_KP = None
@@ -193,7 +191,7 @@ class KPConv(nn.Module):
                 self.offset_dim = self.p_dim * self.K
             self.offset_conv = KPConv(self.K,
                                       self.p_dim,
-                                      self.in_offset_channels,
+                                      self.in_channels,
                                       self.offset_dim,
                                       KP_extent,
                                       radius,
@@ -245,8 +243,7 @@ class KPConv(nn.Module):
         if self.deformable:
 
             # Get offsets with a KPConv that only takes part of the features
-            x_offsets = x[:, :self.in_offset_channels]
-            self.offset_features = self.offset_conv(q_pts, s_pts, neighb_inds, x_offsets) + self.offset_bias
+            self.offset_features = self.offset_conv(q_pts, s_pts, neighb_inds, x) + self.offset_bias
 
             if self.modulated:
 
