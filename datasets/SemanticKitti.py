@@ -776,8 +776,8 @@ class SemanticKittiSampler(Sampler):
                     gen_classes.append(class_indices * 0 + c)
 
                     # Update potentials
-                    self.dataset.potentials[class_indices] = np.ceil(self.dataset.potentials[class_indices])
-                    self.dataset.potentials[class_indices] += np.random.rand(class_indices.shape[0]) * 0.1 + 0.1
+                    self.dataset.potentials[class_indices] = torch.ceil(self.dataset.potentials[class_indices])
+                    self.dataset.potentials[class_indices] += torch.from_numpy(np.random.rand(class_indices.shape[0]) * 0.1 + 0.1)
 
             # Stack the chosen indices of all classes
             gen_indices = torch.cat(gen_indices, dim=0)
@@ -789,8 +789,8 @@ class SemanticKittiSampler(Sampler):
             gen_classes = gen_classes[rand_order]
 
             # Update potentials (Change the order for the next epoch)
-            self.dataset.potentials[gen_indices] = torch.ceil(self.dataset.potentials[gen_indices])
-            self.dataset.potentials[gen_indices] += torch.from_numpy(np.random.rand(gen_indices.shape[0]) * 0.1 + 0.1)
+            #self.dataset.potentials[gen_indices] = torch.ceil(self.dataset.potentials[gen_indices])
+            #self.dataset.potentials[gen_indices] += torch.from_numpy(np.random.rand(gen_indices.shape[0]) * 0.1 + 0.1)
 
             # Update epoch inds
             self.dataset.epoch_inds += gen_indices
