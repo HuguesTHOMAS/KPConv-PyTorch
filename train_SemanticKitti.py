@@ -100,15 +100,15 @@ class SemanticKittiConfig(Config):
     ###################
 
     # Radius of the input sphere
-    in_radius = 6.0
-    val_radius = 51.0
+    in_radius = 4.0
+    val_radius = 4.0
     n_frames = 1
     max_in_points = 100000
     max_val_points = 200000
 
     # Number of batch
     batch_num = 8
-    val_batch_num = 1
+    val_batch_num = 8
 
     # Number of kernel points
     num_kernel_points = 15
