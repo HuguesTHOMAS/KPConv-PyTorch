@@ -904,7 +904,7 @@ class SemanticKittiSampler(Sampler):
                 for batch_i, batch in enumerate(dataloader):
 
                     # Control max_in_points value
-                    all_lengths += batch.lengths[0]
+                    all_lengths += batch.lengths[0].tolist()
 
                     # Convergence
                     if len(all_lengths) > N:
