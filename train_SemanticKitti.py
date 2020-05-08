@@ -104,7 +104,7 @@ class SemanticKittiConfig(Config):
     val_radius = 4.0
     n_frames = 1
     max_in_points = 100000
-    max_val_points = 200000
+    max_val_points = 100000
 
     # Number of batch
     batch_num = 8
