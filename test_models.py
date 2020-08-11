@@ -162,7 +162,7 @@ if __name__ == '__main__':
         set = 'test'
 
     # Initiate dataset
-    if config.dataset.startswith('ModelNet40'):
+    if config.dataset == 'ModelNet40':
         test_dataset = ModelNet40Dataset(config, train=False)
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 
     # Training
     if config.dataset_task == 'classification':
-        a = 1/0
+        tester.classification_test(net, test_loader, config)
     elif config.dataset_task == 'cloud_segmentation':
         tester.cloud_segmentation_test(net, test_loader, config)
     elif config.dataset_task == 'slam_segmentation':
