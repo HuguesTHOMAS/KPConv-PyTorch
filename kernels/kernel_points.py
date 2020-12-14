@@ -318,7 +318,11 @@ def kernel_point_optimization_debug(radius, num_points, num_kernels=1, dimension
 
     saved_gradient_norms = np.zeros((10000, num_kernels))
     old_gradient_norms = np.zeros((num_kernels, num_points))
-    for iter in range(10000):
+    step = -1
+    while step < 10000:
+
+        # Increment
+        step += 1
 
         # Compute gradients
         # *****************
@@ -344,7 +348,7 @@ def kernel_point_optimization_debug(radius, num_points, num_kernels=1, dimension
 
         # Compute norm of gradients
         gradients_norms = np.sqrt(np.sum(np.power(gradients, 2), axis=-1))
-        saved_gradient_norms[iter, :] = np.max(gradients_norms, axis=1)
+        saved_gradient_norms[step, :] = np.max(gradients_norms, axis=1)
 
         # Stop if all moving points are gradients fixed (low gradients diff)
 
@@ -372,7 +376,7 @@ def kernel_point_optimization_debug(radius, num_points, num_kernels=1, dimension
         kernel_points -= np.expand_dims(moving_dists, -1) * gradients / np.expand_dims(gradients_norms + 1e-6, -1)
 
         if verbose:
-            print('iter {:5d} / max grad = {:f}'.format(iter, np.max(gradients_norms[:, 3:])))
+            print('step {:5d} / max grad = {:f}'.format(step, np.max(gradients_norms[:, 3:])))
         if verbose > 1:
             plt.clf()
             plt.plot(kernel_points[0, :, 0], kernel_points[0, :, 1], '.')
@@ -388,6 +392,10 @@ def kernel_point_optimization_debug(radius, num_points, num_kernels=1, dimension
 
         # moving factor decay
         moving_factor *= continuous_moving_decay
+
+    # Remove unused lines in the saved gradients
+    if step < 10000:
+        saved_gradient_norms = saved_gradient_norms[:step+1, :]
 
     # Rescale radius to fit the wanted ratio of radius
     r = np.sqrt(np.sum(np.power(kernel_points, 2), axis=-1))
