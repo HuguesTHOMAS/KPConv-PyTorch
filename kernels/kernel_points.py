@@ -22,16 +22,14 @@
 #
 
 
-# Import numpy package and name it "np"
-import time
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import cm
 from os import makedirs
 from os.path import join, exists
 
-from utils.ply import read_ply, write_ply
+import matplotlib.pyplot as plt
+import numpy as np
+
 from utils.config import bcolors
+from utils.ply import read_ply_file_all_formats, write_ply
 
 
 # ------------------------------------------------------------------------------------------
@@ -447,7 +445,7 @@ def load_kernels(radius, num_kpoints, dimension, fixed, lloyd=False):
         write_ply(kernel_file, kernel_points, ['x', 'y', 'z'])
 
     else:
-        data = read_ply(kernel_file)
+        data = read_ply_file_all_formats(kernel_file)
         kernel_points = np.vstack((data['x'], data['y'], data['z'])).T
 
     # Random roations for the kernel

@@ -225,7 +225,7 @@ class ModelTrainer:
                         message = '{:d} {:d} {:.3f} {:.3f} {:.3f} {:.3f}\n'
                         file.write(message.format(self.epoch,
                                                   self.step,
-                                                  net.output_loss,
+                                                  net.output_loss.item(),
                                                   net.reg_loss,
                                                   acc,
                                                   t[-1] - t0))
@@ -277,6 +277,7 @@ class ModelTrainer:
     # Validation methods
     # ------------------------------------------------------------------------------------------------------------------
 
+    @torch.no_grad()
     def validation(self, net, val_loader, config: Config):
 
         if config.dataset_task == 'classification':
@@ -463,6 +464,8 @@ class ModelTrainer:
 
 
         t1 = time.time()
+        all_accs = []
+        all_losses = []
 
         # Start validation loop
         for i, batch in enumerate(val_loader):
@@ -476,6 +479,13 @@ class ModelTrainer:
 
             # Forward pass
             outputs = net(batch, config)
+
+            loss = net.loss(outputs, batch.labels)
+            loss = loss.cpu().detach().item()
+            all_losses.append(loss)
+
+            acc = net.accuracy(outputs, batch.labels)
+            all_accs.append(acc)
 
             # Get probs and labels
             stacked_probs = softmax(outputs).cpu().detach().numpy()
@@ -511,12 +521,12 @@ class ModelTrainer:
             mean_dt = 0.95 * mean_dt + 0.05 * (np.array(t[1:]) - np.array(t[:-1]))
 
             # Display
-            if (t[-1] - last_display) > 1.0:
-                last_display = t[-1]
-                message = 'Validation : {:.1f}% (timings : {:4.2f} {:4.2f})'
-                print(message.format(100 * i / config.validation_size,
-                                     1000 * (mean_dt[0]),
-                                     1000 * (mean_dt[1])))
+            # if (t[-1] - last_display) > 1.0:
+            #     last_display = t[-1]
+            #     message = 'Validation : {:.1f}% (timings : {:4.2f} {:4.2f})'
+            #     print(message.format(100 * i / config.validation_size,
+            #                          1000 * (mean_dt[0]),
+            #                          1000 * (mean_dt[1])))
 
         t2 = time.time()
 
@@ -596,7 +606,7 @@ class ModelTrainer:
 
         # Print instance mean
         mIoU = 100 * np.mean(IoUs)
-        print('{:s} mean IoU = {:.1f}%'.format(config.dataset, mIoU))
+        print(f'{config.dataset} | mean IoU = {mIoU} | mean accuracy = {np.mean(all_accs)} | mean loss = {np.mean(all_losses)}')
 
         # Save predicted cloud occasionally
         if config.saving and (self.epoch + 1) % config.checkpoint_gap == 0:
@@ -629,6 +639,10 @@ class ModelTrainer:
 
                 # Save file
                 labels = val_loader.dataset.validation_labels[i].astype(np.int32)
+
+                if type(labels) is not np.array:
+                    labels = np.array(labels)
+
                 write_ply(val_name,
                           [points, preds, labels],
                           ['x', 'y', 'z', 'preds', 'class'])
@@ -895,38 +909,3 @@ class ModelTrainer:
             print('\n************************\n')
 
         return
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -25,6 +25,7 @@
 # Basic libs
 import numpy as np
 import sys
+from pyntcloud import PyntCloud
 
 
 # Define PLY types
@@ -57,6 +58,10 @@ valid_formats = {'ascii': '', 'binary_big_endian': '>',
 #           Functions
 #       \***************/
 #
+
+def read_ply_file_all_formats(path):
+    plydata = PyntCloud.from_file(path)
+    return plydata.points
 
 
 def parse_header(plyfile, ext):
@@ -140,7 +145,7 @@ def read_ply(filename, triangular_mesh=False):
     >>> data = read_ply('example.ply')
     >>> values = data['values']
     array([0, 0, 1, 1, 0])
-    
+
     >>> points = np.vstack((data['x'], data['y'], data['z'])).T
     array([[ 0.466  0.595  0.324]
            [ 0.538  0.407  0.654]
@@ -242,7 +247,7 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
     >>> write_ply('example2.ply', [points, values], ['x', 'y', 'z', 'values'])
 
     >>> colors = np.random.randint(255, size=(10,3), dtype=np.uint8)
-    >>> field_names = ['x', 'y', 'z', 'red', 'green', 'blue', values']
+    >>> field_names = ['x', 'y', 'z', 'red', 'green', 'blue', 'values']
     >>> write_ply('example3.ply', [points, colors, values], field_names)
 
     """
@@ -254,13 +259,13 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
             field_list[i] = field.reshape(-1, 1)
         if field.ndim > 2:
             print('fields have more than 2 dimensions')
-            return False    
+            return False
 
     # check all fields have the same number of data
     n_points = [field.shape[0] for field in field_list]
     if not np.all(np.equal(n_points, n_points[0])):
         print('wrong field dimensions')
-        return False    
+        return False
 
     # Check if field_names and field_list have same nb of column
     n_fields = np.sum([field.shape[1] for field in field_list])
