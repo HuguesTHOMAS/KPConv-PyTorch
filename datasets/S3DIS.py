@@ -91,7 +91,7 @@ class S3DISDataset(PointCloudDataset):
         self.dataset_task = 'cloud_segmentation'
 
         # Update number of class and data task in configuration
-        config.num_classes = self.num_classes
+        config.num_classes = self.num_classes - len(self.ignored_labels)
         config.dataset_task = self.dataset_task
 
         # Parameters from config
