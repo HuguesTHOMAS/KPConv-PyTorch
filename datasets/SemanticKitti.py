@@ -769,7 +769,7 @@ class SemanticKittiSampler(Sampler):
                         _, class_indices = torch.topk(class_potentials, class_n, largest=False)
                     else:
                         class_indices = torch.zeros((0,), dtype=torch.int32)
-                        while class_indices.shape < class_n:
+                        while class_indices.shape[0] < class_n:
                             new_class_inds = torch.randperm(class_potentials.shape[0])
                             class_indices = torch.cat((class_indices, new_class_inds), dim=0)
                         class_indices = class_indices[:class_n]
