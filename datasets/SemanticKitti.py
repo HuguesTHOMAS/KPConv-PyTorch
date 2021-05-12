@@ -327,7 +327,7 @@ class SemanticKittiDataset(PointCloudDataset):
                     new_coords = new_points - pose0[:3, 3]
                     # new_coords = new_coords.dot(pose0[:3, :3])
                     new_coords = np.sum(np.expand_dims(new_coords, 2) * pose0[:3, :3], axis=1)
-                    new_coords = np.hstack((new_coords, points[:, 3:]))
+                    new_coords = np.hstack((new_coords, points[rand_order, 3:]))
 
                 # Increment merge count
                 merged_points = np.vstack((merged_points, new_points))
