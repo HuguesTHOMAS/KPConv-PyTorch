@@ -268,8 +268,8 @@ if __name__ == '__main__':
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = S3DISDataset(config, set='training', use_potentials=False)
-    test_dataset = S3DISDataset(config, set='validation', use_potentials=False)
+    training_dataset = S3DISDataset(config, set='training', use_potentials=True)
+    test_dataset = S3DISDataset(config, set='validation', use_potentials=True)
 
     # Initialize samplers
     training_sampler = S3DISSampler(training_dataset)
