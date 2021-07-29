@@ -94,9 +94,7 @@ class S3DISConfig(Config):
                     'resnetb',
                     'resnetb_strided',
                     'resnetb',
-                    'resnetb',
                     'resnetb_strided',
-                    'resnetb',
                     'resnetb',
                     'resnetb_strided',
                     'resnetb',
@@ -121,10 +119,10 @@ class S3DISConfig(Config):
     num_kernel_points = 15
 
     # Radius of the input sphere (decrease value to reduce memory cost)
-    in_radius = 1.0
+    in_radius = 1.2
 
     # Size of the first subsampling grid in meter (increase value to reduce memory cost)
-    first_subsampling_dl = 0.02
+    first_subsampling_dl = 0.03
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -189,8 +187,8 @@ class S3DISConfig(Config):
     augment_scale_anisotropic = True
     augment_symmetries = [True, False, False]
     augment_rotation = 'vertical'
-    augment_scale_min = 0.8
-    augment_scale_max = 1.2
+    augment_scale_min = 0.9
+    augment_scale_max = 1.1
     augment_noise = 0.001
     augment_color = 0.8
 
