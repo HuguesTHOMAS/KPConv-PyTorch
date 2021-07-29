@@ -1,7 +1,9 @@
 
+**/build
 **/desktop.ini
 /results
 /test
+/docker_scripts
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
