@@ -97,7 +97,7 @@ class S3DISConfig(Config):
     num_kernel_points = 15
 
     # Radius of the input sphere (decrease value to reduce memory cost)
-    in_radius = 1.5
+    in_radius = 1.2
 
     # Size of the first subsampling grid in meter (increase value to reduce memory cost)
     first_subsampling_dl = 0.02
