@@ -65,6 +65,30 @@ class S3DISConfig(Config):
     # Architecture definition
     #########################
 
+    # # Define layers
+    # architecture = ['simple',
+    #                 'resnetb',
+    #                 'resnetb_strided',
+    #                 'resnetb',
+    #                 'resnetb',
+    #                 'resnetb_strided',
+    #                 'resnetb_deformable',
+    #                 'resnetb_deformable',
+    #                 'resnetb_deformable_strided',
+    #                 'resnetb_deformable',
+    #                 'resnetb_deformable',
+    #                 'resnetb_deformable_strided',
+    #                 'resnetb_deformable',
+    #                 'resnetb_deformable',
+    #                 'nearest_upsample',
+    #                 'unary',
+    #                 'nearest_upsample',
+    #                 'unary',
+    #                 'nearest_upsample',
+    #                 'unary',
+    #                 'nearest_upsample',
+    #                 'unary']
+
     # Define layers
     architecture = ['simple',
                     'resnetb',
@@ -72,14 +96,14 @@ class S3DISConfig(Config):
                     'resnetb',
                     'resnetb',
                     'resnetb_strided',
-                    'resnetb_deformable',
-                    'resnetb_deformable',
-                    'resnetb_deformable_strided',
-                    'resnetb_deformable',
-                    'resnetb_deformable',
-                    'resnetb_deformable_strided',
-                    'resnetb_deformable',
-                    'resnetb_deformable',
+                    'resnetb',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb',
+                    'resnetb',
                     'nearest_upsample',
                     'unary',
                     'nearest_upsample',
@@ -97,7 +121,7 @@ class S3DISConfig(Config):
     num_kernel_points = 15
 
     # Radius of the input sphere (decrease value to reduce memory cost)
-    in_radius = 1.2
+    in_radius = 1.0
 
     # Size of the first subsampling grid in meter (increase value to reduce memory cost)
     first_subsampling_dl = 0.02
@@ -244,8 +268,8 @@ if __name__ == '__main__':
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = S3DISDataset(config, set='training', use_potentials=True)
-    test_dataset = S3DISDataset(config, set='validation', use_potentials=True)
+    training_dataset = S3DISDataset(config, set='training', use_potentials=False)
+    test_dataset = S3DISDataset(config, set='validation', use_potentials=False)
 
     # Initialize samplers
     training_sampler = S3DISSampler(training_dataset)

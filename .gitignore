@@ -4,6 +4,8 @@
 /results
 /test
 /docker_scripts
+/kernels/dispositions
+core
 
 # VSCode related
 *.code-workspace
