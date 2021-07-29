@@ -93,14 +93,14 @@ class S3DISConfig(Config):
     # KPConv parameters
     ###################
 
-    # Radius of the input sphere
-    in_radius = 1.5
-
     # Number of kernel points
     num_kernel_points = 15
 
-    # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.03
+    # Radius of the input sphere (decrease value to reduce memory cost)
+    in_radius = 1.5
+
+    # Size of the first subsampling grid in meter (increase value to reduce memory cost)
+    first_subsampling_dl = 0.02
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
