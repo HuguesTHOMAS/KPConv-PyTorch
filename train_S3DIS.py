@@ -149,7 +149,7 @@ class S3DISConfig(Config):
     lr_decays = {i: 0.1 ** (1 / 150) for i in range(1, max_epoch)}
     grad_clip_norm = 100.0
 
-    # Number of batch
+    # Number of batch (decrease to reduce memory cost, but it should remain > 3 for stability)
     batch_num = 6
 
     # Number of steps per epochs
