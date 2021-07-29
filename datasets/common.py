@@ -290,7 +290,7 @@ class PointCloudDataset(Dataset):
         if self.config.augment_scale_anisotropic:
             scale = np.random.rand(points.shape[1]) * (max_s - min_s) + min_s
         else:
-            scale = np.random.rand() * (max_s - min_s) - min_s
+            scale = np.random.rand() * (max_s - min_s) + min_s
 
         # Add random symmetries to the scale factor
         symmetries = np.array(self.config.augment_symmetries).astype(np.int32)
