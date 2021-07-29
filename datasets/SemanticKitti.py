@@ -770,7 +770,7 @@ class SemanticKittiSampler(Sampler):
                     else:
                         class_indices = torch.zeros((0,), dtype=torch.int32)
                         while class_indices.shape[0] < class_n:
-                            new_class_inds = torch.randperm(class_potentials.shape[0])
+                            new_class_inds = torch.randperm(class_potentials.shape[0]).type(torch.int32)
                             class_indices = torch.cat((class_indices, new_class_inds), dim=0)
                         class_indices = class_indices[:class_n]
                     class_indices = self.dataset.class_frames[i][class_indices]
