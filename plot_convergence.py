@@ -221,7 +221,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
 
         print(path)
 
-        if ('val_IoUs.txt' in [f for f in listdir(path)]) or ('val_confs.txt' in [f for f in listdir(path)]):
+        if ('val_IoUs.txt' in [f.decode('ascii') for f in listdir(path)]) or ('val_confs.txt' in [f.decode('ascii') for f in listdir(path)]):
             config = Config()
             config.load(path)
         else:
@@ -698,7 +698,7 @@ def experiment_name_1():
 
     # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
     start = 'Log_2020-04-22_11-52-58'
-    end = 'Log_2020-05-22_11-52-58'
+    end = 'Log_2023-07-29_12-40-27'
 
     # Name of the result path
     res_path = 'results'
@@ -707,9 +707,7 @@ def experiment_name_1():
     logs = np.sort([join(res_path, l) for l in listdir(res_path) if start <= l <= end])
 
     # Give names to the logs (for plot legends)
-    logs_names = ['name_log_1',
-                  'name_log_2',
-                  'name_log_3']
+    logs_names = ['name_log_1']
 
     # safe check log names
     logs_names = np.array(logs_names[:len(logs)])
