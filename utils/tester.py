@@ -360,10 +360,10 @@ class ModelTester:
                     proj_probs = []
                     for i, file_path in enumerate(test_loader.dataset.files):
 
-                        print(i, file_path, test_loader.dataset.test_proj[i].shape, self.test_probs[i].shape)
+                        # print(i, file_path, test_loader.dataset.test_proj[i].shape, self.test_probs[i].shape)
 
-                        print(test_loader.dataset.test_proj[i].dtype, np.max(test_loader.dataset.test_proj[i]))
-                        print(test_loader.dataset.test_proj[i][:5])
+                        # print(test_loader.dataset.test_proj[i].dtype, np.max(test_loader.dataset.test_proj[i]))
+                        # print(test_loader.dataset.test_proj[i][:5])
 
                         # Reproject probs on the evaluations points
                         probs = self.test_probs[i][test_loader.dataset.test_proj[i], :]

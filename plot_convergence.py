@@ -221,7 +221,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
 
         print(path)
 
-        if ('val_IoUs.txt' in [f.decode('ascii') for f in listdir(path)]) or ('val_confs.txt' in [f.decode('ascii') for f in listdir(path)]):
+        if ('val_IoUs.txt' in [f for f in listdir(path)]) or ('val_confs.txt' in [f for f in listdir(path)]):
             config = Config()
             config.load(path)
         else:

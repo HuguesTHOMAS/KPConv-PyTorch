@@ -95,10 +95,10 @@ if __name__ == '__main__':
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
     #       > '(old_)results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
-    chosen_log = 'results/Log_2020-04-05_19-19-20'  # => ModelNet40
+    chosen_log = 'results/Light_KPFCNN'
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
-    chkp_idx = None
+    chkp_idx = -1
 
     # Choose to test on validation or test split
     on_val = True
