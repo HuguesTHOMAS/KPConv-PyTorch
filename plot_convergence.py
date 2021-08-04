@@ -47,6 +47,22 @@ from datasets.SemanticKitti import SemanticKittiDataset
 #       \***********************/
 #
 
+def listdir_str(path):
+
+    # listdir can return binary string instead od decoded string sometimes.
+    # This function ensures a steady behavior
+
+    f_list = []
+    for f in listdir(path):
+        try:
+            f = f.decode()
+        except (UnicodeDecodeError, AttributeError):
+            pass
+        f_list.append(f)
+
+    return f_list
+
+
 
 def running_mean(signal, n, axis=0, stride=1):
     signal = np.array(signal)
@@ -148,7 +164,7 @@ def load_single_IoU(filename, n_parts):
 
 def load_snap_clouds(path, dataset, only_last=False):
 
-    cloud_folders = np.array([join(path, f) for f in listdir(path) if f.startswith('val_preds')])
+    cloud_folders = np.array([join(path, f) for f in listdir_str(path) if f.startswith('val_preds')])
     cloud_epochs = np.array([int(f.split('_')[-1]) for f in cloud_folders])
     epoch_order = np.argsort(cloud_epochs)
     cloud_epochs = cloud_epochs[epoch_order]
@@ -165,7 +181,7 @@ def load_snap_clouds(path, dataset, only_last=False):
             Confs[c_i] += np.loadtxt(conf_file, dtype=np.int32)
 
         else:
-            for f in listdir(cloud_folder):
+            for f in listdir_str(cloud_folder):
                 if f.endswith('.ply') and not f.endswith('sub.ply'):
                     data = read_ply(join(cloud_folder, f))
                     labels = data['class']
@@ -176,7 +192,7 @@ def load_snap_clouds(path, dataset, only_last=False):
 
         # Erase ply to save disk memory
         if c_i < len(cloud_folders) - 1:
-            for f in listdir(cloud_folder):
+            for f in listdir_str(cloud_folder):
                 if f.endswith('.ply'):
                     remove(join(cloud_folder, f))
 
@@ -221,7 +237,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
 
         print(path)
 
-        if ('val_IoUs.txt' in [f for f in listdir(path)]) or ('val_confs.txt' in [f for f in listdir(path)]):
+        if ('val_IoUs.txt' in [f for f in listdir_str(path)]) or ('val_confs.txt' in [f for f in listdir_str(path)]):
             config = Config()
             config.load(path)
         else:
@@ -704,7 +720,7 @@ def experiment_name_1():
     res_path = 'results'
 
     # Gather logs and sort by date
-    logs = np.sort([join(res_path, l) for l in listdir(res_path) if start <= l <= end])
+    logs = np.sort([join(res_path, l) for l in listdir_str(res_path) if start <= l <= end])
 
     # Give names to the logs (for plot legends)
     logs_names = ['name_log_1',
@@ -733,7 +749,7 @@ def experiment_name_2():
     res_path = 'results'
 
     # Gather logs and sort by date
-    logs = np.sort([join(res_path, l) for l in listdir(res_path) if start <= l <= end])
+    logs = np.sort([join(res_path, l) for l in listdir_str(res_path) if start <= l <= end])
 
     # Optionally add a specific log at a specific place in the log list
     logs = logs.astype('<U50')

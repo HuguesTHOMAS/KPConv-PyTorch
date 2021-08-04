@@ -66,30 +66,6 @@ class S3DISConfig(Config):
     #########################
 
     # # Define layers
-    # architecture = ['simple',
-    #                 'resnetb',
-    #                 'resnetb_strided',
-    #                 'resnetb',
-    #                 'resnetb',
-    #                 'resnetb_strided',
-    #                 'resnetb_deformable',
-    #                 'resnetb_deformable',
-    #                 'resnetb_deformable_strided',
-    #                 'resnetb_deformable',
-    #                 'resnetb_deformable',
-    #                 'resnetb_deformable_strided',
-    #                 'resnetb_deformable',
-    #                 'resnetb_deformable',
-    #                 'nearest_upsample',
-    #                 'unary',
-    #                 'nearest_upsample',
-    #                 'unary',
-    #                 'nearest_upsample',
-    #                 'unary',
-    #                 'nearest_upsample',
-    #                 'unary']
-
-    # Define layers
     architecture = ['simple',
                     'resnetb',
                     'resnetb_strided',
@@ -99,11 +75,11 @@ class S3DISConfig(Config):
                     'resnetb',
                     'resnetb',
                     'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
+                    'resnetb_deformable',
+                    'resnetb_deformable',
+                    'resnetb_deformable_strided',
+                    'resnetb_deformable',
+                    'resnetb_deformable',
                     'nearest_upsample',
                     'unary',
                     'nearest_upsample',
@@ -113,6 +89,30 @@ class S3DISConfig(Config):
                     'nearest_upsample',
                     'unary']
 
+    # Define layers
+    # architecture = ['simple',
+    #                 'resnetb',
+    #                 'resnetb_strided',
+    #                 'resnetb',
+    #                 'resnetb',
+    #                 'resnetb_strided',
+    #                 'resnetb',
+    #                 'resnetb',
+    #                 'resnetb_strided',
+    #                 'resnetb',
+    #                 'resnetb',
+    #                 'resnetb_strided',
+    #                 'resnetb',
+    #                 'resnetb',
+    #                 'nearest_upsample',
+    #                 'unary',
+    #                 'nearest_upsample',
+    #                 'unary',
+    #                 'nearest_upsample',
+    #                 'unary',
+    #                 'nearest_upsample',
+    #                 'unary']
+
     ###################
     # KPConv parameters
     ###################
@@ -121,7 +121,7 @@ class S3DISConfig(Config):
     num_kernel_points = 15
 
     # Radius of the input sphere (decrease value to reduce memory cost)
-    in_radius = 1.8
+    in_radius = 1.2
 
     # Size of the first subsampling grid in meter (increase value to reduce memory cost)
     first_subsampling_dl = 0.03
@@ -130,7 +130,7 @@ class S3DISConfig(Config):
     conv_radius = 2.5
 
     # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can spread out
-    deform_radius = 6.0
+    deform_radius = 5.0
 
     # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
     KP_extent = 1.2
