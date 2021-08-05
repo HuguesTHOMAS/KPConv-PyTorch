@@ -725,7 +725,8 @@ def experiment_name_1():
     # Give names to the logs (for plot legends)
     logs_names = ['name_log_1',
                   'name_log_2',
-                  'name_log_3']
+                  'name_log_3',
+                  'name_log_4']
 
     # safe check log names
     logs_names = np.array(logs_names[:len(logs)])

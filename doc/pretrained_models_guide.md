@@ -11,7 +11,8 @@ We provide pretrained weights for S3DIS dataset. The raw weights come with a par
 |:-------------|:-------------:|:-----|:-----:|
 | [Light_KPFCNN](https://drive.google.com/file/d/14sz0hdObzsf_exxInXdOIbnUTe0foOOz/view?usp=sharing) | rigid | A network with small `in_radius` for light GPU consumption (~8GB) | 65.4% |
 | [Heavy_KPFCNN](https://drive.google.com/file/d/1ySQq3SRBgk2Vt5Bvj-0N7jDPi0QTPZiZ/view?usp=sharing) | rigid | A network with better performances but needing bigger GPU (>18GB). | 66.4% |
-| [Deform_KPFCNN](https://drive.google.com/file/d/1ObGr2Srfj0f7Bd3bBbuQzxtjf0ULbpSA/view?usp=sharing) | rigid | Deformable convolution network needing big GPU (>20GB). | 67.3% |
+| [Deform_KPFCNN](https://drive.google.com/file/d/1ObGr2Srfj0f7Bd3bBbuQzxtjf0ULbpSA/view?usp=sharing) | deform | Deformable convolution network needing big GPU (>20GB). | 67.3% |
+| [Deform_Light_KPFCNN](https://drive.google.com/file/d/1gZfv6q6lUT9STFh7Fk4qVa5IVTgwmWIr/view?usp=sharing) | deform | Lighter version of the deformable architecture (~8GB). | 66.7% |
 
 
 
