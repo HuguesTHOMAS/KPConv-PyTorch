@@ -340,6 +340,12 @@ class S3DISDataset(PointCloudDataset):
             # Number collected
             n = input_inds.shape[0]
 
+            # Safe check for empty spheres
+            if n < 2:
+                t += [time.time()]
+                t += [time.time()]
+                continue
+
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
             input_colors = self.input_colors[cloud_ind][input_inds]
