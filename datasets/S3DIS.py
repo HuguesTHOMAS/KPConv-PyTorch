@@ -253,6 +253,7 @@ class S3DISDataset(PointCloudDataset):
         s_list = []
         R_list = []
         batch_n = 0
+        failed_attempts = 0
 
         info = get_worker_info()
         if info is not None:
@@ -342,6 +343,9 @@ class S3DISDataset(PointCloudDataset):
 
             # Safe check for empty spheres
             if n < 2:
+                failed_attempts += 1
+                if failed_attempts > 2 * self.config.batch_num:
+                    raise ValueError('It seems this dataset only containes empty input spheres')
                 t += [time.time()]
                 t += [time.time()]
                 continue
@@ -510,6 +514,7 @@ class S3DISDataset(PointCloudDataset):
         s_list = []
         R_list = []
         batch_n = 0
+        failed_attempts = 0
 
         while True:
 
@@ -541,6 +546,13 @@ class S3DISDataset(PointCloudDataset):
 
             # Number collected
             n = input_inds.shape[0]
+            
+            # Safe check for empty spheres
+            if n < 2:
+                failed_attempts += 1
+                if failed_attempts > 2 * self.config.batch_num:
+                    raise ValueError('It seems this dataset only containes empty input spheres')
+                continue
 
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
