@@ -344,7 +344,7 @@ class S3DISDataset(PointCloudDataset):
             # Safe check for empty spheres
             if n < 2:
                 failed_attempts += 1
-                if failed_attempts > 2 * self.config.batch_num:
+                if failed_attempts > 100 * self.config.batch_num:
                     raise ValueError('It seems this dataset only containes empty input spheres')
                 t += [time.time()]
                 t += [time.time()]
@@ -550,7 +550,7 @@ class S3DISDataset(PointCloudDataset):
             # Safe check for empty spheres
             if n < 2:
                 failed_attempts += 1
-                if failed_attempts > 2 * self.config.batch_num:
+                if failed_attempts > 100 * self.config.batch_num:
                     raise ValueError('It seems this dataset only containes empty input spheres')
                 continue
 
