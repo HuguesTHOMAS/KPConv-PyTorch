@@ -56,3 +56,4 @@ Our code is released under MIT License (see LICENSE file for details).
 
 ## Updates
 * 27/04/2020: Initial release.
+* 27/04/2020: Added NPM3D support thanks to @GeoSur.
