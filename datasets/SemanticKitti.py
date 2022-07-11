@@ -230,6 +230,8 @@ class SemanticKittiDataset(PointCloudDataset):
 
                 # Update epoch indice
                 self.epoch_i += 1
+                if self.epoch_i >= int(self.epoch_inds.shape[0]):
+                    self.epoch_i -= int(self.epoch_inds.shape[0])
 
             s_ind, f_ind = self.all_inds[ind]
 
