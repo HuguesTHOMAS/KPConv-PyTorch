@@ -795,7 +795,7 @@ class SemanticKittiSampler(Sampler):
                         error_message += '{:>15s} {:>15s}\n'.format('Class', '# of frames')
                         for iii, ccc in enumerate(self.dataset.label_values):
                             error_message += '{:>15s} {:>15d}\n'.format(self.dataset.label_names[iii], len(self.dataset.class_frames[iii]))
-                        error_message = '\nThis error is raised if one of the classes is not ignored and does not appear in any of the frames of the dataset.\n'
+                        error_message += '\nThis error is raised if one of the classes is not ignored and does not appear in any of the frames of the dataset.\n'
                         raise ValueError(error_message)
 
             # Stack the chosen indices of all classes
