@@ -12,7 +12,7 @@ To start this visualization run the script:
 
 ### Details
 
-The visualization script runs the model runs the model on a batch of test examples (forward pass), and then show these 
+The visualization script runs the model on a batch of test examples (forward pass), and then show these 
 examples in an interactive window. Here is a list of all keyboard shortcuts:
 
 - 'b' / 'n': smaller or larger point size.
