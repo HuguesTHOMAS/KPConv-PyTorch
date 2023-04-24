@@ -580,7 +580,7 @@ class NPM3DDataset(PointCloudDataset):
             #   input_colors *= 0
 
             # Get original height as additional feature
-            input_features = np.hstack((input_colors, input_points[:, 2:] + center_point[:, 2:])).astype(np.float32)
+            input_features = np.hstack((input_points[:, 2:] + center_point[:, 2:])).astype(np.float32)
 
             # Stack batch
             p_list += [input_points]
