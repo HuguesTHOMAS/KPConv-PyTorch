@@ -4,11 +4,16 @@ from os.path import exists, isfile, join
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from datasets.S3DIS import S3DISDataset
 from sklearn.metrics import confusion_matrix
-from utils.config import Config
-from utils.metrics import IoU_from_confusions, fast_confusion, smooth_metrics
-from utils.ply import read_ply
+
+from kpconv_torch.datasets.S3DIS import S3DISDataset
+from kpconv_torch.utils.config import Config
+from kpconv_torch.utils.metrics import (
+    IoU_from_confusions,
+    fast_confusion,
+    smooth_metrics,
+)
+from kpconv_torch.utils.ply import read_ply
 
 
 def listdir_str(path):

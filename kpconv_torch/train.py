@@ -1,43 +1,15 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Callable script to start a training on S3DIS dataset
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 06/03/2020
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
 import os
-
-# Common libs
 import signal
+import sys
+import time
 
-# Dataset
-from datasets.S3DIS import S3DISCollate, S3DISDataset, S3DISSampler, np, sys, time
-from models.architectures import KPFCNN
+import numpy as np
 from torch.utils.data import DataLoader
-from utils.config import Config
-from utils.trainer import ModelTrainer
 
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Config Class
-#       \******************/
-#
+from kpconv_torch.datasets.S3DIS import S3DISCollate, S3DISDataset, S3DISSampler
+from kpconv_torch.models.architectures import KPFCNN
+from kpconv_torch.utils.config import Config
+from kpconv_torch.utils.trainer import ModelTrainer
 
 
 class S3DISConfig(Config):
@@ -48,7 +20,6 @@ class S3DISConfig(Config):
     ####################
     # Dataset parameters
     ####################
-
     # Dataset name
     dataset = "S3DIS"
 
@@ -64,7 +35,6 @@ class S3DISConfig(Config):
     #########################
     # Architecture definition
     #########################
-
     # # Define layers
     architecture = [
         "simple",
@@ -91,34 +61,9 @@ class S3DISConfig(Config):
         "unary",
     ]
 
-    # Define layers
-    # architecture = ['simple',
-    #                 'resnetb',
-    #                 'resnetb_strided',
-    #                 'resnetb',
-    #                 'resnetb',
-    #                 'resnetb_strided',
-    #                 'resnetb',
-    #                 'resnetb',
-    #                 'resnetb_strided',
-    #                 'resnetb',
-    #                 'resnetb',
-    #                 'resnetb_strided',
-    #                 'resnetb',
-    #                 'resnetb',
-    #                 'nearest_upsample',
-    #                 'unary',
-    #                 'nearest_upsample',
-    #                 'unary',
-    #                 'nearest_upsample',
-    #                 'unary',
-    #                 'nearest_upsample',
-    #                 'unary']
-
     ###################
     # KPConv parameters
     ###################
-
     # Number of kernel points
     num_kernel_points = 15
 
@@ -165,7 +110,6 @@ class S3DISConfig(Config):
     #####################
     # Training parameters
     #####################
-
     # Maximal number of epochs
     max_epoch = 500
 
@@ -207,18 +151,11 @@ class S3DISConfig(Config):
     saving_path = None
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Main Call
-#       \***************/
-#
-
 if __name__ == "__main__":
 
     ############################
     # Initialize the environment
     ############################
-
     # Set which gpu is going to be used
     GPU_ID = "0"
 
@@ -228,7 +165,6 @@ if __name__ == "__main__":
     ###############
     # Previous chkp
     ###############
-
     # Choose here if you want to start training from a previous snapshot (None for new training)
     # previous_training_path = 'Log_2020-03-19_19-53-27'
     previous_training_path = ""
@@ -256,7 +192,6 @@ if __name__ == "__main__":
     ##############
     # Prepare Data
     ##############
-
     print()
     print("Data Preparation")
     print("****************")

@@ -1,45 +1,12 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Class handling datasets
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-
-# Common libs
-
 import numpy as np
 import torch
-from kernels.kernel_points import create_3D_rotations
 from torch.utils.data import DataLoader, Dataset
-from utils.config import Config
-from utils.mayavi_visu import show_ModelNet_examples
 
 import cpp_wrappers.cpp_neighbors.radius_neighbors as cpp_neighbors
-
-# Subsampling extension
 import cpp_wrappers.cpp_subsampling.grid_subsampling as cpp_subsampling
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Utility functions
-#       \***********************/
-#
+from kpconv_torch.kernels.kernel_points import create_3D_rotations
+from kpconv_torch.utils.config import Config
+from kpconv_torch.utils.mayavi_visu import show_ModelNet_examples
 
 
 def grid_subsampling(points, features=None, labels=None, sampleDl=0.1, verbose=0):

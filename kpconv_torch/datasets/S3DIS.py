@@ -1,51 +1,18 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Class handling S3DIS dataset.
-#      Implements a Dataset, a Sampler, and a collate_fn
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
 import pickle
-
-# Common libs
 import time
 import warnings
 from multiprocessing import Lock
-
-# OS functions
-from os import listdir
+from os import listdir, makedirs
 from os.path import exists, isdir, join
 
 import numpy as np
 import torch
-
-# Dataset parent class
-from datasets.common import PointCloudDataset, grid_subsampling
 from torch.utils.data import Sampler, get_worker_info
-from utils.config import bcolors
-from utils.mayavi_visu import KDTree, makedirs, read_ply, show_input_batch, write_ply
 
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Dataset class definition
-#       \******************************/
+from kpconv_torch.datasets.common import PointCloudDataset, grid_subsampling
+from kpconv_torch.utils.config import bcolors
+from kpconv_torch.utils.mayavi_visu import KDTree, show_input_batch
+from kpconv_torch.utils.ply import read_ply, write_ply
 
 
 class S3DISDataset(PointCloudDataset):

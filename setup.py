@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 
 def find_version():
-    with open("kpconv-torch/__init__.py") as f:
+    with open("kpconv_torch/__init__.py") as f:
         for line in f:
             if line.startswith("__version__"):
                 return line.strip().split("=")[1].strip(" '\"")
@@ -23,7 +23,7 @@ extra_requirements = {
 }
 
 setup(
-    name="kpconv-torch",
+    name="kpconv_torch",
     version=find_version(),
     description="An implementation of KPConv algorithm with PyTorch (initial credit to Hugues Thomas)",
     long_description=readme,
@@ -32,16 +32,6 @@ setup(
     maintainer="Oslandia",
     maintainer_email="infos@oslandia.com",
     url="",
-    # entry_points={
-    #     "console_scripts": [
-    #         "stcgeom=stc.tools.stcgeom:main",
-    #         "stc-seuil=stc.tools.calculer_dep_seuil:main",
-    #         "stc-suivi=stc.tools.suivre_defauts:main",
-    #         "stc-validation=stc.tools.stc_mauzin:main",
-    #         "preprocess-iris=stc.tools.preprocess_iris:main",
-    #         "preprocess-ratp=stc.tools.preprocess_ratp:main",
-    #     ]
-    # },
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

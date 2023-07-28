@@ -1,43 +1,12 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Functions handling the disposition of kernel points.
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-
-# ------------------------------------------------------------------------------------------
-#
-#          Imports and global variables
-#      \**********************************/
-#
-
-
-# Import numpy package and name it "np"
 from os import makedirs
 from os.path import exists, join
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
-from utils.config import bcolors
-from utils.ply import read_ply, write_ply
 
-# ------------------------------------------------------------------------------------------
-#
-#           Functions
-#       \***************/
-#
-#
+from kpconv_torch.utils.config import bcolors
+from kpconv_torch.utils.ply import read_ply, write_ply
 
 
 def create_3D_rotations(axis, angle):

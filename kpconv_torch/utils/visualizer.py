@@ -1,57 +1,18 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Class handling the visualization
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-
 import time
 from os import listdir
 from os.path import join
 
 import numpy as np
-
-# Basic libs
 import torch
 from mayavi import mlab
-from models.blocks import KPConv
 from sklearn.neighbors import KDTree
 
-# Configuration class
-from utils.config import Config, bcolors
-
-# PLY reader
-from utils.ply import read_ply, write_ply
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Trainer Class
-#       \*******************/
-#
+from kpconv_torch.models.blocks import KPConv
+from kpconv_torch.utils.config import Config, bcolors
+from kpconv_torch.utils.ply import read_ply, write_ply
 
 
 class ModelVisualizer:
-
-    # Initialization methods
-    # ------------------------------------------------------------------------------------------------------------------
-
     def __init__(self, net, config, chkp_path, on_gpu=True):
         """
         Initialize training parameters and reload previous model for restore/finetune

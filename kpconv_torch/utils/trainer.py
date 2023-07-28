@@ -1,58 +1,19 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Class handling the training of any model
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-
 import time
 from os import makedirs, remove
 from os.path import exists, join
 
 import numpy as np
-
-# Basic libs
 import torch
 import torch.nn as nn
-from models.blocks import KPConv
 from sklearn.neighbors import KDTree
-from utils.config import Config
 
-# Metrics
-from utils.metrics import IoU_from_confusions, fast_confusion
-
-# PLY reader
-from utils.ply import read_ply, write_ply
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Trainer Class
-#       \*******************/
-#
+from kpconv_torch.models.blocks import KPConv
+from kpconv_torch.utils.config import Config
+from kpconv_torch.utils.metrics import IoU_from_confusions, fast_confusion
+from kpconv_torch.utils.ply import read_ply, write_ply
 
 
 class ModelTrainer:
-
-    # Initialization methods
-    # ------------------------------------------------------------------------------------------------------------------
-
     def __init__(self, net, config, chkp_path=None, finetune=False, on_gpu=True):
         """
         Initialize training parameters and reload previous model for restore/finetune
@@ -66,7 +27,6 @@ class ModelTrainer:
         ############
         # Parameters
         ############
-
         # Epoch index
         self.epoch = 0
         self.step = 0

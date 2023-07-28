@@ -1,38 +1,9 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Script for various visualization with mayavi
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-
 import numpy as np
-
-# Basic libs
 import torch
 from sklearn.neighbors import KDTree
 
-# Configuration class
-from utils.config import Config
-
-# PLY reader
-from utils.ply import read_ply, write_ply
+from kpconv_torch.utils.config import Config
+from kpconv_torch.utils.ply import read_ply, write_ply
 
 
 def show_ModelNet_models(all_points):

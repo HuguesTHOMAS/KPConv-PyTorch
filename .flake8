@@ -1,0 +1,8 @@
+[flake8]
+ignore = B028,E203,E501,PIE786,SIM115,W503
+exclude =
+    build/,
+    *venv/,
+
+application-import-names = py3dtiles
+import-order-style = google

@@ -1,4 +1,3 @@
-
 ![Intro figure](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/master/doc/Github_intro.png)
 
 Created by Hugues THOMAS

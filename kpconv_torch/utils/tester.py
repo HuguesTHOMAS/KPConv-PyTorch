@@ -1,65 +1,23 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Class handling the test of any model
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-
 import time
 from os import makedirs
 from os.path import exists, join
 
 import numpy as np
-
-# Basic libs
 import torch
 import torch.nn as nn
 from sklearn.metrics import confusion_matrix
 from sklearn.neighbors import KDTree
 
-# Metrics
-from utils.metrics import IoU_from_confusions, fast_confusion
-
-# PLY reader
-from utils.ply import read_ply, write_ply
-
-# from utils.visualizer import show_ModelNet_models
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Tester Class
-#       \******************/
-#
+from kpconv_torch.utils.metrics import IoU_from_confusions, fast_confusion
+from kpconv_torch.utils.ply import read_ply, write_ply
 
 
 class ModelTester:
-
-    # Initialization methods
-    # ------------------------------------------------------------------------------------------------------------------
-
     def __init__(self, net, chkp_path=None, on_gpu=True):
 
         ############
         # Parameters
         ############
-
         # Choose to train on CPU or GPU
         if on_gpu and torch.cuda.is_available():
             self.device = torch.device("cuda:0")
@@ -70,7 +28,6 @@ class ModelTester:
         ##########################
         # Load previous checkpoint
         ##########################
-
         checkpoint = torch.load(chkp_path)
         net.load_state_dict(checkpoint["model_state_dict"])
         self.epoch = checkpoint["epoch"]
@@ -78,9 +35,6 @@ class ModelTester:
         print("Model and training state restored.")
 
         return
-
-    # Test main methods
-    # ------------------------------------------------------------------------------------------------------------------
 
     def classification_test(self, net, test_loader, config, num_votes=100, debug=False):
 

@@ -1,34 +1,12 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Define network blocks
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 06/03/2020
-#
-
-
 import math
 
 import torch
 import torch.nn as nn
-from kernels.kernel_points import load_kernels
 from torch.nn.init import kaiming_uniform_
 from torch.nn.parameter import Parameter
-from utils.ply import write_ply
 
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Simple functions
-#       \**********************/
-#
+from kpconv_torch.kernels.kernel_points import load_kernels
+from kpconv_torch.utils.ply import write_ply
 
 
 def gather(x, idx, method=2):

@@ -1,21 +1,6 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Define network architectures
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 06/03/2020
-#
-
 import numpy as np
-from models.blocks import KPConv, UnaryBlock, block_decider, nn, torch
+
+from kpconv_torch.models.blocks import KPConv, UnaryBlock, block_decider, nn, torch
 
 
 def p2p_fitting_regularizer(net):
