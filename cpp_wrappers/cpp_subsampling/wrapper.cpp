@@ -25,7 +25,7 @@ static PyObject *batch_subsampling(PyObject *self, PyObject *args, PyObject *key
 // Specify the members of the module
 // *********************************
 
-static PyMethodDef module_methods[] = 
+static PyMethodDef module_methods[] =
 {
 	{ "subsample", (PyCFunction)cloud_subsampling, METH_VARARGS | METH_KEYWORDS, subsample_docstring },
 	{ "subsample_batch", (PyCFunction)batch_subsampling, METH_VARARGS | METH_KEYWORDS, subsample_batch_docstring },
@@ -36,7 +36,7 @@ static PyMethodDef module_methods[] =
 // Initialize the module
 // *********************
 
-static struct PyModuleDef moduledef = 
+static struct PyModuleDef moduledef =
 {
     PyModuleDef_HEAD_INIT,
     "grid_subsampling",     // m_name
@@ -78,7 +78,7 @@ static PyObject* batch_subsampling(PyObject* self, PyObject* args, PyObject* key
 	int verbose = 0;
 	int max_p = 0;
 
-	// Parse the input  
+	// Parse the input
 	if (!PyArg_ParseTupleAndKeywords(args, keywds, "OO|$OOfsii", kwlist, &points_obj, &batches_obj, &features_obj, &classes_obj, &sampleDl, &method_buffer, &max_p, &verbose))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Error parsing arguments");
@@ -352,7 +352,7 @@ static PyObject* cloud_subsampling(PyObject* self, PyObject* args, PyObject* key
 	const char* method_buffer = "barycenters";
 	int verbose = 0;
 
-	// Parse the input  
+	// Parse the input
 	if (!PyArg_ParseTupleAndKeywords(args, keywds, "O|$OOfsi", kwlist, &points_obj, &features_obj, &classes_obj, &sampleDl, &method_buffer, &verbose))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Error parsing arguments");

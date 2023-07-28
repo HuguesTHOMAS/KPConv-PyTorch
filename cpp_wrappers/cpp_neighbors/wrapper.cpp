@@ -22,7 +22,7 @@ static PyObject *batch_neighbors(PyObject *self, PyObject *args, PyObject *keywd
 // Specify the members of the module
 // *********************************
 
-static PyMethodDef module_methods[] = 
+static PyMethodDef module_methods[] =
 {
 	{ "batch_query", (PyCFunction)batch_neighbors, METH_VARARGS | METH_KEYWORDS, batch_query_docstring },
 	{NULL, NULL, 0, NULL}
@@ -32,7 +32,7 @@ static PyMethodDef module_methods[] =
 // Initialize the module
 // *********************
 
-static struct PyModuleDef moduledef = 
+static struct PyModuleDef moduledef =
 {
     PyModuleDef_HEAD_INIT,
     "radius_neighbors",		// m_name
@@ -71,7 +71,7 @@ static PyObject* batch_neighbors(PyObject* self, PyObject* args, PyObject* keywd
 	static char* kwlist[] = { "queries", "supports", "q_batches", "s_batches", "radius", NULL };
 	float radius = 0.1;
 
-	// Parse the input  
+	// Parse the input
 	if (!PyArg_ParseTupleAndKeywords(args, keywds, "OOOO|$f", kwlist, &queries_obj, &supports_obj, &q_batches_obj, &s_batches_obj, &radius))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Error parsing arguments");

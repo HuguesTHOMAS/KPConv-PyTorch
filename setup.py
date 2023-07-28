@@ -1,11 +1,13 @@
 from setuptools import find_packages, setup
 
+
 def find_version():
-    with open("kpconv-torch/__init__.py", "r") as f:
+    with open("kpconv-torch/__init__.py") as f:
         for line in f:
             if line.startswith("__version__"):
                 return line.strip().split("=")[1].strip(" '\"")
-    raise RuntimeError(("Unable to find version string. Should be in __init__.py."))
+    raise RuntimeError("Unable to find version string. Should be in __init__.py.")
+
 
 with open("README.md", "rb") as f:
     readme = f.read().decode("utf-8")

@@ -26,7 +26,7 @@ We provide pretrained weights for S3DIS dataset. The raw weights come with a par
 
         python3 test_any_model.py
 
-4. You will see the performance (on the subsampled input clouds) increase as the test goes on. 
+4. You will see the performance (on the subsampled input clouds) increase as the test goes on.
 
         Confusion on sub clouds
         65.08 | 92.11 98.40 81.83  0.00 18.71 55.41 68.65 90.93 79.79 74.83 65.31 63.41 56.62
@@ -45,4 +45,3 @@ We provide pretrained weights for S3DIS dataset. The raw weights come with a par
         --------------------------------------------------------------------------------------
 
 6. The test script creates a folder `test/name-of-your-log`, where it saves the predictions, potentials, and probabilities per class. You can load them with CloudCompare for visualization.
-

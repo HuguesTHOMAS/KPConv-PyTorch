@@ -10,8 +10,8 @@ This repository contains the implementation of **Kernel Point Convolution** (KPC
 KPConv is also available in [Tensorflow](https://github.com/HuguesTHOMAS/KPConv) (original but older implementation).
 
 Another implementation of KPConv is available in [PyTorch-Points-3D](https://github.com/nicolas-chaulet/torch-points3d)
- 
-KPConv is a point convolution operator presented in our ICCV2019 paper ([arXiv](https://arxiv.org/abs/1904.08889)). If you find our work useful in your 
+
+KPConv is a point convolution operator presented in our ICCV2019 paper ([arXiv](https://arxiv.org/abs/1904.08889)). If you find our work useful in your
 research, please consider citing:
 
 ```
@@ -30,21 +30,21 @@ This implementation has been tested on Ubuntu 18.04 and Windows 10. Details are 
 
 ## Experiments
 
-We provide scripts for three experiments: ModelNet40, S3DIS and SemanticKitti. The instructions to run these 
+We provide scripts for three experiments: ModelNet40, S3DIS and SemanticKitti. The instructions to run these
 experiments are in the [doc](./doc) folder.
 
 * [Object Classification](./doc/object_classification_guide.md): Instructions to train KP-CNN on an object classification
  task (Modelnet40).
- 
-* [Scene Segmentation](./doc/scene_segmentation_guide.md): Instructions to train KP-FCNN on a scene segmentation 
+
+* [Scene Segmentation](./doc/scene_segmentation_guide.md): Instructions to train KP-FCNN on a scene segmentation
  task (S3DIS).
- 
-* [SLAM Segmentation](./doc/slam_segmentation_guide.md): Instructions to train KP-FCNN on a slam segmentation 
+
+* [SLAM Segmentation](./doc/slam_segmentation_guide.md): Instructions to train KP-FCNN on a slam segmentation
  task (SemanticKitti).
- 
+
 * [Pretrained models](./doc/pretrained_models_guide.md): We provide pretrained weights and instructions to load them.
- 
-* [Visualization scripts](./doc/visualization_guide.md): For now only one visualization script has been implemented: 
+
+* [Visualization scripts](./doc/visualization_guide.md): For now only one visualization script has been implemented:
 the kernel deformations display.
 
 ## Acknowledgment

@@ -22,21 +22,17 @@
 #
 
 
+import numpy as np
+
 # Basic libs
 import torch
-import numpy as np
 from sklearn.neighbors import KDTree
-from os import makedirs, remove, rename, listdir
-from os.path import exists, join
-import time
-
-import sys
-
-# PLY reader
-from utils.ply import write_ply, read_ply
 
 # Configuration class
 from utils.config import Config
+
+# PLY reader
+from utils.ply import read_ply, write_ply
 
 
 def show_ModelNet_models(all_points):
@@ -45,9 +41,8 @@ def show_ModelNet_models(all_points):
     ###########################
     # Interactive visualization
     ###########################
-
     # Create figure for features
-    fig1 = mlab.figure('Models', bgcolor=(1, 1, 1), size=(1000, 800))
+    fig1 = mlab.figure("Models", bgcolor=(1, 1, 1), size=(1000, 800))
     fig1.scene.parallel_projection = False
 
     # Indices
@@ -66,17 +61,19 @@ def show_ModelNet_models(all_points):
         points = (points * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
 
         # Show point clouds colorized with activations
-        activations = mlab.points3d(points[:, 0],
-                                    points[:, 1],
-                                    points[:, 2],
-                                    points[:, 2],
-                                    scale_factor=3.0,
-                                    scale_mode='none',
-                                    figure=fig1)
+        activations = mlab.points3d(
+            points[:, 0],
+            points[:, 1],
+            points[:, 2],
+            points[:, 2],
+            scale_factor=3.0,
+            scale_mode="none",
+            figure=fig1,
+        )
 
         # New title
         mlab.title(str(file_i), color=(0, 0, 0), size=0.3, height=0.01)
-        text = '<--- (press g for previous)' + 50 * ' ' + '(press h for next) --->'
+        text = "<--- (press g for previous)" + 50 * " " + "(press h for next) --->"
         mlab.text(0.01, 0.01, text, color=(0, 0, 0), width=0.98)
         mlab.orientation_axes()
 
@@ -85,12 +82,12 @@ def show_ModelNet_models(all_points):
     def keyboard_callback(vtk_obj, event):
         global file_i
 
-        if vtk_obj.GetKeyCode() in ['g', 'G']:
+        if vtk_obj.GetKeyCode() in ["g", "G"]:
 
             file_i = (file_i - 1) % len(all_points)
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in ['h', 'H']:
+        elif vtk_obj.GetKeyCode() in ["h", "H"]:
 
             file_i = (file_i + 1) % len(all_points)
             update_scene()
@@ -99,7 +96,7 @@ def show_ModelNet_models(all_points):
 
     # Draw a first plot
     update_scene()
-    fig1.scene.interactor.add_observer('KeyPressEvent', keyboard_callback)
+    fig1.scene.interactor.add_observer("KeyPressEvent", keyboard_callback)
     mlab.show()
 
 
@@ -109,9 +106,8 @@ def show_ModelNet_examples(clouds, cloud_normals=None, cloud_labels=None):
     ###########################
     # Interactive visualization
     ###########################
-
     # Create figure for features
-    fig1 = mlab.figure('Models', bgcolor=(1, 1, 1), size=(1000, 800))
+    fig1 = mlab.figure("Models", bgcolor=(1, 1, 1), size=(1000, 800))
     fig1.scene.parallel_projection = False
 
     if cloud_labels is None:
@@ -139,27 +135,31 @@ def show_ModelNet_examples(clouds, cloud_normals=None, cloud_labels=None):
         points = (points * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
 
         # Show point clouds colorized with activations
-        activations = mlab.points3d(points[:, 0],
-                                    points[:, 1],
-                                    points[:, 2],
-                                    labels,
-                                    scale_factor=3.0,
-                                    scale_mode='none',
-                                    figure=fig1)
+        activations = mlab.points3d(
+            points[:, 0],
+            points[:, 1],
+            points[:, 2],
+            labels,
+            scale_factor=3.0,
+            scale_mode="none",
+            figure=fig1,
+        )
         if normals is not None and show_normals:
-            activations = mlab.quiver3d(points[:, 0],
-                                        points[:, 1],
-                                        points[:, 2],
-                                        normals[:, 0],
-                                        normals[:, 1],
-                                        normals[:, 2],
-                                        scale_factor=10.0,
-                                        scale_mode='none',
-                                        figure=fig1)
+            activations = mlab.quiver3d(
+                points[:, 0],
+                points[:, 1],
+                points[:, 2],
+                normals[:, 0],
+                normals[:, 1],
+                normals[:, 2],
+                scale_factor=10.0,
+                scale_mode="none",
+                figure=fig1,
+            )
 
         # New title
         mlab.title(str(file_i), color=(0, 0, 0), size=0.3, height=0.01)
-        text = '<--- (press g for previous)' + 50 * ' ' + '(press h for next) --->'
+        text = "<--- (press g for previous)" + 50 * " " + "(press h for next) --->"
         mlab.text(0.01, 0.01, text, color=(0, 0, 0), width=0.98)
         mlab.orientation_axes()
 
@@ -168,15 +168,15 @@ def show_ModelNet_examples(clouds, cloud_normals=None, cloud_labels=None):
     def keyboard_callback(vtk_obj, event):
         global file_i, show_normals
 
-        if vtk_obj.GetKeyCode() in ['g', 'G']:
+        if vtk_obj.GetKeyCode() in ["g", "G"]:
             file_i = (file_i - 1) % len(clouds)
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in ['h', 'H']:
+        elif vtk_obj.GetKeyCode() in ["h", "H"]:
             file_i = (file_i + 1) % len(clouds)
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in ['n', 'N']:
+        elif vtk_obj.GetKeyCode() in ["n", "N"]:
             show_normals = not show_normals
             update_scene()
 
@@ -184,7 +184,7 @@ def show_ModelNet_examples(clouds, cloud_normals=None, cloud_labels=None):
 
     # Draw a first plot
     update_scene()
-    fig1.scene.interactor.add_observer('KeyPressEvent', keyboard_callback)
+    fig1.scene.interactor.add_observer("KeyPressEvent", keyboard_callback)
     mlab.show()
 
 
@@ -194,9 +194,8 @@ def show_neighbors(query, supports, neighbors):
     ###########################
     # Interactive visualization
     ###########################
-
     # Create figure for features
-    fig1 = mlab.figure('Models', bgcolor=(1, 1, 1), size=(1000, 800))
+    fig1 = mlab.figure("Models", bgcolor=(1, 1, 1), size=(1000, 800))
     fig1.scene.parallel_projection = False
 
     # Indices
@@ -212,36 +211,40 @@ def show_neighbors(query, supports, neighbors):
         p1 = (query * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
         p2 = (supports * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
 
-        l1 = p1[:, 2]*0
+        l1 = p1[:, 2] * 0
         l1[file_i] = 1
 
-        l2 = p2[:, 2]*0 + 2
+        l2 = p2[:, 2] * 0 + 2
         l2[neighbors[file_i]] = 3
 
         # Show point clouds colorized with activations
-        activations = mlab.points3d(p1[:, 0],
-                                    p1[:, 1],
-                                    p1[:, 2],
-                                    l1,
-                                    scale_factor=2.0,
-                                    scale_mode='none',
-                                    vmin=0.0,
-                                    vmax=3.0,
-                                    figure=fig1)
+        activations = mlab.points3d(
+            p1[:, 0],
+            p1[:, 1],
+            p1[:, 2],
+            l1,
+            scale_factor=2.0,
+            scale_mode="none",
+            vmin=0.0,
+            vmax=3.0,
+            figure=fig1,
+        )
 
-        activations = mlab.points3d(p2[:, 0],
-                                    p2[:, 1],
-                                    p2[:, 2],
-                                    l2,
-                                    scale_factor=3.0,
-                                    scale_mode='none',
-                                    vmin=0.0,
-                                    vmax=3.0,
-                                    figure=fig1)
+        activations = mlab.points3d(
+            p2[:, 0],
+            p2[:, 1],
+            p2[:, 2],
+            l2,
+            scale_factor=3.0,
+            scale_mode="none",
+            vmin=0.0,
+            vmax=3.0,
+            figure=fig1,
+        )
 
         # New title
         mlab.title(str(file_i), color=(0, 0, 0), size=0.3, height=0.01)
-        text = '<--- (press g for previous)' + 50 * ' ' + '(press h for next) --->'
+        text = "<--- (press g for previous)" + 50 * " " + "(press h for next) --->"
         mlab.text(0.01, 0.01, text, color=(0, 0, 0), width=0.98)
         mlab.orientation_axes()
 
@@ -250,12 +253,12 @@ def show_neighbors(query, supports, neighbors):
     def keyboard_callback(vtk_obj, event):
         global file_i
 
-        if vtk_obj.GetKeyCode() in ['g', 'G']:
+        if vtk_obj.GetKeyCode() in ["g", "G"]:
 
             file_i = (file_i - 1) % len(query)
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in ['h', 'H']:
+        elif vtk_obj.GetKeyCode() in ["h", "H"]:
 
             file_i = (file_i + 1) % len(query)
             update_scene()
@@ -264,7 +267,7 @@ def show_neighbors(query, supports, neighbors):
 
     # Draw a first plot
     update_scene()
-    fig1.scene.interactor.add_observer('KeyPressEvent', keyboard_callback)
+    fig1.scene.interactor.add_observer("KeyPressEvent", keyboard_callback)
     mlab.show()
 
 
@@ -274,9 +277,8 @@ def show_input_batch(batch):
     ###########################
     # Interactive visualization
     ###########################
-
     # Create figure for features
-    fig1 = mlab.figure('Input', bgcolor=(1, 1, 1), size=(1000, 800))
+    fig1 = mlab.figure("Input", bgcolor=(1, 1, 1), size=(1000, 800))
     fig1.scene.parallel_projection = False
 
     # Unstack batch
@@ -298,12 +300,15 @@ def show_input_batch(batch):
 
         # Rescale points for visu
         p = (all_points[l_i][b_i] * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
-        labels = p[:, 2]*0
+        labels = p[:, 2] * 0
 
         if show_pools:
-            p2 = (all_points[l_i+1][b_i][neighb_i:neighb_i+1] * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
+            p2 = (
+                all_points[l_i + 1][b_i][neighb_i : neighb_i + 1] * 1.5
+                + np.array([1.0, 1.0, 1.0])
+            ) * 50.0
             p = np.vstack((p, p2))
-            labels = np.hstack((labels, np.ones((1,), dtype=np.int32)*3))
+            labels = np.hstack((labels, np.ones((1,), dtype=np.int32) * 3))
             pool_inds = all_pools[l_i][b_i][neighb_i]
             pool_inds = pool_inds[pool_inds >= 0]
             labels[pool_inds] = 2
@@ -314,16 +319,17 @@ def show_input_batch(batch):
             labels[neighb_i] = 3
 
         # Show point clouds colorized with activations
-        mlab.points3d(p[:, 0],
-                      p[:, 1],
-                      p[:, 2],
-                      labels,
-                      scale_factor=2.0,
-                      scale_mode='none',
-                      vmin=0.0,
-                      vmax=3.0,
-                      figure=fig1)
-
+        mlab.points3d(
+            p[:, 0],
+            p[:, 1],
+            p[:, 2],
+            labels,
+            scale_factor=2.0,
+            scale_mode="none",
+            vmin=0.0,
+            vmax=3.0,
+            figure=fig1,
+        )
 
         """
         mlab.points3d(p[-2:, 0],
@@ -346,16 +352,20 @@ def show_input_batch(batch):
                       vmin=0.0,
                       vmax=3.0,
                       figure=fig1)
-                      
+
         """
 
         # New title
-        title_str = '<([) b_i={:d} (])>    <(,) l_i={:d} (.)>    <(N) n_i={:d} (M)>'.format(b_i, l_i, neighb_i)
+        title_str = (
+            "<([) b_i={:d} (])>    <(,) l_i={:d} (.)>    <(N) n_i={:d} (M)>".format(
+                b_i, l_i, neighb_i
+            )
+        )
         mlab.title(title_str, color=(0, 0, 0), size=0.3, height=0.90)
         if show_pools:
-            text = 'pools (switch with G)'
+            text = "pools (switch with G)"
         else:
-            text = 'neighbors (switch with G)'
+            text = "neighbors (switch with G)"
         mlab.text(0.01, 0.01, text, color=(0, 0, 0), width=0.3)
         mlab.orientation_axes()
 
@@ -364,17 +374,17 @@ def show_input_batch(batch):
     def keyboard_callback(vtk_obj, event):
         global b_i, l_i, neighb_i, show_pools
 
-        if vtk_obj.GetKeyCode() in ['[', '{']:
+        if vtk_obj.GetKeyCode() in ["[", "{"]:
             b_i = (b_i - 1) % len(all_points[l_i])
             neighb_i = 0
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in [']', '}']:
+        elif vtk_obj.GetKeyCode() in ["]", "}"]:
             b_i = (b_i + 1) % len(all_points[l_i])
             neighb_i = 0
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in [',', '<']:
+        elif vtk_obj.GetKeyCode() in [",", "<"]:
             if show_pools:
                 l_i = (l_i - 1) % (len(all_points) - 1)
             else:
@@ -382,7 +392,7 @@ def show_input_batch(batch):
             neighb_i = 0
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in ['.', '>']:
+        elif vtk_obj.GetKeyCode() in [".", ">"]:
             if show_pools:
                 l_i = (l_i + 1) % (len(all_points) - 1)
             else:
@@ -390,15 +400,15 @@ def show_input_batch(batch):
             neighb_i = 0
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in ['n', 'N']:
+        elif vtk_obj.GetKeyCode() in ["n", "N"]:
             neighb_i = (neighb_i - 1) % all_points[l_i][b_i].shape[0]
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in ['m', 'M']:
+        elif vtk_obj.GetKeyCode() in ["m", "M"]:
             neighb_i = (neighb_i + 1) % all_points[l_i][b_i].shape[0]
             update_scene()
 
-        elif vtk_obj.GetKeyCode() in ['g', 'G']:
+        elif vtk_obj.GetKeyCode() in ["g", "G"]:
             if l_i < len(all_points) - 1:
                 show_pools = not show_pools
                 neighb_i = 0
@@ -408,29 +418,5 @@ def show_input_batch(batch):
 
     # Draw a first plot
     update_scene()
-    fig1.scene.interactor.add_observer('KeyPressEvent', keyboard_callback)
+    fig1.scene.interactor.add_observer("KeyPressEvent", keyboard_callback)
     mlab.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

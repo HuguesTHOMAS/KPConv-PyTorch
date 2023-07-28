@@ -330,4 +330,3 @@ void batch_nanoflann_neighbors(vector<PointXYZ>& queries,
 
 	return;
 }
-

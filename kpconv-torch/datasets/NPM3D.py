@@ -27,18 +27,16 @@ import time
 import numpy as np
 import pickle
 import torch
-import math
 import warnings
 from multiprocessing import Lock
 
 # OS functions
-from os import listdir
-from os.path import exists, join, isdir
+from os.path import exists, join
 
 # Dataset parent class
 from datasets.common import PointCloudDataset
 from torch.utils.data import Sampler, get_worker_info
-from utils.mayavi_visu import *
+from utils.mayavi_visu import KDTree, makedirs, read_ply, show_input_batch, write_ply
 
 from datasets.common import grid_subsampling
 from utils.config import bcolors
@@ -53,28 +51,29 @@ from utils.config import bcolors
 class NPM3DDataset(PointCloudDataset):
     """Class to handle NPM3D dataset."""
 
-    def __init__(self, config, set='training', use_potentials=True, load_data=True):
+    def __init__(self, config, set="training", use_potentials=True, load_data=True):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
-        PointCloudDataset.__init__(self, 'NPM3D')
+        PointCloudDataset.__init__(self, "NPM3D")
 
         ############
         # Parameters
         ############
 
         # Dict from labels to names
-        self.label_to_names = {0: 'unclassified',
-                               1: 'ground',
-                               2: 'building',
-                               3: 'pole',       # pole - road sign - traffic light
-                               4: 'bollard',    # bollard - small pole
-                               5: 'trash',      # trash can
-                               6: 'barrier',
-                               7: 'pedestrian',
-                               8: 'car',
-                               9: 'natural'     # natural - vegetation
-                               }
+        self.label_to_names = {
+            0: "unclassified",
+            1: "ground",
+            2: "building",
+            3: "pole",  # pole - road sign - traffic light
+            4: "bollard",  # bollard - small pole
+            5: "trash",  # trash can
+            6: "barrier",
+            7: "pedestrian",
+            8: "car",
+            9: "natural",  # natural - vegetation
+        }
 
         # Initialize a bunch of variables concerning class labels
         self.init_labels()
@@ -83,10 +82,10 @@ class NPM3DDataset(PointCloudDataset):
         self.ignored_labels = np.array([0])
 
         # Dataset folder
-        self.path = '../../Data/Paris'
+        self.path = "../../Data/Paris"
 
         # Type of task conducted on this dataset
-        self.dataset_task = 'cloud_segmentation'
+        self.dataset_task = "cloud_segmentation"
 
         # Update number of class and data task in configuration
         config.num_classes = self.num_classes - len(self.ignored_labels)
@@ -103,14 +102,22 @@ class NPM3DDataset(PointCloudDataset):
 
         # Path of the training files
         # self.train_path = 'original_ply'
-        self.train_path = 'train'
-        self.original_ply_path = 'original_ply'
+        self.train_path = "train"
+        self.original_ply_path = "original_ply"
 
         # List of files to process
         ply_path = join(self.path, self.train_path)
 
         # Proportion of validation scenes
-        self.cloud_names = ['Lille1_1', 'Lille1_2', 'Lille2', 'Paris', 'ajaccio_2', 'ajaccio_57', 'dijon_9']
+        self.cloud_names = [
+            "Lille1_1",
+            "Lille1_2",
+            "Lille2",
+            "Paris",
+            "ajaccio_2",
+            "ajaccio_57",
+            "dijon_9",
+        ]
         self.all_splits = [0, 1, 2, 3, 4, 5, 6]
         self.validation_split = 1
         # self.test_cloud_names = ['ajaccio_2', 'ajaccio_57', 'dijon_9']
@@ -118,12 +125,12 @@ class NPM3DDataset(PointCloudDataset):
         self.train_splits = [0, 2, 3]
 
         # Number of models used per epoch
-        if self.set == 'training':
+        if self.set == "training":
             self.epoch_n = config.epoch_steps * config.batch_num
-        elif self.set in ['validation', 'test', 'ERF']:
+        elif self.set in ["validation", "test", "ERF"]:
             self.epoch_n = config.validation_size * config.batch_num
         else:
-            raise ValueError('Unknown set for NPM3D data: ', self.set)
+            raise ValueError("Unknown set for NPM3D data: ", self.set)
 
         # Stop data is not needed
         if not load_data:
@@ -142,32 +149,41 @@ class NPM3DDataset(PointCloudDataset):
         # List of training files
         self.files = []
         for i, f in enumerate(self.cloud_names):
-            if self.set == 'training':
+            if self.set == "training":
                 if self.all_splits[i] in self.train_splits:
-                    self.files += [join(ply_path, f + '.ply')]
-            elif self.set in ['validation', 'ERF']:
+                    self.files += [join(ply_path, f + ".ply")]
+            elif self.set in ["validation", "ERF"]:
                 if self.all_splits[i] == self.validation_split:
-                    self.files += [join(ply_path, f + '.ply')]
-            elif self.set == 'test':
+                    self.files += [join(ply_path, f + ".ply")]
+            elif self.set == "test":
                 if self.all_splits[i] in self.test_splits:
-                    self.files += [join(ply_path, f + '.ply')]
+                    self.files += [join(ply_path, f + ".ply")]
             else:
-                raise ValueError('Unknown set for NPM3D data: ', self.set)
-        print('The set is ' + str(self.set))
+                raise ValueError("Unknown set for NPM3D data: ", self.set)
+        print("The set is " + str(self.set))
 
-        if self.set == 'training':
-            self.cloud_names = [f for i, f in enumerate(self.cloud_names)
-                                if self.all_splits[i] in self.train_splits]
-        elif self.set in ['validation', 'ERF']:
-            self.cloud_names = [f for i, f in enumerate(self.cloud_names)
-                                if self.all_splits[i] == self.validation_split]
-        elif self.set == 'test':
-            self.cloud_names = [f for i, f in enumerate(self.cloud_names)
-                                if self.all_splits[i] in self.test_splits]
-        print('The files are ' + str(self.cloud_names))
+        if self.set == "training":
+            self.cloud_names = [
+                f
+                for i, f in enumerate(self.cloud_names)
+                if self.all_splits[i] in self.train_splits
+            ]
+        elif self.set in ["validation", "ERF"]:
+            self.cloud_names = [
+                f
+                for i, f in enumerate(self.cloud_names)
+                if self.all_splits[i] == self.validation_split
+            ]
+        elif self.set == "test":
+            self.cloud_names = [
+                f
+                for i, f in enumerate(self.cloud_names)
+                if self.all_splits[i] in self.test_splits
+            ]
+        print("The files are " + str(self.cloud_names))
 
         if 0 < self.config.first_subsampling_dl <= 0.01:
-            raise ValueError('subsampling_parameter too low (should be over 1 cm')
+            raise ValueError("subsampling_parameter too low (should be over 1 cm")
 
         # Initiate containers
         self.input_trees = []
@@ -195,20 +211,28 @@ class NPM3DDataset(PointCloudDataset):
             self.min_potentials = []
             self.argmin_potentials = []
             for i, tree in enumerate(self.pot_trees):
-                self.potentials += [torch.from_numpy(np.random.rand(tree.data.shape[0]) * 1e-3)]
+                self.potentials += [
+                    torch.from_numpy(np.random.rand(tree.data.shape[0]) * 1e-3)
+                ]
                 min_ind = int(torch.argmin(self.potentials[-1]))
                 self.argmin_potentials += [min_ind]
                 self.min_potentials += [float(self.potentials[-1][min_ind])]
 
             # Share potential memory
-            self.argmin_potentials = torch.from_numpy(np.array(self.argmin_potentials, dtype=np.int64))
-            self.min_potentials = torch.from_numpy(np.array(self.min_potentials, dtype=np.float64))
+            self.argmin_potentials = torch.from_numpy(
+                np.array(self.argmin_potentials, dtype=np.int64)
+            )
+            self.min_potentials = torch.from_numpy(
+                np.array(self.min_potentials, dtype=np.float64)
+            )
             self.argmin_potentials.share_memory_()
             self.min_potentials.share_memory_()
             for i, _ in enumerate(self.pot_trees):
                 self.potentials[i].share_memory_()
 
-            self.worker_waiting = torch.tensor([0 for _ in range(config.input_threads)], dtype=torch.int32)
+            self.worker_waiting = torch.tensor(
+                [0 for _ in range(config.input_threads)], dtype=torch.int32
+            )
             self.worker_waiting.share_memory_()
             self.epoch_inds = None
             self.epoch_i = 0
@@ -217,7 +241,9 @@ class NPM3DDataset(PointCloudDataset):
             self.potentials = None
             self.min_potentials = None
             self.argmin_potentials = None
-            self.epoch_inds = torch.from_numpy(np.zeros((2, self.epoch_n), dtype=np.int64))
+            self.epoch_inds = torch.from_numpy(
+                np.zeros((2, self.epoch_n), dtype=np.int64)
+            )
             self.epoch_i = torch.from_numpy(np.zeros((1,), dtype=np.int64))
             self.epoch_i.share_memory_()
             self.epoch_inds.share_memory_()
@@ -225,7 +251,7 @@ class NPM3DDataset(PointCloudDataset):
         self.worker_lock = Lock()
 
         # For ERF visualization, we want only one cloud per batch and no randomness
-        if self.set == 'ERF':
+        if self.set == "ERF":
             self.batch_limit = torch.tensor([1], dtype=torch.float32)
             self.batch_limit.share_memory_()
             np.random.seed(42)
@@ -276,32 +302,32 @@ class NPM3DDataset(PointCloudDataset):
             t += [time.time()]
 
             if debug_workers:
-                message = ''
+                message = ""
                 for wi in range(info.num_workers):
                     if wi == wid:
-                        message += ' {:}X{:} '.format(bcolors.FAIL, bcolors.ENDC)
+                        message += f" {bcolors.FAIL}X{bcolors.ENDC} "
                     elif self.worker_waiting[wi] == 0:
-                        message += '   '
+                        message += "   "
                     elif self.worker_waiting[wi] == 1:
-                        message += ' | '
+                        message += " | "
                     elif self.worker_waiting[wi] == 2:
-                        message += ' o '
+                        message += " o "
                 print(message)
                 self.worker_waiting[wid] = 0
 
             with self.worker_lock:
 
                 if debug_workers:
-                    message = ''
+                    message = ""
                     for wi in range(info.num_workers):
                         if wi == wid:
-                            message += ' {:}v{:} '.format(bcolors.OKGREEN, bcolors.ENDC)
+                            message += f" {bcolors.OKGREEN}v{bcolors.ENDC} "
                         elif self.worker_waiting[wi] == 0:
-                            message += '   '
+                            message += "   "
                         elif self.worker_waiting[wi] == 1:
-                            message += ' | '
+                            message += " | "
                         elif self.worker_waiting[wi] == 2:
-                            message += ' o '
+                            message += " o "
                     print(message)
                     self.worker_waiting[wid] = 1
 
@@ -316,24 +342,28 @@ class NPM3DDataset(PointCloudDataset):
                 center_point = pot_points[point_ind, :].reshape(1, -1)
 
                 # Add a small noise to center point
-                if self.set != 'ERF':
-                    center_point += np.random.normal(scale=self.config.in_radius / 10, size=center_point.shape)
+                if self.set != "ERF":
+                    center_point += np.random.normal(
+                        scale=self.config.in_radius / 10, size=center_point.shape
+                    )
 
                 # Indices of points in input region
-                pot_inds, dists = self.pot_trees[cloud_ind].query_radius(center_point,
-                                                                         r=self.config.in_radius,
-                                                                         return_distance=True)
+                pot_inds, dists = self.pot_trees[cloud_ind].query_radius(
+                    center_point, r=self.config.in_radius, return_distance=True
+                )
 
                 d2s = np.square(dists[0])
                 pot_inds = pot_inds[0]
 
                 # Update potentials (Tukey weights)
-                if self.set != 'ERF':
+                if self.set != "ERF":
                     tukeys = np.square(1 - d2s / np.square(self.config.in_radius))
                     tukeys[d2s > np.square(self.config.in_radius)] = 0
                     self.potentials[cloud_ind][pot_inds] += tukeys
                     min_ind = torch.argmin(self.potentials[cloud_ind])
-                    self.min_potentials[[cloud_ind]] = self.potentials[cloud_ind][min_ind]
+                    self.min_potentials[[cloud_ind]] = self.potentials[cloud_ind][
+                        min_ind
+                    ]
                     self.argmin_potentials[[cloud_ind]] = min_ind
 
             t += [time.time()]
@@ -342,8 +372,9 @@ class NPM3DDataset(PointCloudDataset):
             points = np.array(self.input_trees[cloud_ind].data, copy=False)
 
             # Indices of points in input region
-            input_inds = self.input_trees[cloud_ind].query_radius(center_point,
-                                                                  r=self.config.in_radius)[0]
+            input_inds = self.input_trees[cloud_ind].query_radius(
+                center_point, r=self.config.in_radius
+            )[0]
 
             t += [time.time()]
 
@@ -354,7 +385,9 @@ class NPM3DDataset(PointCloudDataset):
             if n < 2:
                 failed_attempts += 1
                 if failed_attempts > 100 * self.config.batch_num:
-                    raise ValueError('It seems this dataset only containes empty input spheres')
+                    raise ValueError(
+                        "It seems this dataset only containes empty input spheres"
+                    )
                 t += [time.time()]
                 t += [time.time()]
                 continue
@@ -362,7 +395,7 @@ class NPM3DDataset(PointCloudDataset):
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
             # input_colors = self.input_colors[cloud_ind][input_inds]
-            if self.set in ['test', 'ERF']:
+            if self.set in ["test", "ERF"]:
                 input_labels = np.zeros(input_points.shape[0])
             else:
                 input_labels = self.input_labels[cloud_ind][input_inds]
@@ -379,7 +412,9 @@ class NPM3DDataset(PointCloudDataset):
 
             # Get original height as additional feature
             # input_features = np.hstack((input_colors, input_points[:, 2:] + center_point[:, 2:])).astype(np.float32)
-            input_features = np.hstack((input_points[:, 2:] + center_point[:, 2:])).astype(np.float32)
+            input_features = np.hstack(
+                input_points[:, 2:] + center_point[:, 2:]
+            ).astype(np.float32)
 
             t += [time.time()]
 
@@ -428,7 +463,9 @@ class NPM3DDataset(PointCloudDataset):
         elif self.config.in_features_dim == 5:
             stacked_features = np.hstack((stacked_features, features))
         else:
-            raise ValueError('Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)')
+            raise ValueError(
+                "Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)"
+            )
 
         #######################
         # Create network inputs
@@ -440,10 +477,9 @@ class NPM3DDataset(PointCloudDataset):
         t += [time.time()]
 
         # Get the whole input list
-        input_list = self.segmentation_inputs(stacked_points,
-                                              stacked_features,
-                                              labels,
-                                              stack_lengths)
+        input_list = self.segmentation_inputs(
+            stacked_points, stacked_features, labels, stack_lengths
+        )
 
         t += [time.time()]
 
@@ -451,16 +487,16 @@ class NPM3DDataset(PointCloudDataset):
         input_list += [scales, rots, cloud_inds, point_inds, input_inds]
 
         if debug_workers:
-            message = ''
+            message = ""
             for wi in range(info.num_workers):
                 if wi == wid:
-                    message += ' {:}0{:} '.format(bcolors.OKBLUE, bcolors.ENDC)
+                    message += f" {bcolors.OKBLUE}0{bcolors.ENDC} "
                 elif self.worker_waiting[wi] == 0:
-                    message += '   '
+                    message += "   "
                 elif self.worker_waiting[wi] == 1:
-                    message += ' | '
+                    message += " | "
                 elif self.worker_waiting[wi] == 2:
-                    message += ' o '
+                    message += " o "
             print(message)
             self.worker_waiting[wid] = 2
 
@@ -469,47 +505,62 @@ class NPM3DDataset(PointCloudDataset):
         # Display timings
         debugT = False
         if debugT:
-            print('\n************************\n')
-            print('Timings:')
+            print("\n************************\n")
+            print("Timings:")
             ti = 0
             N = 5
-            mess = 'Init ...... {:5.1f}ms /'
-            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            mess = "Init ...... {:5.1f}ms /"
+            loop_times = [
+                1000 * (t[ti + N * i + 1] - t[ti + N * i])
+                for i in range(len(stack_lengths))
+            ]
             for dt in loop_times:
-                mess += ' {:5.1f}'.format(dt)
+                mess += f" {dt:5.1f}"
             print(mess.format(np.sum(loop_times)))
             ti += 1
-            mess = 'Pots ...... {:5.1f}ms /'
-            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            mess = "Pots ...... {:5.1f}ms /"
+            loop_times = [
+                1000 * (t[ti + N * i + 1] - t[ti + N * i])
+                for i in range(len(stack_lengths))
+            ]
             for dt in loop_times:
-                mess += ' {:5.1f}'.format(dt)
+                mess += f" {dt:5.1f}"
             print(mess.format(np.sum(loop_times)))
             ti += 1
-            mess = 'Sphere .... {:5.1f}ms /'
-            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            mess = "Sphere .... {:5.1f}ms /"
+            loop_times = [
+                1000 * (t[ti + N * i + 1] - t[ti + N * i])
+                for i in range(len(stack_lengths))
+            ]
             for dt in loop_times:
-                mess += ' {:5.1f}'.format(dt)
+                mess += f" {dt:5.1f}"
             print(mess.format(np.sum(loop_times)))
             ti += 1
-            mess = 'Collect ... {:5.1f}ms /'
-            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            mess = "Collect ... {:5.1f}ms /"
+            loop_times = [
+                1000 * (t[ti + N * i + 1] - t[ti + N * i])
+                for i in range(len(stack_lengths))
+            ]
             for dt in loop_times:
-                mess += ' {:5.1f}'.format(dt)
+                mess += f" {dt:5.1f}"
             print(mess.format(np.sum(loop_times)))
             ti += 1
-            mess = 'Augment ... {:5.1f}ms /'
-            loop_times = [1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))]
+            mess = "Augment ... {:5.1f}ms /"
+            loop_times = [
+                1000 * (t[ti + N * i + 1] - t[ti + N * i])
+                for i in range(len(stack_lengths))
+            ]
             for dt in loop_times:
-                mess += ' {:5.1f}'.format(dt)
+                mess += f" {dt:5.1f}"
             print(mess.format(np.sum(loop_times)))
             ti += N * (len(stack_lengths) - 1) + 1
-            print('concat .... {:5.1f}ms'.format(1000 * (t[ti + 1] - t[ti])))
+            print(f"concat .... {1000 * (t[ti + 1] - t[ti]):5.1f}ms")
             ti += 1
-            print('input ..... {:5.1f}ms'.format(1000 * (t[ti + 1] - t[ti])))
+            print(f"input ..... {1000 * (t[ti + 1] - t[ti]):5.1f}ms")
             ti += 1
-            print('stack ..... {:5.1f}ms'.format(1000 * (t[ti + 1] - t[ti])))
+            print(f"stack ..... {1000 * (t[ti + 1] - t[ti]):5.1f}ms")
             ti += 1
-            print('\n************************\n')
+            print("\n************************\n")
         return input_list
 
     def random_item(self, batch_i):
@@ -546,12 +597,15 @@ class NPM3DDataset(PointCloudDataset):
             center_point = points[point_ind, :].reshape(1, -1)
 
             # Add a small noise to center point
-            if self.set != 'ERF':
-                center_point += np.random.normal(scale=self.config.in_radius / 10, size=center_point.shape)
+            if self.set != "ERF":
+                center_point += np.random.normal(
+                    scale=self.config.in_radius / 10, size=center_point.shape
+                )
 
             # Indices of points in input region
-            input_inds = self.input_trees[cloud_ind].query_radius(center_point,
-                                                                  r=self.config.in_radius)[0]
+            input_inds = self.input_trees[cloud_ind].query_radius(
+                center_point, r=self.config.in_radius
+            )[0]
 
             # Number collected
             n = input_inds.shape[0]
@@ -560,13 +614,15 @@ class NPM3DDataset(PointCloudDataset):
             if n < 2:
                 failed_attempts += 1
                 if failed_attempts > 100 * self.config.batch_num:
-                    raise ValueError('It seems this dataset only containes empty input spheres')
+                    raise ValueError(
+                        "It seems this dataset only containes empty input spheres"
+                    )
                 continue
 
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
             # input_colors = self.input_colors[cloud_ind][input_inds]
-            if self.set in ['test', 'ERF']:
+            if self.set in ["test", "ERF"]:
                 input_labels = np.zeros(input_points.shape[0])
             else:
                 input_labels = self.input_labels[cloud_ind][input_inds]
@@ -580,7 +636,9 @@ class NPM3DDataset(PointCloudDataset):
             #   input_colors *= 0
 
             # Get original height as additional feature
-            input_features = np.hstack((input_points[:, 2:] + center_point[:, 2:])).astype(np.float32)
+            input_features = np.hstack(
+                input_points[:, 2:] + center_point[:, 2:]
+            ).astype(np.float32)
 
             # Stack batch
             p_list += [input_points]
@@ -627,7 +685,9 @@ class NPM3DDataset(PointCloudDataset):
         elif self.config.in_features_dim == 5:
             stacked_features = np.hstack((stacked_features, features))
         else:
-            raise ValueError('Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)')
+            raise ValueError(
+                "Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)"
+            )
 
         #######################
         # Create network inputs
@@ -637,10 +697,9 @@ class NPM3DDataset(PointCloudDataset):
         #
 
         # Get the whole input list
-        input_list = self.segmentation_inputs(stacked_points,
-                                              stacked_features,
-                                              labels,
-                                              stack_lengths)
+        input_list = self.segmentation_inputs(
+            stacked_points, stacked_features, labels, stack_lengths
+        )
 
         # Add scale and rotation for testing
         input_list += [scales, rots, cloud_inds, point_inds, input_inds]
@@ -649,7 +708,7 @@ class NPM3DDataset(PointCloudDataset):
 
     def prepare_NPM3D_ply(self):
 
-        print('\nPreparing ply files')
+        print("\nPreparing ply files")
         t0 = time.time()
 
         # Folder for the ply files
@@ -660,16 +719,18 @@ class NPM3DDataset(PointCloudDataset):
         for cloud_name in self.cloud_names:
 
             # Pass if the cloud has already been computed
-            cloud_file = join(ply_path, cloud_name + '.ply')
+            cloud_file = join(ply_path, cloud_name + ".ply")
             if exists(cloud_file):
                 continue
 
-            original_ply = read_ply(join(self.path, self.original_ply_path, cloud_name + '.ply'))
+            original_ply = read_ply(
+                join(self.path, self.original_ply_path, cloud_name + ".ply")
+            )
 
             # Initiate containers
-            cloud_x = original_ply['x']
-            cloud_y = original_ply['y']
-            cloud_z = original_ply['z']
+            cloud_x = original_ply["x"]
+            cloud_y = original_ply["y"]
+            cloud_z = original_ply["z"]
             cloud_x = cloud_x - (cloud_x.min())
             cloud_y = cloud_y - (cloud_y.min())
             cloud_z = cloud_z - (cloud_z.min())
@@ -688,21 +749,27 @@ class NPM3DDataset(PointCloudDataset):
             cloud_points = np.hstack((cloud_x, cloud_y, cloud_z))
 
             # Labels
-            if cloud_name in ['ajaccio_2', 'ajaccio_57', 'dijon_9']:
+            if cloud_name in ["ajaccio_2", "ajaccio_57", "dijon_9"]:
 
-                field_names = ['x', 'y', 'z']
-                write_ply(join(ply_path, cloud_name + '.ply'), cloud_points, field_names)
+                field_names = ["x", "y", "z"]
+                write_ply(
+                    join(ply_path, cloud_name + ".ply"), cloud_points, field_names
+                )
 
             else:
-                labels = original_ply['class']
+                labels = original_ply["class"]
                 labels = labels.astype(np.int32)
                 labels = labels.reshape(len(labels), 1)
 
                 # Save as ply
-                field_names = ['x', 'y', 'z', 'class']
-                write_ply(join(ply_path, cloud_name + '.ply'), [cloud_points, labels], field_names)
+                field_names = ["x", "y", "z", "class"]
+                write_ply(
+                    join(ply_path, cloud_name + ".ply"),
+                    [cloud_points, labels],
+                    field_names,
+                )
 
-        print('Done in {:.1f}s'.format(time.time() - t0))
+        print(f"Done in {time.time() - t0:.1f}s")
         return
 
     def load_subsampled_clouds(self):
@@ -711,7 +778,7 @@ class NPM3DDataset(PointCloudDataset):
         dl = self.config.first_subsampling_dl
 
         # Create path for files
-        tree_path = join(self.path, 'input_{:.3f}'.format(dl))
+        tree_path = join(self.path, f"input_{dl:.3f}")
         if not exists(tree_path):
             makedirs(tree_path)
 
@@ -728,40 +795,44 @@ class NPM3DDataset(PointCloudDataset):
             cloud_name = self.cloud_names[i]
 
             # Name of the input files
-            KDTree_file = join(tree_path, '{:s}_KDTree.pkl'.format(cloud_name))
-            sub_ply_file = join(tree_path, '{:s}.ply'.format(cloud_name))
+            KDTree_file = join(tree_path, f"{cloud_name:s}_KDTree.pkl")
+            sub_ply_file = join(tree_path, f"{cloud_name:s}.ply")
 
             # Check if inputs have already been computed
             if exists(KDTree_file):
-                print('\nFound KDTree for cloud {:s}, subsampled at {:.3f}'.format(cloud_name, dl))
+                print(
+                    f"\nFound KDTree for cloud {cloud_name:s}, subsampled at {dl:.3f}"
+                )
 
                 # read ply with data
                 data = read_ply(sub_ply_file)
                 # sub_colors = np.vstack((data['red'], data['green'], data['blue'])).T
-                sub_labels = data['class']
+                sub_labels = data["class"]
 
                 # Read pkl with search tree
-                with open(KDTree_file, 'rb') as f:
+                with open(KDTree_file, "rb") as f:
                     search_tree = pickle.load(f)
 
             else:
-                print('\nPreparing KDTree for cloud {:s}, subsampled at {:.3f}'.format(cloud_name, dl))
+                print(
+                    f"\nPreparing KDTree for cloud {cloud_name:s}, subsampled at {dl:.3f}"
+                )
 
                 # Read ply file
                 data = read_ply(file_path)
-                points = np.vstack((data['x'], data['y'], data['z'])).T
+                points = np.vstack((data["x"], data["y"], data["z"])).T
                 # colors = np.vstack((data['red'], data['green'], data['blue'])).T
 
                 # Fake labels for test data
-                if self.set == 'test':
+                if self.set == "test":
                     labels = np.zeros((data.shape[0],), dtype=np.int32)
                 else:
-                    labels = data['class']
+                    labels = data["class"]
 
                 # Subsample cloud
-                sub_points, sub_labels = grid_subsampling(points,
-                                                          labels=labels,
-                                                          sampleDl=dl)
+                sub_points, sub_labels = grid_subsampling(
+                    points, labels=labels, sampleDl=dl
+                )
 
                 # Rescale float color and squeeze label
                 # sub_colors = sub_colors / 255
@@ -773,13 +844,13 @@ class NPM3DDataset(PointCloudDataset):
                 # search_tree.fit(sub_points)
 
                 # Save KDTree
-                with open(KDTree_file, 'wb') as f:
+                with open(KDTree_file, "wb") as f:
                     pickle.dump(search_tree, f)
 
                 # Save ply
-                write_ply(sub_ply_file,
-                          [sub_points, sub_labels],
-                          ['x', 'y', 'z', 'class'])
+                write_ply(
+                    sub_ply_file, [sub_points, sub_labels], ["x", "y", "z", "class"]
+                )
 
             # Fill data containers
             self.input_trees += [search_tree]
@@ -787,7 +858,7 @@ class NPM3DDataset(PointCloudDataset):
             self.input_labels += [sub_labels]
 
             size = sub_labels.shape[0] * 4 * 7
-            print('{:.1f} MB loaded in {:.1f}s'.format(size * 1e-6, time.time() - t0))
+            print(f"{size * 1e-6:.1f} MB loaded in {time.time() - t0:.1f}s")
 
         ############################
         # Coarse potential locations
@@ -795,7 +866,7 @@ class NPM3DDataset(PointCloudDataset):
 
         # Only necessary for validation and test sets
         if self.use_potentials:
-            print('\nPreparing potentials')
+            print("\nPreparing potentials")
 
             # Restart timer
             t0 = time.time()
@@ -809,31 +880,35 @@ class NPM3DDataset(PointCloudDataset):
                 cloud_name = self.cloud_names[i]
 
                 # Name of the input files
-                coarse_KDTree_file = join(tree_path, '{:s}_coarse_KDTree.pkl'.format(cloud_name))
+                coarse_KDTree_file = join(
+                    tree_path, f"{cloud_name:s}_coarse_KDTree.pkl"
+                )
 
                 # Check if inputs have already been computed
                 if exists(coarse_KDTree_file):
                     # Read pkl with search tree
-                    with open(coarse_KDTree_file, 'rb') as f:
+                    with open(coarse_KDTree_file, "rb") as f:
                         search_tree = pickle.load(f)
 
                 else:
                     # Subsample cloud
                     sub_points = np.array(self.input_trees[cloud_ind].data, copy=False)
-                    coarse_points = grid_subsampling(sub_points.astype(np.float32), sampleDl=pot_dl)
+                    coarse_points = grid_subsampling(
+                        sub_points.astype(np.float32), sampleDl=pot_dl
+                    )
 
                     # Get chosen neighborhoods
                     search_tree = KDTree(coarse_points, leaf_size=10)
 
                     # Save KDTree
-                    with open(coarse_KDTree_file, 'wb') as f:
+                    with open(coarse_KDTree_file, "wb") as f:
                         pickle.dump(search_tree, f)
 
                 # Fill data containers
                 self.pot_trees += [search_tree]
                 cloud_ind += 1
 
-            print('Done in {:.1f}s'.format(time.time() - t0))
+            print(f"Done in {time.time() - t0:.1f}s")
 
         ######################
         # Reprojection indices
@@ -843,9 +918,9 @@ class NPM3DDataset(PointCloudDataset):
         self.num_clouds = len(self.input_trees)
 
         # Only necessary for validation and test sets
-        if self.set in ['validation', 'test']:
+        if self.set in ["validation", "test"]:
 
-            print('\nPreparing reprojection indices for testing')
+            print("\nPreparing reprojection indices for testing")
 
             # Get validation/test reprojection indices
             for i, file_path in enumerate(self.files):
@@ -857,21 +932,21 @@ class NPM3DDataset(PointCloudDataset):
                 cloud_name = self.cloud_names[i]
 
                 # File name for saving
-                proj_file = join(tree_path, '{:s}_proj.pkl'.format(cloud_name))
+                proj_file = join(tree_path, f"{cloud_name:s}_proj.pkl")
 
                 # Try to load previous indices
                 if exists(proj_file):
-                    with open(proj_file, 'rb') as f:
+                    with open(proj_file, "rb") as f:
                         proj_inds, labels = pickle.load(f)
                 else:
                     data = read_ply(file_path)
-                    points = np.vstack((data['x'], data['y'], data['z'])).T
+                    points = np.vstack((data["x"], data["y"], data["z"])).T
 
                     # Fake labels
-                    if self.set == 'test':
+                    if self.set == "test":
                         labels = np.zeros((data.shape[0],), dtype=np.int32)
                     else:
-                        labels = data['class']
+                        labels = data["class"]
 
                     # Compute projection inds
                     idxs = self.input_trees[i].query(points, return_distance=False)
@@ -879,12 +954,12 @@ class NPM3DDataset(PointCloudDataset):
                     proj_inds = np.squeeze(idxs).astype(np.int32)
 
                     # Save
-                    with open(proj_file, 'wb') as f:
+                    with open(proj_file, "wb") as f:
                         pickle.dump([proj_inds, labels], f)
 
                 self.test_proj += [proj_inds]
                 self.validation_labels += [labels]
-                print('{:s} done in {:.1f}s'.format(cloud_name, time.time() - t0))
+                print(f"{cloud_name:s} done in {time.time() - t0:.1f}s")
 
         print()
         return
@@ -896,7 +971,7 @@ class NPM3DDataset(PointCloudDataset):
 
         # Get original points
         data = read_ply(file_path)
-        return np.vstack((data['x'], data['y'], data['z'])).T
+        return np.vstack((data["x"], data["y"], data["z"])).T
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -915,7 +990,7 @@ class NPM3DSampler(Sampler):
         self.dataset = dataset
 
         # Number of step per epoch
-        if dataset.set == 'training':
+        if dataset.set == "training":
             self.N = dataset.config.epoch_steps
         else:
             self.N = dataset.config.validation_size
@@ -951,7 +1026,15 @@ class NPM3DSampler(Sampler):
                     for cloud_ind, cloud_labels in enumerate(self.dataset.input_labels):
                         label_indices = np.where(np.equal(cloud_labels, label))[0]
                         all_label_indices.append(
-                            np.vstack((np.full(label_indices.shape, cloud_ind, dtype=np.int64), label_indices)))
+                            np.vstack(
+                                (
+                                    np.full(
+                                        label_indices.shape, cloud_ind, dtype=np.int64
+                                    ),
+                                    label_indices,
+                                )
+                            )
+                        )
 
                     # Stack them: [2, N1+N2+...]
                     all_label_indices = np.hstack(all_label_indices)
@@ -962,24 +1045,39 @@ class NPM3DSampler(Sampler):
                         chosen_label_inds = np.zeros((2, 0), dtype=np.int64)
                         while chosen_label_inds.shape[1] < random_pick_n:
                             chosen_label_inds = np.hstack(
-                                (chosen_label_inds, all_label_indices[:, np.random.permutation(N_inds)]))
-                        warnings.warn('When choosing random epoch indices (use_potentials=False), \
+                                (
+                                    chosen_label_inds,
+                                    all_label_indices[:, np.random.permutation(N_inds)],
+                                )
+                            )
+                        warnings.warn(
+                            "When choosing random epoch indices (use_potentials=False), \
                                        class {:d}: {:s} only had {:d} available points, while we \
-                                       needed {:d}. Repeating indices in the same epoch'.format(label,
-                                                                                                self.dataset.label_names[
-                                                                                                    label_ind],
-                                                                                                N_inds,
-                                                                                                random_pick_n))
+                                       needed {:d}. Repeating indices in the same epoch".format(
+                                label,
+                                self.dataset.label_names[label_ind],
+                                N_inds,
+                                random_pick_n,
+                            )
+                        )
 
                     elif N_inds < 50 * random_pick_n:
-                        rand_inds = np.random.choice(N_inds, size=random_pick_n, replace=False)
+                        rand_inds = np.random.choice(
+                            N_inds, size=random_pick_n, replace=False
+                        )
                         chosen_label_inds = all_label_indices[:, rand_inds]
 
                     else:
                         chosen_label_inds = np.zeros((2, 0), dtype=np.int64)
                         while chosen_label_inds.shape[1] < random_pick_n:
-                            rand_inds = np.unique(np.random.choice(N_inds, size=2 * random_pick_n, replace=True))
-                            chosen_label_inds = np.hstack((chosen_label_inds, all_label_indices[:, rand_inds]))
+                            rand_inds = np.unique(
+                                np.random.choice(
+                                    N_inds, size=2 * random_pick_n, replace=True
+                                )
+                            )
+                            chosen_label_inds = np.hstack(
+                                (chosen_label_inds, all_label_indices[:, rand_inds])
+                            )
                         chosen_label_inds = chosen_label_inds[:, :random_pick_n]
 
                     # Stack for each label
@@ -993,8 +1091,7 @@ class NPM3DSampler(Sampler):
             self.dataset.epoch_inds += torch.from_numpy(all_epoch_inds)
 
         # Generator loop
-        for i in range(self.N):
-            yield i
+        yield from range(self.N)
 
     def __len__(self):
         """
@@ -1069,17 +1166,23 @@ class NPM3DSampler(Sampler):
                 # Console display (only one per second)
                 if (t[-1] - last_display) > 1.0:
                     last_display = t[-1]
-                    message = 'Step {:5d}  estim_b ={:5.2f} batch_limit ={:7d},  //  {:.1f}ms {:.1f}ms'
-                    print(message.format(i,
-                                         estim_b,
-                                         int(self.dataset.batch_limit),
-                                         1000 * mean_dt[0],
-                                         1000 * mean_dt[1]))
+                    message = "Step {:5d}  estim_b ={:5.2f} batch_limit ={:7d},  //  {:.1f}ms {:.1f}ms"
+                    print(
+                        message.format(
+                            i,
+                            estim_b,
+                            int(self.dataset.batch_limit),
+                            1000 * mean_dt[0],
+                            1000 * mean_dt[1],
+                        )
+                    )
 
             if breaking:
                 break
 
-    def calibration(self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False):
+    def calibration(
+        self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False
+    ):
         """
         Method performing batch and neighbors calibration.
             Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
@@ -1092,7 +1195,7 @@ class NPM3DSampler(Sampler):
         # Previously saved calibration
         ##############################
 
-        print('\nStarting Calibration (use verbose=True for more details)')
+        print("\nStarting Calibration (use verbose=True for more details)")
         t0 = time.time()
 
         redo = force_redo
@@ -1101,45 +1204,47 @@ class NPM3DSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.dataset.path, 'batch_limits.pkl')
+        batch_lim_file = join(self.dataset.path, "batch_limits.pkl")
         if exists(batch_lim_file):
-            with open(batch_lim_file, 'rb') as file:
+            with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
         else:
             batch_lim_dict = {}
 
         # Check if the batch limit associated with current parameters exists
         if self.dataset.use_potentials:
-            sampler_method = 'potentials'
+            sampler_method = "potentials"
         else:
-            sampler_method = 'random'
-        key = '{:s}_{:.3f}_{:.3f}_{:d}'.format(sampler_method,
-                                               self.dataset.config.in_radius,
-                                               self.dataset.config.first_subsampling_dl,
-                                               self.dataset.config.batch_num)
+            sampler_method = "random"
+        key = "{:s}_{:.3f}_{:.3f}_{:d}".format(
+            sampler_method,
+            self.dataset.config.in_radius,
+            self.dataset.config.first_subsampling_dl,
+            self.dataset.config.batch_num,
+        )
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
             redo = True
 
         if verbose:
-            print('\nPrevious calibration found:')
-            print('Check batch limit dictionary')
+            print("\nPrevious calibration found:")
+            print("Check batch limit dictionary")
             if key in batch_lim_dict:
                 color = bcolors.OKGREEN
                 v = str(int(batch_lim_dict[key]))
             else:
                 color = bcolors.FAIL
-                v = '?'
-            print('{:}\"{:s}\": {:s}{:}'.format(color, key, v, bcolors.ENDC))
+                v = "?"
+            print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
 
         # Neighbors limit
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.dataset.path, 'neighbors_limits.pkl')
+        neighb_lim_file = join(self.dataset.path, "neighbors_limits.pkl")
         if exists(neighb_lim_file):
-            with open(neighb_lim_file, 'rb') as file:
+            with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
         else:
             neighb_lim_dict = {}
@@ -1148,13 +1253,13 @@ class NPM3DSampler(Sampler):
         neighb_limits = []
         for layer_ind in range(self.dataset.config.num_layers):
 
-            dl = self.dataset.config.first_subsampling_dl * (2 ** layer_ind)
+            dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
             if self.dataset.config.deform_layers[layer_ind]:
                 r = dl * self.dataset.config.deform_radius
             else:
                 r = dl * self.dataset.config.conv_radius
 
-            key = '{:.3f}_{:.3f}'.format(dl, r)
+            key = f"{dl:.3f}_{r:.3f}"
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
@@ -1164,22 +1269,22 @@ class NPM3DSampler(Sampler):
             redo = True
 
         if verbose:
-            print('Check neighbors limit dictionary')
+            print("Check neighbors limit dictionary")
             for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2 ** layer_ind)
+                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
                 if self.dataset.config.deform_layers[layer_ind]:
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
-                key = '{:.3f}_{:.3f}'.format(dl, r)
+                key = f"{dl:.3f}_{r:.3f}"
 
                 if key in neighb_lim_dict:
                     color = bcolors.OKGREEN
                     v = str(neighb_lim_dict[key])
                 else:
                     color = bcolors.FAIL
-                    v = '?'
-                print('{:}\"{:s}\": {:s}{:}'.format(color, key, v, bcolors.ENDC))
+                    v = "?"
+                print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
 
         if redo:
 
@@ -1188,10 +1293,14 @@ class NPM3DSampler(Sampler):
             ############################
 
             # From config parameter, compute higher bound of neighbors number in a neighborhood
-            hist_n = int(np.ceil(4 / 3 * np.pi * (self.dataset.config.deform_radius + 1) ** 3))
+            hist_n = int(
+                np.ceil(4 / 3 * np.pi * (self.dataset.config.deform_radius + 1) ** 3)
+            )
 
             # Histogram of neighborhood sizes
-            neighb_hists = np.zeros((self.dataset.config.num_layers, hist_n), dtype=np.int32)
+            neighb_hists = np.zeros(
+                (self.dataset.config.num_layers, hist_n), dtype=np.int32
+            )
 
             ########################
             # Batch calib parameters
@@ -1240,8 +1349,10 @@ class NPM3DSampler(Sampler):
                 for batch_i, batch in enumerate(dataloader):
 
                     # Update neighborhood histogram
-                    counts = [np.sum(neighb_mat.numpy() < neighb_mat.shape[0], axis=1) for neighb_mat in
-                              batch.neighbors]
+                    counts = [
+                        np.sum(neighb_mat.numpy() < neighb_mat.shape[0], axis=1)
+                        for neighb_mat in batch.neighbors
+                    ]
                     hists = [np.bincount(c, minlength=hist_n)[:hist_n] for c in counts]
                     neighb_hists += np.vstack(hists)
 
@@ -1288,10 +1399,8 @@ class NPM3DSampler(Sampler):
                     # Console display (only one per second)
                     if verbose and (t - last_display) > 1.0:
                         last_display = t
-                        message = 'Step {:5d}  estim_b ={:5.2f} batch_limit ={:7d}'
-                        print(message.format(i,
-                                             estim_b,
-                                             int(self.dataset.batch_limit)))
+                        message = "Step {:5d}  estim_b ={:5.2f} batch_limit ={:7d}"
+                        print(message.format(i, estim_b, int(self.dataset.batch_limit)))
 
                     # Debug plots
                     debug_in.append(int(batch.points[0].shape[0]))
@@ -1307,7 +1416,8 @@ class NPM3DSampler(Sampler):
                 import matplotlib.pyplot as plt
 
                 print(
-                    "ERROR: It seems that the calibration have not reached convergence. Here are some plot to understand why:")
+                    "ERROR: It seems that the calibration have not reached convergence. Here are some plot to understand why:"
+                )
                 print("If you notice unstability, reduce the expected_N value")
                 print("If convergece is too slow, increase the expected_N value")
 
@@ -1321,11 +1431,13 @@ class NPM3DSampler(Sampler):
 
                 plt.show()
 
-                a = 1 / 0
+                1 / 0
 
             # Use collected neighbor histogram to get neighbors limit
             cumsum = np.cumsum(neighb_hists.T, axis=0)
-            percentiles = np.sum(cumsum < (untouched_ratio * cumsum[hist_n - 1, :]), axis=0)
+            percentiles = np.sum(
+                cumsum < (untouched_ratio * cumsum[hist_n - 1, :]), axis=0
+            )
             self.dataset.neighborhood_limits = percentiles
 
             if verbose:
@@ -1335,54 +1447,56 @@ class NPM3DSampler(Sampler):
                     neighb_hists = neighb_hists[:, :-1]
                 hist_n = neighb_hists.shape[1]
 
-                print('\n**************************************************\n')
-                line0 = 'neighbors_num '
+                print("\n**************************************************\n")
+                line0 = "neighbors_num "
                 for layer in range(neighb_hists.shape[0]):
-                    line0 += '|  layer {:2d}  '.format(layer)
+                    line0 += f"|  layer {layer:2d}  "
                 print(line0)
                 for neighb_size in range(hist_n):
-                    line0 = '     {:4d}     '.format(neighb_size)
+                    line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
                             color = bcolors.FAIL
                         else:
                             color = bcolors.OKGREEN
-                        line0 += '|{:}{:10d}{:}  '.format(color,
-                                                          neighb_hists[layer, neighb_size],
-                                                          bcolors.ENDC)
+                        line0 += "|{:}{:10d}{:}  ".format(
+                            color, neighb_hists[layer, neighb_size], bcolors.ENDC
+                        )
 
                     print(line0)
 
-                print('\n**************************************************\n')
-                print('\nchosen neighbors limits: ', percentiles)
+                print("\n**************************************************\n")
+                print("\nchosen neighbors limits: ", percentiles)
                 print()
 
             # Save batch_limit dictionary
             if self.dataset.use_potentials:
-                sampler_method = 'potentials'
+                sampler_method = "potentials"
             else:
-                sampler_method = 'random'
-            key = '{:s}_{:.3f}_{:.3f}_{:d}'.format(sampler_method,
-                                                   self.dataset.config.in_radius,
-                                                   self.dataset.config.first_subsampling_dl,
-                                                   self.dataset.config.batch_num)
+                sampler_method = "random"
+            key = "{:s}_{:.3f}_{:.3f}_{:d}".format(
+                sampler_method,
+                self.dataset.config.in_radius,
+                self.dataset.config.first_subsampling_dl,
+                self.dataset.config.batch_num,
+            )
             batch_lim_dict[key] = float(self.dataset.batch_limit)
-            with open(batch_lim_file, 'wb') as file:
+            with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
 
             # Save neighb_limit dictionary
             for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2 ** layer_ind)
+                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
                 if self.dataset.config.deform_layers[layer_ind]:
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
-                key = '{:.3f}_{:.3f}'.format(dl, r)
+                key = f"{dl:.3f}_{r:.3f}"
                 neighb_lim_dict[key] = self.dataset.neighborhood_limits[layer_ind]
-            with open(neighb_lim_file, 'wb') as file:
+            with open(neighb_lim_file, "wb") as file:
                 pickle.dump(neighb_lim_dict, file)
 
-        print('Calibration done in {:.1f}s\n'.format(time.time() - t0))
+        print(f"Calibration done in {time.time() - t0:.1f}s\n")
         return
 
 
@@ -1399,15 +1513,25 @@ class NPM3DCustomBatch:
 
         # Extract input tensors from the list of numpy array
         ind = 0
-        self.points = [torch.from_numpy(nparray) for nparray in input_list[ind:ind + L]]
+        self.points = [
+            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+        ]
         ind += L
-        self.neighbors = [torch.from_numpy(nparray) for nparray in input_list[ind:ind + L]]
+        self.neighbors = [
+            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+        ]
         ind += L
-        self.pools = [torch.from_numpy(nparray) for nparray in input_list[ind:ind + L]]
+        self.pools = [
+            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+        ]
         ind += L
-        self.upsamples = [torch.from_numpy(nparray) for nparray in input_list[ind:ind + L]]
+        self.upsamples = [
+            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+        ]
         ind += L
-        self.lengths = [torch.from_numpy(nparray) for nparray in input_list[ind:ind + L]]
+        self.lengths = [
+            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+        ]
         ind += L
         self.features = torch.from_numpy(input_list[ind])
         ind += 1
@@ -1464,15 +1588,15 @@ class NPM3DCustomBatch:
 
     def unstack_points(self, layer=None):
         """Unstack the points"""
-        return self.unstack_elements('points', layer)
+        return self.unstack_elements("points", layer)
 
     def unstack_neighbors(self, layer=None):
         """Unstack the neighbors indices"""
-        return self.unstack_elements('neighbors', layer)
+        return self.unstack_elements("neighbors", layer)
 
     def unstack_pools(self, layer=None):
         """Unstack the pooling indices"""
-        return self.unstack_elements('pools', layer)
+        return self.unstack_elements("pools", layer)
 
     def unstack_elements(self, element_name, layer=None, to_numpy=True):
         """
@@ -1480,14 +1604,14 @@ class NPM3DCustomBatch:
         layers
         """
 
-        if element_name == 'points':
+        if element_name == "points":
             elements = self.points
-        elif element_name == 'neighbors':
+        elif element_name == "neighbors":
             elements = self.neighbors
-        elif element_name == 'pools':
+        elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError('Unknown element name: {:s}'.format(element_name))
+            raise ValueError(f"Unknown element name: {element_name:s}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):
@@ -1496,18 +1620,18 @@ class NPM3DCustomBatch:
 
                 i0 = 0
                 p_list = []
-                if element_name == 'pools':
+                if element_name == "pools":
                     lengths = self.lengths[layer_i + 1]
                 else:
                     lengths = self.lengths[layer_i]
 
                 for b_i, length in enumerate(lengths):
 
-                    elem = layer_elems[i0:i0 + length]
-                    if element_name == 'neighbors':
+                    elem = layer_elems[i0 : i0 + length]
+                    if element_name == "neighbors":
                         elem[elem >= self.points[layer_i].shape[0]] = -1
                         elem[elem >= 0] -= i0
-                    elif element_name == 'pools':
+                    elif element_name == "pools":
                         elem[elem >= self.points[layer_i].shape[0]] = -1
                         elem[elem >= 0] -= torch.sum(self.lengths[layer_i][:b_i])
                     i0 += length
@@ -1545,7 +1669,7 @@ def debug_upsampling(dataset, loader):
             pc2 = batch.points[2].numpy()
             up1 = batch.upsamples[1].numpy()
 
-            print(pc1.shape, '=>', pc2.shape)
+            print(pc1.shape, "=>", pc2.shape)
             print(up1.shape, np.max(up1))
 
             pc2 = np.vstack((pc2, np.zeros_like(pc2[:1, :])))
@@ -1554,14 +1678,14 @@ def debug_upsampling(dataset, loader):
             p0 = pc1[10, :]
             neighbs0 = up1[10, :]
             neighbs0 = pc2[neighbs0, :] - p0
-            d2 = np.sum(neighbs0 ** 2, axis=1)
+            d2 = np.sum(neighbs0**2, axis=1)
 
             print(neighbs0.shape)
             print(neighbs0[:5])
             print(d2[:5])
 
-            print('******************')
-        print('*******************************************')
+            print("******************")
+        print("*******************************************")
 
     _, counts = np.unique(dataset.input_labels, return_counts=True)
     print(counts)
@@ -1599,14 +1723,14 @@ def debug_timing(dataset, loader):
             # Console display (only one per second)
             if (t[-1] - last_display) > -1.0:
                 last_display = t[-1]
-                message = 'Step {:08d} -> (ms/batch) {:8.2f} {:8.2f} / batch = {:.2f} - {:.0f}'
-                print(message.format(batch_i,
-                                     1000 * mean_dt[0],
-                                     1000 * mean_dt[1],
-                                     estim_b,
-                                     estim_N))
+                message = "Step {:08d} -> (ms/batch) {:8.2f} {:8.2f} / batch = {:.2f} - {:.0f}"
+                print(
+                    message.format(
+                        batch_i, 1000 * mean_dt[0], 1000 * mean_dt[1], estim_b, estim_N
+                    )
+                )
 
-        print('************* Epoch ended *************')
+        print("************* Epoch ended *************")
 
     _, counts = np.unique(dataset.input_labels, return_counts=True)
     print(counts)
@@ -1615,39 +1739,37 @@ def debug_timing(dataset, loader):
 def debug_show_clouds(dataset, loader):
     for epoch in range(10):
 
-        clouds = []
-        cloud_normals = []
-        cloud_labels = []
+        pass
 
         L = dataset.config.num_layers
 
         for batch_i, batch in enumerate(loader):
 
             # Print characteristics of input tensors
-            print('\nPoints tensors')
+            print("\nPoints tensors")
             for i in range(L):
                 print(batch.points[i].dtype, batch.points[i].shape)
-            print('\nNeigbors tensors')
+            print("\nNeigbors tensors")
             for i in range(L):
                 print(batch.neighbors[i].dtype, batch.neighbors[i].shape)
-            print('\nPools tensors')
+            print("\nPools tensors")
             for i in range(L):
                 print(batch.pools[i].dtype, batch.pools[i].shape)
-            print('\nStack lengths')
+            print("\nStack lengths")
             for i in range(L):
                 print(batch.lengths[i].dtype, batch.lengths[i].shape)
-            print('\nFeatures')
+            print("\nFeatures")
             print(batch.features.dtype, batch.features.shape)
-            print('\nLabels')
+            print("\nLabels")
             print(batch.labels.dtype, batch.labels.shape)
-            print('\nAugment Scales')
+            print("\nAugment Scales")
             print(batch.scales.dtype, batch.scales.shape)
-            print('\nAugment Rotations')
+            print("\nAugment Rotations")
             print(batch.rots.dtype, batch.rots.shape)
-            print('\nModel indices')
+            print("\nModel indices")
             print(batch.model_inds.dtype, batch.model_inds.shape)
 
-            print('\nAre input tensors pinned')
+            print("\nAre input tensors pinned")
             print(batch.neighbors[0].is_pinned())
             print(batch.neighbors[-1].is_pinned())
             print(batch.points[0].is_pinned())
@@ -1659,7 +1781,7 @@ def debug_show_clouds(dataset, loader):
 
             show_input_batch(batch)
 
-        print('*******************************************')
+        print("*******************************************")
 
     _, counts = np.unique(dataset.input_labels, return_counts=True)
     print(counts)
@@ -1691,12 +1813,10 @@ def debug_batch_and_neighbors_calib(dataset, loader):
             # Console display (only one per second)
             if (t[-1] - last_display) > 1.0:
                 last_display = t[-1]
-                message = 'Step {:08d} -> Average timings (ms/batch) {:8.2f} {:8.2f} '
-                print(message.format(batch_i,
-                                     1000 * mean_dt[0],
-                                     1000 * mean_dt[1]))
+                message = "Step {:08d} -> Average timings (ms/batch) {:8.2f} {:8.2f} "
+                print(message.format(batch_i, 1000 * mean_dt[0], 1000 * mean_dt[1]))
 
-        print('************* Epoch ended *************')
+        print("************* Epoch ended *************")
 
     _, counts = np.unique(dataset.input_labels, return_counts=True)
     print(counts)

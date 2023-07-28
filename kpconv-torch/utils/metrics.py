@@ -25,12 +25,12 @@
 # Basic libs
 import numpy as np
 
-
 # ----------------------------------------------------------------------------------------------------------------------
 #
 #           Utilities
 #       \***************/
 #
+
 
 def fast_confusion(true, pred, label_values=None):
     """
@@ -45,13 +45,23 @@ def fast_confusion(true, pred, label_values=None):
     true = np.squeeze(true)
     pred = np.squeeze(pred)
     if len(true.shape) != 1:
-        raise ValueError('Truth values are stored in a {:d}D array instead of 1D array'. format(len(true.shape)))
+        raise ValueError(
+            "Truth values are stored in a {:d}D array instead of 1D array".format(
+                len(true.shape)
+            )
+        )
     if len(pred.shape) != 1:
-        raise ValueError('Prediction values are stored in a {:d}D array instead of 1D array'. format(len(pred.shape)))
+        raise ValueError(
+            "Prediction values are stored in a {:d}D array instead of 1D array".format(
+                len(pred.shape)
+            )
+        )
     if true.dtype not in [np.int32, np.int64]:
-        raise ValueError('Truth values are {:s} instead of int32 or int64'.format(true.dtype))
+        raise ValueError(f"Truth values are {true.dtype:s} instead of int32 or int64")
     if pred.dtype not in [np.int32, np.int64]:
-        raise ValueError('Prediction values are {:s} instead of int32 or int64'.format(pred.dtype))
+        raise ValueError(
+            f"Prediction values are {pred.dtype:s} instead of int32 or int64"
+        )
     true = true.astype(np.int32)
     pred = pred.astype(np.int32)
 
@@ -62,9 +72,13 @@ def fast_confusion(true, pred, label_values=None):
     else:
         # Ensure they are good if given
         if label_values.dtype not in [np.int32, np.int64]:
-            raise ValueError('label values are {:s} instead of int32 or int64'.format(label_values.dtype))
+            raise ValueError(
+                "label values are {:s} instead of int32 or int64".format(
+                    label_values.dtype
+                )
+            )
         if len(np.unique(label_values)) < len(label_values):
-            raise ValueError('Given labels are not unique')
+            raise ValueError("Given labels are not unique")
 
     # Sort labels
     label_values = np.sort(label_values)
@@ -72,11 +86,11 @@ def fast_confusion(true, pred, label_values=None):
     # Get the number of classes
     num_classes = len(label_values)
 
-    #print(num_classes)
-    #print(label_values)
-    #print(np.max(true))
-    #print(np.max(pred))
-    #print(np.max(true * num_classes + pred))
+    # print(num_classes)
+    # print(label_values)
+    # print(np.max(true))
+    # print(np.max(pred))
+    # print(np.max(true * num_classes + pred))
 
     # Start confusion computations
     if label_values[0] == 0 and label_values[-1] == num_classes - 1:
@@ -85,20 +99,21 @@ def fast_confusion(true, pred, label_values=None):
         vec_conf = np.bincount(true * num_classes + pred)
 
         # Add possible missing values due to classes not being in pred or true
-        #print(vec_conf.shape)
-        if vec_conf.shape[0] < num_classes ** 2:
-            vec_conf = np.pad(vec_conf, (0, num_classes ** 2 - vec_conf.shape[0]), 'constant')
-        #print(vec_conf.shape)
+        # print(vec_conf.shape)
+        if vec_conf.shape[0] < num_classes**2:
+            vec_conf = np.pad(
+                vec_conf, (0, num_classes**2 - vec_conf.shape[0]), "constant"
+            )
+        # print(vec_conf.shape)
 
         # Reshape confusion in a matrix
         return vec_conf.reshape((num_classes, num_classes))
-
 
     else:
 
         # Ensure no negative classes
         if label_values[0] < 0:
-            raise ValueError('Unsupported negative classes')
+            raise ValueError("Unsupported negative classes")
 
         # Get the data in [0,num_classes[
         label_map = np.zeros((label_values[-1] + 1,), dtype=np.int32)
@@ -112,11 +127,14 @@ def fast_confusion(true, pred, label_values=None):
         vec_conf = np.bincount(true * num_classes + pred)
 
         # Add possible missing values due to classes not being in pred or true
-        if vec_conf.shape[0] < num_classes ** 2:
-            vec_conf = np.pad(vec_conf, (0, num_classes ** 2 - vec_conf.shape[0]), 'constant')
+        if vec_conf.shape[0] < num_classes**2:
+            vec_conf = np.pad(
+                vec_conf, (0, num_classes**2 - vec_conf.shape[0]), "constant"
+            )
 
         # Reshape confusion in a matrix
         return vec_conf.reshape((num_classes, num_classes))
+
 
 def metrics(confusions, ignore_unclassified=False):
     """
@@ -128,7 +146,7 @@ def metrics(confusions, ignore_unclassified=False):
     """
 
     # If the first class (often "unclassified") should be ignored, erase it from the confusion.
-    if (ignore_unclassified):
+    if ignore_unclassified:
         confusions[..., 0, :] = 0
         confusions[..., :, 0] = 0
 
@@ -176,7 +194,9 @@ def smooth_metrics(confusions, smooth_n=0, ignore_unclassified=False):
         for epoch in range(confusions.shape[-3]):
             i0 = max(epoch - smooth_n, 0)
             i1 = min(epoch + smooth_n + 1, confusions.shape[-3])
-            smoothed_confusions[..., epoch, :, :] = np.sum(confusions[..., i0:i1, :, :], axis=-3)
+            smoothed_confusions[..., epoch, :, :] = np.sum(
+                confusions[..., i0:i1, :, :], axis=-3
+            )
 
     # Compute TP, FP, FN. This assume that the second to last axis counts the truths (like the first axis of a
     # confusion matrix), and that the last axis counts the predictions (like the second axis of a confusion matrix)

@@ -26,7 +26,7 @@ import signal
 import os
 
 # Dataset
-from datasets.NPM3D import *
+from datasets.NPM3D import NPM3DCollate, NPM3DDataset, NPM3DSampler, np, sys, time
 from torch.utils.data import DataLoader
 
 from utils.config import Config
@@ -40,6 +40,7 @@ from models.architectures import KPFCNN
 #       \******************/
 #
 
+
 class NPM3DConfig(Config):
     """
     Override the parameters you want to modify for this dataset
@@ -50,13 +51,13 @@ class NPM3DConfig(Config):
     ####################
 
     # Dataset name
-    dataset = 'NPM3D'
+    dataset = "NPM3D"
 
     # Number of classes in the dataset (This value is overwritten by dataset class when Initializating dataset).
     num_classes = None
 
     # Type of task performed on this dataset (also overwritten)
-    dataset_task = ''
+    dataset_task = ""
 
     # Number of CPU threads for the input pipeline
     input_threads = 10
@@ -66,28 +67,30 @@ class NPM3DConfig(Config):
     #########################
 
     # # Define layers
-    architecture = ['simple',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'nearest_upsample',
-                    'unary',
-                    'nearest_upsample',
-                    'unary',
-                    'nearest_upsample',
-                    'unary',
-                    'nearest_upsample',
-                    'unary']
+    architecture = [
+        "simple",
+        "resnetb",
+        "resnetb_strided",
+        "resnetb",
+        "resnetb",
+        "resnetb_strided",
+        "resnetb",
+        "resnetb",
+        "resnetb_strided",
+        "resnetb",
+        "resnetb",
+        "resnetb_strided",
+        "resnetb",
+        "resnetb",
+        "nearest_upsample",
+        "unary",
+        "nearest_upsample",
+        "unary",
+        "nearest_upsample",
+        "unary",
+        "nearest_upsample",
+        "unary",
+    ]
 
     ###################
     # KPConv parameters
@@ -112,10 +115,10 @@ class NPM3DConfig(Config):
     KP_extent = 1.2
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
-    KP_influence = 'linear'
+    KP_influence = "linear"
 
     # Aggregation function of KPConv in ('closest', 'sum')
-    aggregation_mode = 'sum'
+    aggregation_mode = "sum"
 
     # Choice of input features
     first_features_dim = 128
@@ -131,10 +134,10 @@ class NPM3DConfig(Config):
     # Deformable offset loss
     # 'point2point' fitting geometry by penalizing distance from deform point to input points
     # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
-    deform_fitting_mode = 'point2point'
-    deform_fitting_power = 1.0              # Multiplier for the fitting/repulsive loss
-    deform_lr_factor = 0.1                  # Multiplier for learning rate applied to the deformations
-    repulse_extent = 1.2                    # Distance of repulsion for deformed kernel points
+    deform_fitting_mode = "point2point"
+    deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
+    deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
+    repulse_extent = 1.2  # Distance of repulsion for deformed kernel points
 
     #####################
     # Training parameters
@@ -164,7 +167,7 @@ class NPM3DConfig(Config):
     # Augmentations
     augment_scale_anisotropic = True
     augment_symmetries = [True, False, False]
-    augment_rotation = 'vertical'
+    augment_rotation = "vertical"
     augment_scale_min = 0.9
     augment_scale_max = 1.1
     augment_noise = 0.001
@@ -174,7 +177,7 @@ class NPM3DConfig(Config):
     #   > 'none': Each point in the whole batch has the same contribution.
     #   > 'class': Each class has the same contribution (points are weighted according to class balance)
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
-    segloss_balance = 'none'
+    segloss_balance = "none"
 
     # Do we nee to save convergence
     saving = True
@@ -187,17 +190,17 @@ class NPM3DConfig(Config):
 #       \***************/
 #
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     ############################
     # Initialize the environment
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = '0'
+    GPU_ID = "0"
 
     # Set GPU visible device
-    os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID
+    os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
 
     ###############
     # Previous chkp
@@ -205,22 +208,24 @@ if __name__ == '__main__':
 
     # Choose here if you want to start training from a previous snapshot (None for new training)
     # previous_training_path = 'Log_2020-03-19_19-53-27'
-    previous_training_path = ''
+    previous_training_path = ""
 
     # Choose index of checkpoint to start from. If None, uses the latest chkp
     chkp_idx = None
     if previous_training_path:
 
         # Find all snapshot in the chosen training folder
-        chkp_path = os.path.join('results', previous_training_path, 'checkpoints')
-        chkps = [f for f in os.listdir(chkp_path) if f[:4] == 'chkp']
+        chkp_path = os.path.join("results", previous_training_path, "checkpoints")
+        chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
 
         # Find which snapshot to restore
         if chkp_idx is None:
-            chosen_chkp = 'current_chkp.tar'
+            chosen_chkp = "current_chkp.tar"
         else:
             chosen_chkp = np.sort(chkps)[chkp_idx]
-        chosen_chkp = os.path.join('results', previous_training_path, 'checkpoints', chosen_chkp)
+        chosen_chkp = os.path.join(
+            "results", previous_training_path, "checkpoints", chosen_chkp
+        )
 
     else:
         chosen_chkp = None
@@ -230,13 +235,13 @@ if __name__ == '__main__':
     ##############
 
     print()
-    print('Data Preparation')
-    print('****************')
+    print("Data Preparation")
+    print("****************")
 
     # Initialize configuration class
     config = NPM3DConfig()
     if previous_training_path:
-        config.load(os.path.join('results', previous_training_path))
+        config.load(os.path.join("results", previous_training_path))
         config.saving_path = None
 
     # Get path from argument if given
@@ -244,26 +249,30 @@ if __name__ == '__main__':
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = NPM3DDataset(config, set='training', use_potentials=True)
-    test_dataset = NPM3DDataset(config, set='validation', use_potentials=True)
+    training_dataset = NPM3DDataset(config, set="training", use_potentials=True)
+    test_dataset = NPM3DDataset(config, set="validation", use_potentials=True)
 
     # Initialize samplers
     training_sampler = NPM3DSampler(training_dataset)
     test_sampler = NPM3DSampler(test_dataset)
 
     # Initialize the dataloader
-    training_loader = DataLoader(training_dataset,
-                                 batch_size=1,
-                                 sampler=training_sampler,
-                                 collate_fn=NPM3DCollate,
-                                 num_workers=config.input_threads,
-                                 pin_memory=True)
-    test_loader = DataLoader(test_dataset,
-                             batch_size=1,
-                             sampler=test_sampler,
-                             collate_fn=NPM3DCollate,
-                             num_workers=config.input_threads,
-                             pin_memory=True)
+    training_loader = DataLoader(
+        training_dataset,
+        batch_size=1,
+        sampler=training_sampler,
+        collate_fn=NPM3DCollate,
+        num_workers=config.input_threads,
+        pin_memory=True,
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=1,
+        sampler=test_sampler,
+        collate_fn=NPM3DCollate,
+        num_workers=config.input_threads,
+        pin_memory=True,
+    )
 
     # Calibrate samplers
     training_sampler.calibration(training_loader, verbose=True)
@@ -274,8 +283,8 @@ if __name__ == '__main__':
     # debug_timing(test_dataset, test_loader)
     # debug_upsampling(training_dataset, training_loader)
 
-    print('\nModel Preparation')
-    print('*****************')
+    print("\nModel Preparation")
+    print("*****************")
 
     # Define network model
     t1 = time.time()
@@ -283,25 +292,28 @@ if __name__ == '__main__':
 
     debug = False
     if debug:
-        print('\n*************************************\n')
+        print("\n*************************************\n")
         print(net)
-        print('\n*************************************\n')
+        print("\n*************************************\n")
         for param in net.parameters():
             if param.requires_grad:
                 print(param.shape)
-        print('\n*************************************\n')
-        print("Model size %i" % sum(param.numel() for param in net.parameters() if param.requires_grad))
-        print('\n*************************************\n')
+        print("\n*************************************\n")
+        print(
+            "Model size %i"
+            % sum(param.numel() for param in net.parameters() if param.requires_grad)
+        )
+        print("\n*************************************\n")
 
     # Define a trainer class
     trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)
-    print('Done in {:.1f}s\n'.format(time.time() - t1))
+    print(f"Done in {time.time() - t1:.1f}s\n")
 
-    print('\nStart training')
-    print('**************')
+    print("\nStart training")
+    print("**************")
 
     # Training
     trainer.train(net, training_loader, test_loader, config)
 
-    print('Forcing exit now')
+    print("Forcing exit now")
     os.kill(os.getpid(), signal.SIGINT)

@@ -1,0 +1,45 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+      - id: pyupgrade
+        args: [--py38-plus]
+
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.0.0
+    hooks:
+      - id: autoflake
+
+  - repo: https://github.com/ambv/black
+    rev: 22.12.0
+    hooks:
+      - id: black
+        args: [--target-version=py38]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        additional_dependencies:
+          - flake8-import-order==0.18.2
+          - flake8-bugbear==23.1.20
+          - flake8-comprehensions==3.10.1
+          - flake8-simplify==0.19.3
+          - flake8-builtins==2.1.0
+          - flake8-pie==0.15.0
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v2.40.0
+    hooks:
+      - id: commitizen
+      - id: commitizen-branch
+        stages: [push]
