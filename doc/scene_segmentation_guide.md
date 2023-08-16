@@ -16,10 +16,9 @@ N.B. If you want to place your data anywhere else, you just have to change the v
 
 Simply run the following script to start the training:
 
-        python3 training_S3DIS.py
+        python3 train.py
 
 Similarly to ModelNet40 training, the parameters can be modified in a configuration subclass called `S3DISConfig`, and the first run of this script might take some time to precompute dataset structures.
-
 
 ### Plot a logged training
 
@@ -29,9 +28,28 @@ In `plot_convergence.py`, you will find detailed comments explaining how to choo
 
         python3 plot_convergence.py
 
-
 ### Test the trained model
 
 The test script is the same for all models (segmentation or classification). In `test_any_model.py`, you will find detailed comments explaining how to choose which logged trained model you want to test. Follow them and then run the script :
 
-        python3 test_any_model.py
+        python3 test_models.py
+
+You will see the performance (on the subsampled input clouds) increase as the test goes on.
+
+        Confusion on sub clouds
+        65.08 | 92.11 98.40 81.83  0.00 18.71 55.41 68.65 90.93 79.79 74.83 65.31 63.41 56.62
+
+
+After a few minutes, the script will reproject the results form the subsampled input clouds to the real data and get you the real score
+
+        Reproject Vote #9
+        Done in 2.6 s
+
+        Confusion on full clouds
+        Done in 2.1 s
+
+        --------------------------------------------------------------------------------------
+        65.38 | 92.62 98.39 81.77  0.00 18.87 57.80 67.93 91.52 80.27 74.24 66.14 64.01 56.42
+        --------------------------------------------------------------------------------------
+
+ The test script creates a folder `test/name-of-your-log`, where it saves the predictions, potentials, and probabilities per class. You can load them with CloudCompare for visualization.
