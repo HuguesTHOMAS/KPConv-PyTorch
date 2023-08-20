@@ -658,7 +658,7 @@ class Toronto3DDataset(PointCloudDataset):
         for cloud_name in self.cloud_names:
 
             # Check if ply already exists
-            if exists(join(ply_path, 'original_ply/' + cloud_name + '.ply')):
+            if exists(join(ply_path, cloud_name + '.ply')):
                 continue
 
             print('\nPreparing ply for cloud {:s}\n'.format(cloud_name))
