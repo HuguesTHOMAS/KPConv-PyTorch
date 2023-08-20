@@ -141,7 +141,7 @@ class Toronto3DConfig(Config):
     #####################
 
     # Maximal number of epochs
-    max_epoch = 100
+    max_epoch = 400
 
     # Learning rate management
     learning_rate = 1e-2
