@@ -23,7 +23,6 @@
 #
 
 # Common libs
-import laspy
 import time
 import os
 import numpy as np
