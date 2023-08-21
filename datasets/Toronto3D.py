@@ -1350,24 +1350,6 @@ class Toronto3DSampler(Sampler):
         print('Calibration done in {:.1f}s\n'.format(time.time() - t0))
         return
 
-
-class SimpleSampler(Sampler):
-    """Sampler for Toronto3D (with features)"""
-
-    def __init__(self, dataset: Toronto3DDataset):
-        Sampler.__init__(self, dataset)
-        self.dataset = dataset
-        file = read_ply(dataset.files[0])
-        self.N = file.__len__()
-
-    def __iter__(self):
-        return iter(range(self.N))
-
-    def __len__(self):
-        return self.N
-
-
-
 class Toronto3DCustomBatch:
     """Custom batch definition with memory pinning for Toronto3D (with features)"""
 
