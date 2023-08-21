@@ -32,6 +32,7 @@ import torch
 from datasets.ModelNet40 import *
 from datasets.S3DIS import *
 from datasets.SemanticKitti import *
+from datasets.toronto3d import *
 from torch.utils.data import DataLoader
 
 from utils.config import Config
@@ -170,6 +171,10 @@ if __name__ == '__main__':
         test_dataset = S3DISDataset(config, set='validation', use_potentials=True)
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
+    elif config.dataset == 'Toronto3D':
+        test_dataset = Toronto3DDataset(config, set='test', use_potentials=True)
+        test_sampler = Toronto3DSampler(test_dataset)
+        collate_fn = Toronto3DCollate
     elif config.dataset == 'SemanticKitti':
         test_dataset = SemanticKittiDataset(config, set=set, balance_classes=False)
         test_sampler = SemanticKittiSampler(test_dataset)
