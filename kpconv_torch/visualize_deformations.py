@@ -1,17 +1,18 @@
 import os
+import time
 
 import numpy as np
-import torch
 from torch.utils.data import DataLoader
 
-from kpconv_torch.datasets.S3DIS import (
+from kpconv_torch.datasets.ModelNet40 import (
     ModelNet40Collate,
     ModelNet40Dataset,
     ModelNet40Sampler,
+)
+from kpconv_torch.datasets.S3DIS import (
     S3DISCollate,
     S3DISDataset,
     S3DISSampler,
-    time,
 )
 from kpconv_torch.models.architectures import KPCNN, KPFCNN
 from kpconv_torch.utils.config import Config
