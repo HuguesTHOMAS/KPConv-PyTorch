@@ -1,54 +1,18 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Callable script to start a training on Toronto3D dataset
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Anass YARROUDH - 20/08/2023
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-# Common libs
-import signal
 import os
+import signal
+import sys
+import time
 
-# Dataset
-from datasets.Toronto3D import (
-    Toronto3DCollate,
-    Toronto3DDataset,
-    Toronto3DSampler,
-    np,
-    sys,
-    time,
-)
+import numpy as np
 from torch.utils.data import DataLoader
 
-from utils.config import Config
-from utils.trainer import ModelTrainer
-from models.architectures import KPFCNN
+from kpconv_torch.datasets.S3DIS import S3DISCollate, S3DISDataset, S3DISSampler
+from kpconv_torch.models.architectures import KPFCNN
+from kpconv_torch.utils.config import Config
+from kpconv_torch.utils.trainer import ModelTrainer
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Config Class
-#       \******************/
-#
-
-
-class Toronto3DConfig(Config):
+class S3DISConfig(Config):
     """
     Override the parameters you want to modify for this dataset
     """
@@ -56,9 +20,8 @@ class Toronto3DConfig(Config):
     ####################
     # Dataset parameters
     ####################
-
     # Dataset name
-    dataset = "Toronto3D"
+    dataset = "S3DIS"
 
     # Number of classes in the dataset (This value is overwritten by dataset class when Initializating dataset).
     num_classes = None
@@ -67,12 +30,11 @@ class Toronto3DConfig(Config):
     dataset_task = ""
 
     # Number of CPU threads for the input pipeline
-    input_threads = 20
+    input_threads = 10
 
     #########################
     # Architecture definition
     #########################
-
     # # Define layers
     architecture = [
         "simple",
@@ -84,11 +46,11 @@ class Toronto3DConfig(Config):
         "resnetb",
         "resnetb",
         "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
+        "resnetb_deformable",
+        "resnetb_deformable",
+        "resnetb_deformable_strided",
+        "resnetb_deformable",
+        "resnetb_deformable",
         "nearest_upsample",
         "unary",
         "nearest_upsample",
@@ -102,15 +64,14 @@ class Toronto3DConfig(Config):
     ###################
     # KPConv parameters
     ###################
-
     # Number of kernel points
     num_kernel_points = 15
 
     # Radius of the input sphere (decrease value to reduce memory cost)
-    in_radius = 3.0
+    in_radius = 1.2
 
     # Size of the first subsampling grid in meter (increase value to reduce memory cost)
-    first_subsampling_dl = 0.08
+    first_subsampling_dl = 0.03
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -119,17 +80,17 @@ class Toronto3DConfig(Config):
     deform_radius = 5.0
 
     # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
-    KP_extent = 1.0
+    KP_extent = 1.2
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
     KP_influence = "linear"
 
     # Aggregation function of KPConv in ('closest', 'sum')
-    aggregation_mode = "closest"
+    aggregation_mode = "sum"
 
     # Choice of input features
     first_features_dim = 128
-    in_features_dim = 4
+    in_features_dim = 5
 
     # Can the network learn modulations
     modulated = False
@@ -149,9 +110,8 @@ class Toronto3DConfig(Config):
     #####################
     # Training parameters
     #####################
-
     # Maximal number of epochs
-    max_epoch = 400
+    max_epoch = 500
 
     # Learning rate management
     learning_rate = 1e-2
@@ -160,7 +120,7 @@ class Toronto3DConfig(Config):
     grad_clip_norm = 100.0
 
     # Number of batch (decrease to reduce memory cost, but it should remain > 3 for stability)
-    batch_num = 4
+    batch_num = 6
 
     # Number of steps per epochs
     epoch_steps = 500
@@ -186,25 +146,16 @@ class Toronto3DConfig(Config):
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
     segloss_balance = "none"
 
-    # Do we need to save convergence
+    # Do we nee to save convergence
     saving = True
     saving_path = None
 
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Main Call
-#       \***************/
-#
 
 if __name__ == "__main__":
 
     ############################
     # Initialize the environment
     ############################
-
-    start = time.time()
-
     # Set which gpu is going to be used
     GPU_ID = "0"
 
@@ -214,8 +165,8 @@ if __name__ == "__main__":
     ###############
     # Previous chkp
     ###############
-
     # Choose here if you want to start training from a previous snapshot (None for new training)
+    # previous_training_path = 'Log_2020-03-19_19-53-27'
     previous_training_path = ""
 
     # Choose index of checkpoint to start from. If None, uses the latest chkp
@@ -223,9 +174,7 @@ if __name__ == "__main__":
     if previous_training_path:
 
         # Find all snapshot in the chosen training folder
-        chkp_path = os.path.join(
-            "results/Toronto3D", previous_training_path, "checkpoints"
-        )
+        chkp_path = os.path.join("results", previous_training_path, "checkpoints")
         chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
 
         # Find which snapshot to restore
@@ -234,7 +183,7 @@ if __name__ == "__main__":
         else:
             chosen_chkp = np.sort(chkps)[chkp_idx]
         chosen_chkp = os.path.join(
-            "results/Toronto3D", previous_training_path, "checkpoints", chosen_chkp
+            "results", previous_training_path, "checkpoints", chosen_chkp
         )
 
     else:
@@ -243,15 +192,14 @@ if __name__ == "__main__":
     ##############
     # Prepare Data
     ##############
-
     print()
     print("Data Preparation")
     print("****************")
 
     # Initialize configuration class
-    config = Toronto3DConfig()
+    config = S3DISConfig()
     if previous_training_path:
-        config.load(os.path.join("results/Toronto3D", previous_training_path))
+        config.load(os.path.join("results", previous_training_path))
         config.saving_path = None
 
     # Get path from argument if given
@@ -259,19 +207,19 @@ if __name__ == "__main__":
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = Toronto3DDataset(config, set="training", use_potentials=True)
-    test_dataset = Toronto3DDataset(config, set="validation", use_potentials=True)
+    training_dataset = S3DISDataset(config, set="training", use_potentials=True)
+    test_dataset = S3DISDataset(config, set="validation", use_potentials=True)
 
     # Initialize samplers
-    training_sampler = Toronto3DSampler(training_dataset)
-    test_sampler = Toronto3DSampler(test_dataset)
+    training_sampler = S3DISSampler(training_dataset)
+    test_sampler = S3DISSampler(test_dataset)
 
     # Initialize the dataloader
     training_loader = DataLoader(
         training_dataset,
         batch_size=1,
         sampler=training_sampler,
-        collate_fn=Toronto3DCollate,
+        collate_fn=S3DISCollate,
         num_workers=config.input_threads,
         pin_memory=True,
     )
@@ -279,7 +227,7 @@ if __name__ == "__main__":
         test_dataset,
         batch_size=1,
         sampler=test_sampler,
-        collate_fn=Toronto3DCollate,
+        collate_fn=S3DISCollate,
         num_workers=config.input_threads,
         pin_memory=True,
     )
@@ -327,6 +275,3 @@ if __name__ == "__main__":
 
     print("Forcing exit now")
     os.kill(os.getpid(), signal.SIGINT)
-
-    end = time.time()
-    print(time.strftime("%H:%M:%S", time.gmtime(end - start)))

@@ -4,8 +4,8 @@
 //		|    Local feature test    |
 //		0==========================0
 //
-//		version 1.0 : 
-//			> 
+//		version 1.0 :
+//			>
 //
 //---------------------------------------------------
 //
@@ -49,11 +49,11 @@ public:
 
 	// Methods
 	// *******
-	
+
 	// Constructor
 	PointXYZ() { x = 0; y = 0; z = 0; }
 	PointXYZ(float x0, float y0, float z0) { x = x0; y = y0; z = z0; }
-	
+
 	// array type accessor
 	float operator [] (int i) const
 	{
@@ -76,7 +76,7 @@ public:
 	PointXYZ cross(const PointXYZ P) const
 	{
 		return PointXYZ(y*P.z - z*P.y, z*P.x - x*P.z, x*P.y - y*P.x);
-	}	
+	}
 
 	PointXYZ& operator+=(const PointXYZ& P)
 	{
@@ -172,14 +172,3 @@ struct PointCloud
 	bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
 
 };
-
-
-
-
-
-
-
-
-
-
-

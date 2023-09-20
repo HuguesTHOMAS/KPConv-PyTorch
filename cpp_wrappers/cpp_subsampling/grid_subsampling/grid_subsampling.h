@@ -24,9 +24,9 @@ public:
 	// *******
 
 	// Constructor
-	SampledData() 
-	{ 
-		count = 0; 
+	SampledData()
+	{
+		count = 0;
 		point = PointXYZ();
 	}
 
@@ -98,4 +98,3 @@ void batch_grid_subsampling(vector<PointXYZ>& original_points,
                             vector<int>& subsampled_batches,
                             float sampleDl,
                             int max_p);
-
