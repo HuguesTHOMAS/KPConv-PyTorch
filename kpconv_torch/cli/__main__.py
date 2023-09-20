@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 
 from kpconv_torch import __version__ as kpconv_version
-from kpconv_torch import plot_convergence, test, train, visualize
+from kpconv_torch import plot_convergence, preprocess, test, train, visualize
 
 
 SUPPORTED_DATASETS = {"ModelNet40", "NPM3D", "S3DIS", "SemanticKitti", "Toronto3D"}
@@ -71,6 +71,12 @@ def main():
         ),
     )
     sub_parsers = parser.add_subparsers(dest="command")
+    kpconv_parser(
+        sub_parsers,
+        preprocess.main,
+        "preprocess",
+        "Preprocess a dataset to make it compliant with the program",
+    )
     kpconv_parser(sub_parsers, train.main, "train", "Train a KPConv model")
     kpconv_parser(sub_parsers, test.main, "test", "Test a KPConv trained model")
     kpconv_parser(
