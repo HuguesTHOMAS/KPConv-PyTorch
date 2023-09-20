@@ -1,54 +1,17 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Class handling SemanticKitti dataset.
-#      Implements a Dataset, a Sampler, and a collate_fn
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-# Common libs
-import time
-import numpy as np
-import pickle
-import torch
-import yaml
 from multiprocessing import Lock
-
-
-# OS functions
 from os import listdir
 from os.path import exists, join
+import pickle
+import time
 
-# Dataset parent class
-from datasets.common import *
-from torch.utils.data import Sampler, get_worker_info
-from utils.mayavi_visu import *
-from utils.metrics import fast_confusion
+import numpy as np
+import torch
+from torch.utils.data import Sampler
+import yaml
 
-from datasets.common import grid_subsampling
-from utils.config import bcolors
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Dataset class definition
-#       \******************************/
+from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
+from kpconv_torch.utils.config import bcolors
+from kpconv_torch.utils.mayavi_visu import KDTree
 
 
 class SemanticKittiDataset(PointCloudDataset):
@@ -796,12 +759,6 @@ class SemanticKittiDataset(PointCloudDataset):
             poses.append(np.matmul(Tr_inv, np.matmul(pose, Tr)))
 
         return poses
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Utility classes definition
-#       \********************************/
 
 
 class SemanticKittiSampler(Sampler):

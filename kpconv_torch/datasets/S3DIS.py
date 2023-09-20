@@ -1,15 +1,15 @@
-import pickle
-import time
-import warnings
 from multiprocessing import Lock
 from os import listdir, makedirs
 from os.path import exists, isdir, join
+import pickle
+import time
+import warnings
 
 import numpy as np
 import torch
-from torch.utils.data import Sampler, get_worker_info
+from torch.utils.data import get_worker_info, Sampler
 
-from kpconv_torch.datasets.common import PointCloudDataset, grid_subsampling
+from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import bcolors
 from kpconv_torch.utils.mayavi_visu import KDTree, show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply

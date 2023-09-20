@@ -1,53 +1,17 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Class handling Toronto3D (with geometric features) dataset.
-#      Implements a Dataset, a Sampler, and a collate_fn
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Anass YARROUDH - 20/08/2023
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-# Common libs
-import time
-import os
-import numpy as np
-import pickle
-import torch
-import warnings
 from multiprocessing import Lock
-
-
-# OS functions
+import os
 from os.path import exists, join
+import pickle
+import time
+import warnings
 
-# Dataset parent class
-from datasets.common import PointCloudDataset
-from torch.utils.data import Sampler, get_worker_info
-from utils.mayavi_visu import KDTree, read_ply, show_input_batch, write_ply
+import numpy as np
+import torch
+from torch.utils.data import get_worker_info, Sampler
 
-from datasets.common import grid_subsampling
-from utils.config import bcolors
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Dataset class definition
-#       \******************************/
+from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
+from kpconv_torch.utils.config import bcolors
+from kpconv_torch.utils.mayavi_visu import KDTree, read_ply, show_input_batch, write_ply
 
 
 class Toronto3DDataset(PointCloudDataset):
@@ -950,12 +914,6 @@ class Toronto3DDataset(PointCloudDataset):
         # Get original points
         data = read_ply(file_path)
         return np.vstack((data["x"], data["y"], data["z"])).T
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Utility classes definition
-#       \********************************/
 
 
 class Toronto3DSampler(Sampler):

@@ -1,6 +1,5 @@
 import numpy as np
-import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 import cpp_wrappers.cpp_neighbors.radius_neighbors as cpp_neighbors
 import cpp_wrappers.cpp_subsampling.grid_subsampling as cpp_subsampling

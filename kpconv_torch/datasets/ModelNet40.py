@@ -1,49 +1,14 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Class handling ModelNet40 dataset.
-#      Implements a Dataset, a Sampler, and a collate_fn
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Hugues THOMAS - 11/06/2018
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-# Common libs
-import time
-import numpy as np
-import pickle
-import torch
-
-
-# OS functions
 from os.path import exists, join
+import pickle
+import time
 
-# Dataset parent class
-from datasets.common import PointCloudDataset
-from torch.utils.data import Sampler, get_worker_info
-from utils.mayavi_visu import show_input_batch
+import numpy as np
+import torch
+from torch.utils.data import get_worker_info, Sampler
 
-from datasets.common import grid_subsampling
-from utils.config import bcolors
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Dataset class definition
-#       \******************************/
+from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
+from kpconv_torch.utils.config import bcolors
+from kpconv_torch.utils.mayavi_visu import show_input_batch
 
 
 class ModelNet40Dataset(PointCloudDataset):
@@ -332,12 +297,6 @@ class ModelNet40Dataset(PointCloudDataset):
             input_normals = [nn[:, [0, 2, 1]] for nn in input_normals]
 
         return input_points, input_normals, input_labels
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Utility classes definition
-#       \********************************/
 
 
 class ModelNet40Sampler(Sampler):
