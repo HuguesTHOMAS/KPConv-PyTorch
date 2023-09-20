@@ -5,6 +5,17 @@ from kpconv_torch import __version__ as kpconv_version
 from kpconv_torch import plot_convergence, test, train, visualize
 
 
+SUPPORTED_DATASETS = {"ModelNet40", "NPM3D", "S3DIS", "SemanticKitti", "Toronto3D"}
+
+
+def valid_dataset(dataset):
+    if dataset not in SUPPORTED_DATASETS:
+        raise argparse.ArgumentTypeError(
+            f"{dataset} dataset is unknown, please choose amongst {SUPPORTED_DATASETS}."
+        )
+    return dataset
+
+
 def valid_dir(str_dir):
     """Build a ``pathlib.Path`` object starting from the ``str_dir`` folder."""
     path_dir = Path(str_dir)
@@ -39,6 +50,13 @@ def kpconv_parser(subparser, reference_func, command, command_description):
         required=True,
         type=valid_dir,
         help="Path of the KPConv log folder on the file system",
+    )
+    parser.add_argument(
+        "-s",
+        "--dataset",
+        default="S3DIS",
+        type=valid_dataset,
+        help="Name of the dataset",
     )
     parser.set_defaults(func=reference_func)
 
