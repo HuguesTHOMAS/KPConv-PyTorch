@@ -32,6 +32,7 @@ setup(
     maintainer="Oslandia",
     maintainer_email="infos@oslandia.com",
     url="",
+    entry_points={"console_scripts": ["kpconv=kpconv_torch.cli.__main__:main"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
