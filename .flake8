@@ -4,5 +4,5 @@ exclude =
     build/,
     *venv/,
 
-application-import-names = py3dtiles
+application-import-names = kpconv_torch
 import-order-style = google

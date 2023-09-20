@@ -2,7 +2,6 @@ import os
 import time
 
 import numpy as np
-import torch
 from torch.utils.data import DataLoader
 
 from kpconv_torch.datasets.ModelNet40 import (
@@ -10,15 +9,20 @@ from kpconv_torch.datasets.ModelNet40 import (
     ModelNet40Dataset,
     ModelNet40Sampler,
 )
+from kpconv_torch.datasets.S3DIS import (
+    S3DISCollate,
+    S3DISDataset,
+    S3DISSampler,
+)
 from kpconv_torch.datasets.SemanticKitti import (
     SemanticKittiCollate,
     SemanticKittiDataset,
     SemanticKittiSampler,
 )
-from kpconv_torch.datasets.S3DIS import (
-    S3DISCollate,
-    S3DISDataset,
-    S3DISSampler,
+from kpconv_torch.datasets.Toronto3D import (
+    Toronto3DCollate,
+    Toronto3DDataset,
+    Toronto3DSampler,
 )
 from kpconv_torch.models.architectures import KPCNN, KPFCNN
 from kpconv_torch.utils.config import Config
