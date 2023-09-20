@@ -18,7 +18,9 @@ from kpconv_torch.utils.ply import read_ply, write_ply
 class S3DISDataset(PointCloudDataset):
     """Class to handle S3DIS dataset."""
 
-    def __init__(self, config, set="training", use_potentials=True, load_data=True):
+    def __init__(
+        self, datapath, config, set="training", use_potentials=True, load_data=True
+    ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -52,7 +54,7 @@ class S3DISDataset(PointCloudDataset):
         self.ignored_labels = np.array([])
 
         # Dataset folder
-        self.path = "../../Data/S3DIS"
+        self.path = datapath
 
         # Type of task conducted on this dataset
         self.dataset_task = "cloud_segmentation"

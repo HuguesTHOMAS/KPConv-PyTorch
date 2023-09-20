@@ -249,8 +249,12 @@ if __name__ == "__main__":
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = NPM3DDataset(config, set="training", use_potentials=True)
-    test_dataset = NPM3DDataset(config, set="validation", use_potentials=True)
+    training_dataset = NPM3DDataset(
+        "Data/Paris", config, set="training", use_potentials=True
+    )
+    test_dataset = NPM3DDataset(
+        "Data/Paris", config, set="validation", use_potentials=True
+    )
 
     # Initialize samplers
     training_sampler = NPM3DSampler(training_dataset)

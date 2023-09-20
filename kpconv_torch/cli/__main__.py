@@ -29,6 +29,10 @@ def kpconv_parser(subparser, reference_func, command, command_description):
         type=valid_dir,
         help="Path of the dataset on the file system",
     )
+    #   Here you can choose which model you want to use. Here are the possible values :
+    #
+    #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
+    #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
     parser.add_argument(
         "-l",
         "--chosen-log",

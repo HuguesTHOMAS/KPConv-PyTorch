@@ -8,7 +8,7 @@ In order to visualize features you need a dataset and a pretrained model that us
 
 To start this visualization run the script:
 
-        python3 visualize_deformations.py
+        kpconv visualize -d <path-of-your-dataset> -l <path-of-your-model-log>
 
 ### Details
 

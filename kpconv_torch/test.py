@@ -66,18 +66,7 @@ def model_choice(chosen_log):
     return chosen_log
 
 
-if __name__ == "__main__":
-
-    ###############################
-    # Choose the model to visualize
-    ###############################
-    #   Here you can choose which model you want to test with the variable test_model. Here are the possible values :
-    #
-    #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
-    #       > '(old_)results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
-
-    chosen_log = "results/Light_KPFCNN"
-
+def main(args):
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = -1
 
@@ -85,7 +74,7 @@ if __name__ == "__main__":
     on_val = True
 
     # Deal with 'last_XXXXXX' choices
-    chosen_log = model_choice(chosen_log)
+    chosen_log = model_choice(args.chosen_log)
 
     ############################
     # Initialize the environment
@@ -140,19 +129,25 @@ if __name__ == "__main__":
 
     # Initiate dataset
     if config.dataset == "ModelNet40":
-        test_dataset = ModelNet40Dataset(config, train=False)
+        test_dataset = ModelNet40Dataset(args.datapath, config, train=False)
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
-        test_dataset = S3DISDataset(config, set="validation", use_potentials=True)
+        test_dataset = S3DISDataset(
+            args.datapath, config, set="validation", use_potentials=True
+        )
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
     elif config.dataset == "Toronto3D":
-        test_dataset = Toronto3DDataset(config, set="test", use_potentials=True)
+        test_dataset = Toronto3DDataset(
+            args.datapath, config, set="test", use_potentials=True
+        )
         test_sampler = Toronto3DSampler(test_dataset)
         collate_fn = Toronto3DCollate
     elif config.dataset == "SemanticKitti":
-        test_dataset = SemanticKittiDataset(config, set=set, balance_classes=False)
+        test_dataset = SemanticKittiDataset(
+            args.datapath, config, set=set, balance_classes=False
+        )
         test_sampler = SemanticKittiSampler(test_dataset)
         collate_fn = SemanticKittiCollate
     else:

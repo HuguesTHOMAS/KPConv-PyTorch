@@ -14,7 +14,7 @@ from kpconv_torch.utils.mayavi_visu import show_input_batch
 class ModelNet40Dataset(PointCloudDataset):
     """Class to handle Modelnet 40 dataset."""
 
-    def __init__(self, config, train=True, orient_correction=True):
+    def __init__(self, datapath, config, train=True, orient_correction=True):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -75,7 +75,7 @@ class ModelNet40Dataset(PointCloudDataset):
         self.ignored_labels = np.array([])
 
         # Dataset folder
-        self.path = "../../Data/ModelNet40"
+        self.path = datapath
 
         # Type of task conducted on this dataset
         self.dataset_task = "classification"

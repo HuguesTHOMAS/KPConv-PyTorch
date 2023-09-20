@@ -17,7 +17,7 @@ from kpconv_torch.utils.mayavi_visu import KDTree
 class SemanticKittiDataset(PointCloudDataset):
     """Class to handle SemanticKitti dataset."""
 
-    def __init__(self, config, set="training", balance_classes=True):
+    def __init__(self, datapath, config, set="training", balance_classes=True):
         PointCloudDataset.__init__(self, "SemanticKitti")
 
         ##########################
@@ -25,7 +25,7 @@ class SemanticKittiDataset(PointCloudDataset):
         ##########################
 
         # Dataset folder
-        self.path = "../../Data/SemanticKitti"
+        self.path = datapath
 
         # Type of task conducted on this dataset
         self.dataset_task = "slam_segmentation"

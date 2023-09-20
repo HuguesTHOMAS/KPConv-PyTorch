@@ -17,7 +17,9 @@ from kpconv_torch.utils.mayavi_visu import KDTree, read_ply, show_input_batch, w
 class Toronto3DDataset(PointCloudDataset):
     """Class to handle Toronto3D dataset."""
 
-    def __init__(self, config, set="training", use_potentials=True, load_data=True):
+    def __init__(
+        self, datapath, config, set="training", use_potentials=True, load_data=True
+    ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -47,7 +49,7 @@ class Toronto3DDataset(PointCloudDataset):
         self.ignored_labels = np.array([0])
 
         # Dataset folder
-        self.path = "../../Data/Toronto3D"
+        self.path = datapath
 
         # Type of task conducted on this dataset
         self.dataset_task = "cloud_segmentation"

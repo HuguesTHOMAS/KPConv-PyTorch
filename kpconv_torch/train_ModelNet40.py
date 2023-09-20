@@ -246,8 +246,8 @@ if __name__ == "__main__":
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = ModelNet40Dataset(config, train=True)
-    test_dataset = ModelNet40Dataset(config, train=False)
+    training_dataset = ModelNet40Dataset("Data/ModelNet40", config, train=True)
+    test_dataset = ModelNet40Dataset("Data/ModelNet40", config, train=False)
 
     # Initialize samplers
     training_sampler = ModelNet40Sampler(training_dataset, balance_labels=True)

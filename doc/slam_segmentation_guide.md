@@ -38,11 +38,11 @@ When you start a new training, it is saved in a `results` folder. A dated log fo
 
 In `plot_convergence.py`, you will find detailed comments explaining how to choose which training log you want to plot. Follow them and then run the script :
 
-        python3 plot_convergence.py
+        kpconv plotconv -d <path-of-your-dataset> -l <path-of-your-model-log>
 
 
 ### Test the trained model
 
-The test script is the same for all models (segmentation or classification). In `test_any_model.py`, you will find detailed comments explaining how to choose which logged trained model you want to test. Follow them and then run the script :
+The test script is the same for all models (segmentation or classification). It contains detailed comments explaining how to choose which logged trained model you want to test. Follow them and then run the script:
 
-        python3 test_any_model.py
+        kpconv test -d <path-of-your-dataset> -l <path-of-your-model-log>

@@ -270,9 +270,11 @@ if __name__ == "__main__":
 
     # Initialize datasets
     training_dataset = SemanticKittiDataset(
-        config, set="training", balance_classes=True
+        "Data/SemanticKitti", config, set="training", balance_classes=True
     )
-    test_dataset = SemanticKittiDataset(config, set="validation", balance_classes=False)
+    test_dataset = SemanticKittiDataset(
+        "Data/SemanticKitti", config, set="validation", balance_classes=False
+    )
 
     # Initialize samplers
     training_sampler = SemanticKittiSampler(training_dataset)

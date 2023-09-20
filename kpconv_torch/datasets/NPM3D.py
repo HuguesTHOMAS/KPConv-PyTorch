@@ -22,7 +22,9 @@ from kpconv_torch.utils.mayavi_visu import (
 class NPM3DDataset(PointCloudDataset):
     """Class to handle NPM3D dataset."""
 
-    def __init__(self, config, set="training", use_potentials=True, load_data=True):
+    def __init__(
+        self, datapath, config, set="training", use_potentials=True, load_data=True
+    ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -53,7 +55,7 @@ class NPM3DDataset(PointCloudDataset):
         self.ignored_labels = np.array([0])
 
         # Dataset folder
-        self.path = "../../Data/Paris"
+        self.path = datapath
 
         # Type of task conducted on this dataset
         self.dataset_task = "cloud_segmentation"

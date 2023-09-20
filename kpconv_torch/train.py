@@ -151,8 +151,7 @@ class S3DISConfig(Config):
     saving_path = None
 
 
-if __name__ == "__main__":
-
+def main(args):
     ############################
     # Initialize the environment
     ############################
@@ -162,19 +161,12 @@ if __name__ == "__main__":
     # Set GPU visible device
     os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
 
-    ###############
-    # Previous chkp
-    ###############
-    # Choose here if you want to start training from a previous snapshot (None for new training)
-    # previous_training_path = 'Log_2020-03-19_19-53-27'
-    previous_training_path = ""
-
     # Choose index of checkpoint to start from. If None, uses the latest chkp
     chkp_idx = None
-    if previous_training_path:
+    if args.chosen_log:
 
         # Find all snapshot in the chosen training folder
-        chkp_path = os.path.join("results", previous_training_path, "checkpoints")
+        chkp_path = os.path.join("results", args.chosen_log, "checkpoints")
         chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
 
         # Find which snapshot to restore
@@ -183,7 +175,7 @@ if __name__ == "__main__":
         else:
             chosen_chkp = np.sort(chkps)[chkp_idx]
         chosen_chkp = os.path.join(
-            "results", previous_training_path, "checkpoints", chosen_chkp
+            "results", args.chosen_log, "checkpoints", chosen_chkp
         )
 
     else:
@@ -198,8 +190,8 @@ if __name__ == "__main__":
 
     # Initialize configuration class
     config = S3DISConfig()
-    if previous_training_path:
-        config.load(os.path.join("results", previous_training_path))
+    if args.chosen_log:
+        config.load(os.path.join("results", args.chosen_log))
         config.saving_path = None
 
     # Get path from argument if given
@@ -207,8 +199,12 @@ if __name__ == "__main__":
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = S3DISDataset(config, set="training", use_potentials=True)
-    test_dataset = S3DISDataset(config, set="validation", use_potentials=True)
+    training_dataset = S3DISDataset(
+        args.datapath, config, set="training", use_potentials=True
+    )
+    test_dataset = S3DISDataset(
+        args.datapath, config, set="validation", use_potentials=True
+    )
 
     # Initialize samplers
     training_sampler = S3DISSampler(training_dataset)

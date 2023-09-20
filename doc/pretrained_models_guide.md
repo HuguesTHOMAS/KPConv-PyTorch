@@ -24,7 +24,7 @@ We provide pretrained weights for S3DIS dataset. The raw weights come with a par
 
 3. Run the test script
 
-        python3 test_any_model.py
+        kpconv test -d <path-of-your-dataset> -l <path-of-your-model-log>
 
 4. You will see the performance (on the subsampled input clouds) increase as the test goes on.
 
