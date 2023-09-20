@@ -1,51 +1,19 @@
-#
-#
-#      0=================================0
-#      |    Kernel Point Convolutions    |
-#      0=================================0
-#
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Callable script to start a training on Toronto3D dataset
-#
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#      Anass YARROUDH - 20/08/2023
-#
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Imports and global variables
-#       \**********************************/
-#
-
-# Common libs
-import signal
 import os
+import signal
+import sys
+import time
 
-# Dataset
-from datasets.Toronto3D import (
+import numpy as np
+from torch.utils.data import DataLoader
+
+from kpconv_torch.datasets.Toronto3D import (
     Toronto3DCollate,
     Toronto3DDataset,
     Toronto3DSampler,
-    np,
-    sys,
-    time,
 )
-from torch.utils.data import DataLoader
-
-from utils.config import Config
-from utils.trainer import ModelTrainer
-from models.architectures import KPFCNN
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Config Class
-#       \******************/
-#
+from kpconv_torch.models.architectures import KPFCNN
+from kpconv_torch.utils.config import Config
+from kpconv_torch.utils.trainer import ModelTrainer
 
 
 class Toronto3DConfig(Config):
@@ -190,12 +158,6 @@ class Toronto3DConfig(Config):
     saving = True
     saving_path = None
 
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Main Call
-#       \***************/
-#
 
 if __name__ == "__main__":
 
