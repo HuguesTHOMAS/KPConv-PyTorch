@@ -603,8 +603,7 @@ def experiment_name_2():
     return logs, logs_names
 
 
-if __name__ == "__main__":
-
+def main(args):
     ######################################################
     # Choose a list of log to plot together for comparison
     ######################################################
@@ -640,7 +639,7 @@ if __name__ == "__main__":
         compare_convergences_classif(logs, logs_names)
     elif config.dataset_task == "cloud_segmentation":
         if config.dataset.startswith("S3DIS"):
-            dataset = S3DISDataset(config, load_data=False)
+            dataset = S3DISDataset(args.datapath, config, load_data=False)
             compare_convergences_segment(dataset, logs, logs_names)
     else:
         raise ValueError("Unsupported dataset : " + plot_dataset)

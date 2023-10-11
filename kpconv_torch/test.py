@@ -14,17 +14,25 @@ from kpconv_torch.datasets.S3DIS import (
     S3DISDataset,
     S3DISSampler,
 )
+from kpconv_torch.datasets.SemanticKitti import (
+    SemanticKittiCollate,
+    SemanticKittiDataset,
+    SemanticKittiSampler,
+)
+from kpconv_torch.datasets.Toronto3D import (
+    Toronto3DCollate,
+    Toronto3DDataset,
+    Toronto3DSampler,
+)
 from kpconv_torch.models.architectures import KPCNN, KPFCNN
 from kpconv_torch.utils.config import Config
-from kpconv_torch.utils.visualizer import ModelVisualizer
+from kpconv_torch.utils.tester import ModelTester
 
 
 def model_choice(chosen_log):
-
     ###########################
     # Call the test initializer
     ###########################
-
     # Automatically retrieve the last trained model
     if chosen_log in ["last_ModelNet40", "last_ShapeNetPart", "last_S3DIS"]:
 
@@ -58,38 +66,19 @@ def model_choice(chosen_log):
     return chosen_log
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Main Call
-#       \***************/
-#
-
-if __name__ == "__main__":
-
-    ###############################
-    # Choose the model to visualize
-    ###############################
-
-    #   Here you can choose which model you want to test with the variable test_model. Here are the possible values :
-    #
-    #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
-    #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
-
-    chosen_log = "results/Log_2020-04-23_19-42-18"
-
+def main(args):
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
-    chkp_idx = None
+    chkp_idx = -1
 
-    # Eventually you can choose which feature is visualized (index of the deform convolution in the network)
-    deform_idx = 0
+    # Choose to test on validation or test split
+    on_val = True
 
-    # Deal with 'last_XXX' choices
-    chosen_log = model_choice(chosen_log)
+    # Deal with 'last_XXXXXX' choices
+    chosen_log = model_choice(args.chosen_log)
 
     ############################
     # Initialize the environment
     ############################
-
     # Set which gpu is going to be used
     GPU_ID = "0"
 
@@ -99,7 +88,6 @@ if __name__ == "__main__":
     ###############
     # Previous chkp
     ###############
-
     # Find all checkpoints in the chosen training folder
     chkp_path = os.path.join(chosen_log, "checkpoints")
     chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
@@ -118,31 +106,50 @@ if __name__ == "__main__":
     ##################################
     # Change model parameters for test
     ##################################
-
     # Change parameters for the test here. For example, you can stop augmenting the input data.
 
-    config.augment_noise = 0.0001
-    config.batch_num = 1
-    config.in_radius = 2.0
-    config.input_threads = 0
+    # config.augment_noise = 0.0001
+    # config.augment_symmetries = False
+    # config.batch_num = 3
+    # config.in_radius = 4
+    config.validation_size = 200
+    config.input_threads = 10
 
     ##############
     # Prepare Data
     ##############
-
     print()
     print("Data Preparation")
     print("****************")
 
+    if on_val:
+        set = "validation"
+    else:
+        set = "test"
+
     # Initiate dataset
-    if config.dataset.startswith("ModelNet40"):
-        test_dataset = ModelNet40Dataset(config, train=False)
+    if config.dataset == "ModelNet40":
+        test_dataset = ModelNet40Dataset(args.datapath, config, train=False)
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
-        test_dataset = S3DISDataset(config, set="validation", use_potentials=True)
+        test_dataset = S3DISDataset(
+            args.datapath, config, set="validation", use_potentials=True
+        )
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
+    elif config.dataset == "Toronto3D":
+        test_dataset = Toronto3DDataset(
+            args.datapath, config, set="test", use_potentials=True
+        )
+        test_sampler = Toronto3DSampler(test_dataset)
+        collate_fn = Toronto3DCollate
+    elif config.dataset == "SemanticKitti":
+        test_dataset = SemanticKittiDataset(
+            args.datapath, config, set=set, balance_classes=False
+        )
+        test_sampler = SemanticKittiSampler(test_dataset)
+        collate_fn = SemanticKittiCollate
     else:
         raise ValueError("Unsupported dataset : " + config.dataset)
 
@@ -169,16 +176,21 @@ if __name__ == "__main__":
     elif config.dataset_task in ["cloud_segmentation", "slam_segmentation"]:
         net = KPFCNN(config, test_dataset.label_values, test_dataset.ignored_labels)
     else:
-        raise ValueError(
-            "Unsupported dataset_task for deformation visu: " + config.dataset_task
-        )
+        raise ValueError("Unsupported dataset_task for testing: " + config.dataset_task)
 
     # Define a visualizer class
-    visualizer = ModelVisualizer(net, config, chkp_path=chosen_chkp, on_gpu=False)
+    tester = ModelTester(net, chkp_path=chosen_chkp)
     print(f"Done in {time.time() - t1:.1f}s\n")
 
-    print("\nStart visualization")
-    print("*******************")
+    print("\nStart test")
+    print("**********\n")
 
     # Training
-    visualizer.show_deformable_kernels(net, test_loader, config, deform_idx)
+    if config.dataset_task == "classification":
+        tester.classification_test(net, test_loader, config)
+    elif config.dataset_task == "cloud_segmentation":
+        tester.cloud_segmentation_test(net, test_loader, config)
+    elif config.dataset_task == "slam_segmentation":
+        tester.slam_segmentation_test(net, test_loader, config)
+    else:
+        raise ValueError("Unsupported dataset_task for testing: " + config.dataset_task)

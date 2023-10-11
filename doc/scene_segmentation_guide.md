@@ -16,7 +16,7 @@ N.B. If you want to place your data anywhere else, you just have to change the v
 
 Simply run the following script to start the training:
 
-        python3 train.py
+        kpconv train -d <path-of-your-dataset> -l <path-of-your-model-log>
 
 Similarly to ModelNet40 training, the parameters can be modified in a configuration subclass called `S3DISConfig`, and the first run of this script might take some time to precompute dataset structures.
 
@@ -26,13 +26,13 @@ When you start a new training, it is saved in a `results` folder. A dated log fo
 
 In `plot_convergence.py`, you will find detailed comments explaining how to choose which training log you want to plot. Follow them and then run the script :
 
-        python3 plot_convergence.py
+        kpconv plotconv -d <path-of-your-dataset> -l <path-of-your-model-log>
 
 ### Test the trained model
 
-The test script is the same for all models (segmentation or classification). In `test_any_model.py`, you will find detailed comments explaining how to choose which logged trained model you want to test. Follow them and then run the script :
+The test script is the same for all models (segmentation or classification). It contains detailed comments explaining how to choose which logged trained model you want to test. Follow them and then run the script:
 
-        python3 test_models.py
+        kpconv test -d <path-of-your-dataset> -l <path-of-your-model-log>
 
 You will see the performance (on the subsampled input clouds) increase as the test goes on.
 
