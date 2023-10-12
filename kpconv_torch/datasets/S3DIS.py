@@ -82,6 +82,16 @@ class S3DISDataset(PointCloudDataset):
 
         # Path of the training files
         self.train_path = join(self.path, "original_ply")
+        if not exists(self.train_path):
+            print("The ply folder does not exist, create it.")
+            makedirs(self.train_path)
+
+        # Create path for files
+        self.tree_path = join(
+            self.path, f"input_{self.config.first_subsampling_dl:.3f}"
+        )
+        if not exists(self.tree_path):
+            makedirs(self.tree_path)
 
         # Proportion of validation scenes
         self.training_cloud_names = ["Area_1", "Area_2", "Area_3", "Area_4", "Area_6"]
@@ -91,14 +101,14 @@ class S3DISDataset(PointCloudDataset):
         elif self.set == "training":
             self.cloud_names = self.training_cloud_names
         elif self.set == "test" and infered_file is not None:
-            self.cloud_names = infered_file
+            self.cloud_names = [infered_file]
         else:
             self.cloud_names = self.validation_cloud_names
         self.files = [
-            join(self.train_path, ply_file + ".ply")
-            if self.set != "inference"
-            else join(self.path, ply_file + ".ply")
-            for i, ply_file in enumerate(self.cloud_names)
+            cloud_name
+            if self.set == "test" and infered_file is not None
+            else join(self.train_path, cloud_name + ".ply")
+            for i, cloud_name in enumerate(self.cloud_names)
         ]
 
         # Initiate containers
@@ -109,14 +119,16 @@ class S3DISDataset(PointCloudDataset):
         self.test_proj = []
         self.validation_labels = []
 
-        # Stop data is not needed
-        if not load_data:
-            return
-
         ###################
         # Prepare ply files
         ###################
-        self.prepare_S3DIS_ply()
+        print("infered file:", infered_file)
+        if infered_file is None:
+            self.prepare_S3DIS_ply()
+
+        # Stop data is not needed
+        if not load_data:
+            return
 
         ################
         # Load ply files
@@ -124,66 +136,19 @@ class S3DISDataset(PointCloudDataset):
         if 0 < self.config.first_subsampling_dl <= 0.01:
             raise ValueError("subsampling_parameter too low (should be over 1 cm")
 
-        self.load_subsampled_clouds()
+        for cloud_name, file_path in zip(self.cloud_names, self.files):
+            cur_kdtree = self.load_kdtree(cloud_name, file_path)
+            if self.use_potentials:
+                self.load_coarse_potential_locations(cloud_name, cur_kdtree.data)
+            # Only necessary for validation and test sets
+            if self.set in ["validation", "test"]:
+                self.load_projection_indices(cloud_name, file_path, cur_kdtree)
 
         ############################
         # Batch selection parameters
         ############################
 
-        # Initialize value for batch limit (max number of points per batch).
-        self.batch_limit = torch.tensor([1], dtype=torch.float32)
-        self.batch_limit.share_memory_()
-
-        # Number of models used per epoch
-        if self.set == "training":
-            self.epoch_n = self.config.epoch_steps * self.config.batch_num
-        else:
-            self.epoch_n = self.config.validation_size * self.config.batch_num
-
-        # Initialize potentials
-        if use_potentials:
-            self.potentials = []
-            self.min_potentials = []
-            self.argmin_potentials = []
-            for i, tree in enumerate(self.pot_trees):
-                self.potentials += [
-                    torch.from_numpy(np.random.rand(tree.data.shape[0]) * 1e-3)
-                ]
-                min_ind = int(torch.argmin(self.potentials[-1]))
-                self.argmin_potentials += [min_ind]
-                self.min_potentials += [float(self.potentials[-1][min_ind])]
-
-            # Share potential memory
-            self.argmin_potentials = torch.from_numpy(
-                np.array(self.argmin_potentials, dtype=np.int64)
-            )
-            self.min_potentials = torch.from_numpy(
-                np.array(self.min_potentials, dtype=np.float64)
-            )
-            self.argmin_potentials.share_memory_()
-            self.min_potentials.share_memory_()
-            for i, _ in enumerate(self.pot_trees):
-                self.potentials[i].share_memory_()
-
-            self.worker_waiting = torch.tensor(
-                [0 for _ in range(self.config.input_threads)], dtype=torch.int32
-            )
-            self.worker_waiting.share_memory_()
-            self.epoch_inds = None
-            self.epoch_i = 0
-
-        else:
-            self.potentials = None
-            self.min_potentials = None
-            self.argmin_potentials = None
-            self.epoch_inds = torch.from_numpy(
-                np.zeros((2, self.epoch_n), dtype=np.int64)
-            )
-            self.epoch_i = torch.from_numpy(np.zeros((1,), dtype=np.int64))
-            self.epoch_i.share_memory_()
-            self.epoch_inds.share_memory_()
-
-        self.worker_lock = Lock()
+        self.set_batch_selection_parameters()
 
         # For ERF visualization, we want only one cloud per batch and no randomness
         if self.set == "ERF":
@@ -643,11 +608,6 @@ class S3DISDataset(PointCloudDataset):
         print("\nPreparing ply files")
         t0 = time.time()
 
-        # Folder for the ply files
-        if not exists(self.train_path):
-            print("The ply folder does not exist, create it.")
-            makedirs(self.train_path)
-
         for cloud_name in self.cloud_names:
 
             # Pass if the cloud has already been computed
@@ -730,190 +690,205 @@ class S3DISDataset(PointCloudDataset):
         print(f"Done in {time.time() - t0:.1f}s")
         return
 
-    def load_subsampled_clouds(self):
+    def load_kdtree(self, cloud_name, file_path):
 
-        # Parameter
-        dl = self.config.first_subsampling_dl
+        # Restart timer
+        t0 = time.time()
 
-        # Create path for files
-        tree_path = join(self.path, f"input_{dl:.3f}")
-        if not exists(tree_path):
-            makedirs(tree_path)
+        # Name of the input files
+        KDTree_file = join(self.tree_path, f"{cloud_name:s}_KDTree.pkl")
+        sub_ply_file = join(self.tree_path, f"{cloud_name:s}.ply")
 
-        ##############
-        # Load KDTrees
-        ##############
-
-        for i, file_path in enumerate(self.files):
-
-            # Restart timer
-            t0 = time.time()
-
-            # Get cloud name
-            cloud_name = self.cloud_names[i]
-
-            # Name of the input files
-            KDTree_file = join(tree_path, f"{cloud_name:s}_KDTree.pkl")
-            sub_ply_file = join(tree_path, f"{cloud_name:s}.ply")
-
-            # Check if inputs have already been computed
-            if exists(KDTree_file):
-                print(
-                    "\nFound KDTree for cloud {:s}, subsampled at {:.3f}".format(
-                        cloud_name, dl
-                    )
+        print("kdtree file:", KDTree_file)
+        print("sub ply file:", sub_ply_file)
+        print("file path:", file_path)
+        # Check if inputs have already been computed
+        if exists(KDTree_file):
+            print(
+                "\nFound KDTree for cloud {:s}, subsampled at {:.3f}".format(
+                    cloud_name, self.config.first_subsampling_dl
                 )
+            )
 
-                # read ply with data
-                data = read_ply(sub_ply_file)
-                sub_colors = np.vstack((data["red"], data["green"], data["blue"])).T
-                sub_labels = data["class"]
+            # read ply with data
+            data = read_ply(sub_ply_file)
+            sub_colors = np.vstack((data["red"], data["green"], data["blue"])).T
+            sub_labels = data["class"]
 
-                # Read pkl with search tree
-                with open(KDTree_file, "rb") as f:
-                    search_tree = pickle.load(f)
+            # Read pkl with search tree
+            with open(KDTree_file, "rb") as f:
+                search_tree = pickle.load(f)
 
-            else:
-                print(
-                    "\nPreparing KDTree for cloud {:s}, subsampled at {:.3f}".format(
-                        cloud_name, dl
-                    )
+        else:
+            print(
+                "\nPreparing KDTree for cloud {:s}, subsampled at {:.3f}".format(
+                    cloud_name, self.config.first_subsampling_dl
                 )
+            )
 
-                # Read ply file
-                data = read_ply(file_path)
-                points = np.vstack((data["x"], data["y"], data["z"])).T
-                colors = np.vstack((data["red"], data["green"], data["blue"])).T
-                labels = data["class"]
+            # Read ply file
+            data = read_ply(file_path)
+            points = np.vstack((data["x"], data["y"], data["z"])).T
+            colors = np.vstack((data["red"], data["green"], data["blue"])).T
+            labels = data["class"]
 
-                # Subsample cloud
-                sub_points, sub_colors, sub_labels = grid_subsampling(
-                    points, features=colors, labels=labels, sampleDl=dl
-                )
+            # Subsample cloud
+            sub_points, sub_colors, sub_labels = grid_subsampling(
+                points,
+                features=colors,
+                labels=labels,
+                sampleDl=self.config.first_subsampling_dl,
+            )
 
-                # Rescale float color and squeeze label
-                sub_colors = sub_colors / 255
-                sub_labels = np.squeeze(sub_labels)
+            # Rescale float color and squeeze label
+            sub_colors = sub_colors / 255
+            sub_labels = np.squeeze(sub_labels)
 
-                # Get chosen neighborhoods
-                search_tree = KDTree(sub_points, leaf_size=10)
-                # search_tree = nnfln.KDTree(n_neighbors=1, metric='L2', leaf_size=10)
-                # search_tree.fit(sub_points)
+            # Get chosen neighborhoods
+            search_tree = KDTree(sub_points, leaf_size=10)
+            # search_tree = nnfln.KDTree(n_neighbors=1, metric='L2', leaf_size=10)
+            # search_tree.fit(sub_points)
 
-                # Save KDTree
-                with open(KDTree_file, "wb") as f:
-                    pickle.dump(search_tree, f)
+            # Save KDTree
+            with open(KDTree_file, "wb") as f:
+                pickle.dump(search_tree, f)
 
-                # Save ply
-                write_ply(
-                    sub_ply_file,
-                    [sub_points, sub_colors, sub_labels],
-                    ["x", "y", "z", "red", "green", "blue", "class"],
-                )
+            # Save ply
+            write_ply(
+                sub_ply_file,
+                [sub_points, sub_colors, sub_labels],
+                ["x", "y", "z", "red", "green", "blue", "class"],
+            )
 
-            # Fill data containers
-            self.input_trees += [search_tree]
-            self.input_colors += [sub_colors]
-            self.input_labels += [sub_labels]
+        # Fill data containers
+        self.input_trees += [search_tree]
+        self.input_colors += [sub_colors]
+        self.input_labels += [sub_labels]
 
-            size = sub_colors.shape[0] * 4 * 7
-            print(f"{size * 1e-6:.1f} MB loaded in {time.time() - t0:.1f}s")
+        size = sub_colors.shape[0] * 4 * 7
+        print(f"{size * 1e-6:.1f} MB loaded in {time.time() - t0:.1f}s")
+        return search_tree
 
-        ############################
-        # Coarse potential locations
-        ############################
+    def load_coarse_potential_locations(self, cloud_name, kdtree_data):
 
-        # Only necessary for validation and test sets
+        # Restart timer
+        t0 = time.time()
+
+        # Name of the input files
+        coarse_KDTree_file = join(self.tree_path, f"{cloud_name:s}_coarse_KDTree.pkl")
+
+        # Check if inputs have already been computed
+        if exists(coarse_KDTree_file):
+            # Read pkl with search tree
+            with open(coarse_KDTree_file, "rb") as f:
+                search_tree = pickle.load(f)
+
+        else:
+            # Subsample cloud
+            sub_points = np.array(kdtree_data, copy=False)
+            coarse_points = grid_subsampling(
+                sub_points.astype(np.float32), sampleDl=self.config.in_radius / 10
+            )
+
+            # Get chosen neighborhoods
+            search_tree = KDTree(coarse_points, leaf_size=10)
+
+            # Save KDTree
+            with open(coarse_KDTree_file, "wb") as f:
+                pickle.dump(search_tree, f)
+
+        # Fill data containers
+        self.pot_trees += [search_tree]
+
+        print(f"Done in {time.time() - t0:.1f}s")
+
+    def load_projection_indices(self, cloud_name, file_path, input_tree):
+
+        print("\nPreparing reprojection indices for testing")
+
+        # Restart timer
+        t0 = time.time()
+
+        # File name for saving
+        proj_file = join(self.tree_path, f"{cloud_name:s}_proj.pkl")
+
+        # Try to load previous indices
+        if exists(proj_file):
+            with open(proj_file, "rb") as f:
+                proj_inds, labels = pickle.load(f)
+        else:
+            data = read_ply(file_path)
+            points = np.vstack((data["x"], data["y"], data["z"])).T
+            labels = data["class"]
+
+            # Compute projection inds
+            idxs = input_tree.query(points, return_distance=False)
+            # dists, idxs = self.input_trees[i_cloud].kneighbors(points)
+            proj_inds = np.squeeze(idxs).astype(np.int32)
+
+            # Save
+            with open(proj_file, "wb") as f:
+                pickle.dump([proj_inds, labels], f)
+
+        self.test_proj += [proj_inds]
+        self.validation_labels += [labels]
+        print(f"{cloud_name:s} done in {time.time() - t0:.1f}s")
+
+    def set_batch_selection_parameters(self):
+        # Initialize value for batch limit (max number of points per batch).
+        self.batch_limit = torch.tensor([1], dtype=torch.float32)
+        self.batch_limit.share_memory_()
+
+        # Number of models used per epoch
+        if self.set == "training":
+            self.epoch_n = self.config.epoch_steps * self.config.batch_num
+        else:
+            self.epoch_n = self.config.validation_size * self.config.batch_num
+
+        # Initialize potentials
         if self.use_potentials:
-            print("\nPreparing potentials")
+            self.potentials = []
+            self.min_potentials = []
+            self.argmin_potentials = []
+            for i, tree in enumerate(self.pot_trees):
+                self.potentials += [
+                    torch.from_numpy(np.random.rand(tree.data.shape[0]) * 1e-3)
+                ]
+                min_ind = int(torch.argmin(self.potentials[-1]))
+                self.argmin_potentials += [min_ind]
+                self.min_potentials += [float(self.potentials[-1][min_ind])]
 
-            # Restart timer
-            t0 = time.time()
+            # Share potential memory
+            self.argmin_potentials = torch.from_numpy(
+                np.array(self.argmin_potentials, dtype=np.int64)
+            )
+            self.min_potentials = torch.from_numpy(
+                np.array(self.min_potentials, dtype=np.float64)
+            )
+            self.argmin_potentials.share_memory_()
+            self.min_potentials.share_memory_()
+            for i, _ in enumerate(self.pot_trees):
+                self.potentials[i].share_memory_()
 
-            pot_dl = self.config.in_radius / 10
-            cloud_ind = 0
+            self.worker_waiting = torch.tensor(
+                [0 for _ in range(self.config.input_threads)], dtype=torch.int32
+            )
+            self.worker_waiting.share_memory_()
+            self.epoch_inds = None
+            self.epoch_i = 0
 
-            for i, file_path in enumerate(self.files):
+        else:
+            self.potentials = None
+            self.min_potentials = None
+            self.argmin_potentials = None
+            self.epoch_inds = torch.from_numpy(
+                np.zeros((2, self.epoch_n), dtype=np.int64)
+            )
+            self.epoch_i = torch.from_numpy(np.zeros((1,), dtype=np.int64))
+            self.epoch_i.share_memory_()
+            self.epoch_inds.share_memory_()
 
-                # Get cloud name
-                cloud_name = self.cloud_names[i]
-
-                # Name of the input files
-                coarse_KDTree_file = join(
-                    tree_path, f"{cloud_name:s}_coarse_KDTree.pkl"
-                )
-
-                # Check if inputs have already been computed
-                if exists(coarse_KDTree_file):
-                    # Read pkl with search tree
-                    with open(coarse_KDTree_file, "rb") as f:
-                        search_tree = pickle.load(f)
-
-                else:
-                    # Subsample cloud
-                    sub_points = np.array(self.input_trees[cloud_ind].data, copy=False)
-                    coarse_points = grid_subsampling(
-                        sub_points.astype(np.float32), sampleDl=pot_dl
-                    )
-
-                    # Get chosen neighborhoods
-                    search_tree = KDTree(coarse_points, leaf_size=10)
-
-                    # Save KDTree
-                    with open(coarse_KDTree_file, "wb") as f:
-                        pickle.dump(search_tree, f)
-
-                # Fill data containers
-                self.pot_trees += [search_tree]
-                cloud_ind += 1
-
-            print(f"Done in {time.time() - t0:.1f}s")
-
-        ######################
-        # Reprojection indices
-        ######################
-
-        # Only necessary for validation and test sets
-        if self.set in ["validation", "test"]:
-
-            print("\nPreparing reprojection indices for testing")
-
-            # Get validation/test reprojection indices
-            for i, file_path in enumerate(self.files):
-
-                # Restart timer
-                t0 = time.time()
-
-                # Get info on this cloud
-                cloud_name = self.cloud_names[i]
-
-                # File name for saving
-                proj_file = join(tree_path, f"{cloud_name:s}_proj.pkl")
-
-                # Try to load previous indices
-                if exists(proj_file):
-                    with open(proj_file, "rb") as f:
-                        proj_inds, labels = pickle.load(f)
-                else:
-                    data = read_ply(file_path)
-                    points = np.vstack((data["x"], data["y"], data["z"])).T
-                    labels = data["class"]
-
-                    # Compute projection inds
-                    idxs = self.input_trees[i].query(points, return_distance=False)
-                    # dists, idxs = self.input_trees[i_cloud].kneighbors(points)
-                    proj_inds = np.squeeze(idxs).astype(np.int32)
-
-                    # Save
-                    with open(proj_file, "wb") as f:
-                        pickle.dump([proj_inds, labels], f)
-
-                self.test_proj += [proj_inds]
-                self.validation_labels += [labels]
-                print(f"{cloud_name:s} done in {time.time() - t0:.1f}s")
-
-        print()
-        return
+        self.worker_lock = Lock()
 
     def load_evaluation_points(self, file_path):
         """
