@@ -122,10 +122,7 @@ def main(args):
     print("Data Preparation")
     print("****************")
 
-    if on_val:
-        set = "validation"
-    else:
-        set = "test"
+    split = "validation" if on_val else "test"
 
     # Initiate dataset
     if config.dataset == "ModelNet40":
@@ -134,19 +131,23 @@ def main(args):
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
         test_dataset = S3DISDataset(
-            args.datapath, config, set="validation", use_potentials=True
+            args.datapath,
+            config,
+            split="validation" if args.filename is None else "test",
+            use_potentials=True,
+            infered_file=args.filename,
         )
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
     elif config.dataset == "Toronto3D":
         test_dataset = Toronto3DDataset(
-            args.datapath, config, set="test", use_potentials=True
+            args.datapath, config, split="test", use_potentials=True
         )
         test_sampler = Toronto3DSampler(test_dataset)
         collate_fn = Toronto3DCollate
     elif config.dataset == "SemanticKitti":
         test_dataset = SemanticKittiDataset(
-            args.datapath, config, set=set, balance_classes=False
+            args.datapath, config, split=split, balance_classes=False
         )
         test_sampler = SemanticKittiSampler(test_dataset)
         collate_fn = SemanticKittiCollate

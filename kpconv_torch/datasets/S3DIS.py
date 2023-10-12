@@ -19,7 +19,13 @@ class S3DISDataset(PointCloudDataset):
     """Class to handle S3DIS dataset."""
 
     def __init__(
-        self, datapath, config, set="training", use_potentials=True, load_data=True
+        self,
+        datapath,
+        config,
+        split="training",
+        use_potentials=True,
+        load_data=True,
+        infered_file=None,
     ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
@@ -53,9 +59,6 @@ class S3DISDataset(PointCloudDataset):
         # List of classes ignored during training (can be empty)
         self.ignored_labels = np.array([])
 
-        # Dataset folder
-        self.path = datapath
-
         # Type of task conducted on this dataset
         self.dataset_task = "cloud_segmentation"
 
@@ -67,29 +70,44 @@ class S3DISDataset(PointCloudDataset):
         self.config = config
 
         # Training or test set
-        self.set = set
+        if split not in ["training", "validation", "test", "ERF", "all"]:
+            raise ValueError("Unknown set for S3DIS data: ", split)
+        self.set = split
 
         # Using potential or random epoch generation
         self.use_potentials = use_potentials
 
-        # Path of the training files
-        self.train_path = "original_ply"
+        # Dataset folder
+        self.path = datapath
 
-        # List of files to process
-        ply_path = join(self.path, self.train_path)
+        # Path of the training files
+        self.train_path = join(self.path, "original_ply")
 
         # Proportion of validation scenes
-        self.cloud_names = ["Area_1", "Area_2", "Area_3", "Area_4", "Area_5", "Area_6"]
-        self.all_splits = [0, 1, 2, 3, 4, 5]
-        self.validation_split = 4
-
-        # Number of models used per epoch
-        if self.set == "training":
-            self.epoch_n = config.epoch_steps * config.batch_num
-        elif self.set in ["validation", "test", "ERF"]:
-            self.epoch_n = config.validation_size * config.batch_num
+        self.training_cloud_names = ["Area_1", "Area_2", "Area_3", "Area_4", "Area_6"]
+        self.validation_cloud_names = ["Area_5"]
+        if self.set == "all":
+            self.cloud_names = self.training_cloud_names + self.validation_cloud_names
+        elif self.set == "training":
+            self.cloud_names = self.training_cloud_names
+        elif self.set == "test" and infered_file is not None:
+            self.cloud_names = infered_file
         else:
-            raise ValueError("Unknown set for S3DIS data: ", self.set)
+            self.cloud_names = self.validation_cloud_names
+        self.files = [
+            join(self.train_path, ply_file + ".ply")
+            if self.set != "inference"
+            else join(self.path, ply_file + ".ply")
+            for i, ply_file in enumerate(self.cloud_names)
+        ]
+
+        # Initiate containers
+        self.input_trees = []
+        self.input_colors = []
+        self.input_labels = []
+        self.pot_trees = []
+        self.test_proj = []
+        self.validation_labels = []
 
         # Stop data is not needed
         if not load_data:
@@ -98,51 +116,14 @@ class S3DISDataset(PointCloudDataset):
         ###################
         # Prepare ply files
         ###################
-
         self.prepare_S3DIS_ply()
 
         ################
         # Load ply files
         ################
-
-        # List of training files
-        self.files = []
-        for i, f in enumerate(self.cloud_names):
-            if self.set == "training":
-                if self.all_splits[i] != self.validation_split:
-                    self.files += [join(ply_path, f + ".ply")]
-            elif self.set in ["validation", "test", "ERF"]:
-                if self.all_splits[i] == self.validation_split:
-                    self.files += [join(ply_path, f + ".ply")]
-            else:
-                raise ValueError("Unknown set for S3DIS data: ", self.set)
-
-        if self.set == "training":
-            self.cloud_names = [
-                f
-                for i, f in enumerate(self.cloud_names)
-                if self.all_splits[i] != self.validation_split
-            ]
-        elif self.set in ["validation", "test", "ERF"]:
-            self.cloud_names = [
-                f
-                for i, f in enumerate(self.cloud_names)
-                if self.all_splits[i] == self.validation_split
-            ]
-
         if 0 < self.config.first_subsampling_dl <= 0.01:
             raise ValueError("subsampling_parameter too low (should be over 1 cm")
 
-        # Initiate containers
-        self.input_trees = []
-        self.input_colors = []
-        self.input_labels = []
-        self.pot_trees = []
-        self.num_clouds = 0
-        self.test_proj = []
-        self.validation_labels = []
-
-        # Start loading
         self.load_subsampled_clouds()
 
         ############################
@@ -152,6 +133,12 @@ class S3DISDataset(PointCloudDataset):
         # Initialize value for batch limit (max number of points per batch).
         self.batch_limit = torch.tensor([1], dtype=torch.float32)
         self.batch_limit.share_memory_()
+
+        # Number of models used per epoch
+        if self.set == "training":
+            self.epoch_n = self.config.epoch_steps * self.config.batch_num
+        else:
+            self.epoch_n = self.config.validation_size * self.config.batch_num
 
         # Initialize potentials
         if use_potentials:
@@ -179,7 +166,7 @@ class S3DISDataset(PointCloudDataset):
                 self.potentials[i].share_memory_()
 
             self.worker_waiting = torch.tensor(
-                [0 for _ in range(config.input_threads)], dtype=torch.int32
+                [0 for _ in range(self.config.input_threads)], dtype=torch.int32
             )
             self.worker_waiting.share_memory_()
             self.epoch_inds = None
@@ -203,8 +190,6 @@ class S3DISDataset(PointCloudDataset):
             self.batch_limit = torch.tensor([1], dtype=torch.float32)
             self.batch_limit.share_memory_()
             np.random.seed(42)
-
-        return
 
     def __len__(self):
         """
@@ -659,15 +644,16 @@ class S3DISDataset(PointCloudDataset):
         t0 = time.time()
 
         # Folder for the ply files
-        ply_path = join(self.path, self.train_path)
-        if not exists(ply_path):
-            makedirs(ply_path)
+        if not exists(self.train_path):
+            print("The ply folder does not exist, create it.")
+            makedirs(self.train_path)
 
         for cloud_name in self.cloud_names:
 
             # Pass if the cloud has already been computed
-            cloud_file = join(ply_path, cloud_name + ".ply")
+            cloud_file = join(self.train_path, cloud_name + ".ply")
             if exists(cloud_file):
+                print(f"{cloud_file} does already exist.")
                 continue
 
             # Get rooms of the current cloud
@@ -886,9 +872,6 @@ class S3DISDataset(PointCloudDataset):
         ######################
         # Reprojection indices
         ######################
-
-        # Get number of clouds
-        self.num_clouds = len(self.input_trees)
 
         # Only necessary for validation and test sets
         if self.set in ["validation", "test"]:

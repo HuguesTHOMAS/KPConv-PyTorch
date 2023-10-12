@@ -23,7 +23,7 @@ class NPM3DDataset(PointCloudDataset):
     """Class to handle NPM3D dataset."""
 
     def __init__(
-        self, datapath, config, set="training", use_potentials=True, load_data=True
+        self, datapath, config, split="training", use_potentials=True, load_data=True
     ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
@@ -68,7 +68,7 @@ class NPM3DDataset(PointCloudDataset):
         self.config = config
 
         # Training or test set
-        self.set = set
+        self.set = split
 
         # Using potential or random epoch generation
         self.use_potentials = use_potentials

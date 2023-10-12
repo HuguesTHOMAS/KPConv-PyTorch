@@ -17,7 +17,7 @@ from kpconv_torch.utils.mayavi_visu import KDTree
 class SemanticKittiDataset(PointCloudDataset):
     """Class to handle SemanticKitti dataset."""
 
-    def __init__(self, datapath, config, set="training", balance_classes=True):
+    def __init__(self, datapath, config, split="training", balance_classes=True):
         PointCloudDataset.__init__(self, "SemanticKitti")
 
         ##########################
@@ -31,7 +31,7 @@ class SemanticKittiDataset(PointCloudDataset):
         self.dataset_task = "slam_segmentation"
 
         # Training or test set
-        self.set = set
+        self.set = split
 
         # Get a list of sequences
         if self.set == "training":
@@ -145,7 +145,7 @@ class SemanticKittiDataset(PointCloudDataset):
             self.in_R = config.val_radius
 
         # shared epoch indices and classes (in case we want class balanced sampler)
-        if set == "training":
+        if self.set == "training":
             N = int(np.ceil(config.epoch_steps * self.batch_num * 1.1))
         else:
             N = int(np.ceil(config.validation_size * self.batch_num * 1.1))
