@@ -74,7 +74,7 @@ def main(args):
     on_val = True
 
     # Deal with 'last_XXXXXX' choices
-    chosen_log = model_choice(args.chosen_log)
+    chosen_log = str(model_choice(args.chosen_log))
 
     ############################
     # Initialize the environment
