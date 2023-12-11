@@ -642,7 +642,9 @@ class ModelTrainer:
 
                 # Save file
                 labels = val_loader.dataset.validation_labels[i].astype(np.int32)
-                write_ply(val_name, [points, preds, labels], ["x", "y", "z", "preds", "class"])
+                write_ply(
+                    val_name, [points, preds, labels], ["x", "y", "z", "preds", "classification"]
+                )
 
         # Display timings
         t7 = time.time()
