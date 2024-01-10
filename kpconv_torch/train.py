@@ -110,40 +110,40 @@ def main(args):
         collate_fn = ModelNet40Collate
     elif config.dataset == "NPM3D":
         training_dataset = NPM3DDataset(
-            args.datapath, config, set="training", use_potentials=True
+            args.datapath, config, split="training", use_potentials=True
         )
         test_dataset = NPM3DDataset(
-            args.datapath, config, set="validation", use_potentials=True
+            args.datapath, config, split="validation", use_potentials=True
         )
         training_sampler = NPM3DSampler(training_dataset)
         test_sampler = NPM3DSampler(test_dataset)
         collate_fn = NPM3DCollate
     elif config.dataset == "S3DIS":
         training_dataset = S3DISDataset(
-            args.datapath, config, set="training", use_potentials=True
+            args.datapath, config, split="training", use_potentials=True
         )
         test_dataset = S3DISDataset(
-            args.datapath, config, set="validation", use_potentials=True
+            args.datapath, config, split="validation", use_potentials=True
         )
         training_sampler = S3DISSampler(training_dataset)
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
     elif config.dataset == "SemanticKitti":
         training_dataset = SemanticKittiDataset(
-            args.datapath, config, set="training", balance_classes=True
+            args.datapath, config, split="training", balance_classes=True
         )
         test_dataset = SemanticKittiDataset(
-            args.datapath, config, set="validation", balance_classes=False
+            args.datapath, config, split="validation", balance_classes=False
         )
         training_sampler = SemanticKittiSampler(training_dataset)
         test_sampler = SemanticKittiSampler(test_dataset)
         collate_fn = SemanticKittiCollate
     elif config.dataset == "Toronto3D":
         training_dataset = Toronto3DDataset(
-            args.datapath, config, set="training", use_potentials=True
+            args.datapath, config, split="training", use_potentials=True
         )
         test_dataset = Toronto3DDataset(
-            args.datapath, config, set="validation", use_potentials=True
+            args.datapath, config, split="validation", use_potentials=True
         )
         training_sampler = Toronto3DSampler(training_dataset)
         test_sampler = Toronto3DSampler(test_dataset)

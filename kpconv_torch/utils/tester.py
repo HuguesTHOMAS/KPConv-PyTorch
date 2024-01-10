@@ -286,8 +286,8 @@ class ModelTester:
             # Update minimum od potentials
             new_min = torch.min(test_loader.dataset.min_potentials)
             print(
-                "Test epoch {:d}, end. Min potential = {:.1f}".format(
-                    test_epoch, new_min
+                "Test epoch {:d}, end. Min potential = {:.1f} (last: {:.1f})".format(
+                    test_epoch, new_min, last_min
                 )
             )
             # print([np.mean(pots) for pots in test_loader.dataset.potentials])

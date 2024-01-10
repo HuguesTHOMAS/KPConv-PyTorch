@@ -124,7 +124,7 @@ def main(args):
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
         test_dataset = S3DISDataset(
-            args.datapath, config, set="validation", use_potentials=True
+            args.datapath, config, split="validation", use_potentials=True
         )
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
