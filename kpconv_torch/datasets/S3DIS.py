@@ -711,9 +711,7 @@ class S3DISDataset(PointCloudDataset):
             )
 
             # read ply with data
-            data = read_ply(sub_ply_file)
-            sub_colors = np.vstack((data["red"], data["green"], data["blue"])).T
-            sub_labels = data["class"]
+            _, sub_colors, sub_labels = self.read_input(sub_ply_file)
 
             # Read pkl with search tree
             with open(KDTree_file, "rb") as f:
@@ -726,11 +724,7 @@ class S3DISDataset(PointCloudDataset):
                 )
             )
 
-            # Read ply file
-            data = read_ply(file_path)
-            points = np.vstack((data["x"], data["y"], data["z"])).T
-            colors = np.vstack((data["red"], data["green"], data["blue"])).T
-            labels = data["class"]
+            points, colors, labels = self.read_input(file_path)
 
             # Subsample cloud
             sub_points, sub_colors, sub_labels = grid_subsampling(
@@ -817,9 +811,7 @@ class S3DISDataset(PointCloudDataset):
             with open(proj_file, "rb") as f:
                 proj_inds, labels = pickle.load(f)
         else:
-            data = read_ply(file_path)
-            points = np.vstack((data["x"], data["y"], data["z"])).T
-            labels = data["class"]
+            points, _, labels = self.read_input(file_path)
 
             # Compute projection inds
             idxs = input_tree.query(points, return_distance=False)
@@ -894,10 +886,29 @@ class S3DISDataset(PointCloudDataset):
         """
         Load points (from test or validation split) on which the metrics should be evaluated
         """
+        points, _, _ = self.read_input(file_path)
+        return points
 
-        # Get original points
-        data = read_ply(file_path)
-        return np.vstack((data["x"], data["y"], data["z"])).T
+    def read_input(self, filename):
+        """Read all the input files that belong to the dataset
+
+        Ply files are read by training and testing commands.
+        """
+        file_extension = filename.split(".")[-1]
+        if file_extension == "ply":
+            # Read ply file
+            data = read_ply(filename)
+            points = np.vstack((data["x"], data["y"], data["z"])).T
+            colors = np.vstack((data["red"], data["green"], data["blue"])).T
+            labels = data["class"]
+        elif file_extension == "xyz":
+            data = np.loadtxt(filename, delimiter=" ")
+            points = data[:, :3].astype(np.float32)
+            colors = data[:, 3:].astype(np.uint8)
+            labels = np.zeros(shape=(data.shape[0],)).astype(np.int32)
+        else:
+            raise OSError(f"Unsupported input file extension ({file_extension}).")
+        return points, colors, labels
 
 
 # ----------------------------------------------------------------------------------------------------------------------
