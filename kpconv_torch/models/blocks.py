@@ -6,7 +6,6 @@ from torch.nn.init import kaiming_uniform_
 from torch.nn.parameter import Parameter
 
 from kpconv_torch.kernels.kernel_points import load_kernels
-from kpconv_torch.utils.ply import write_ply
 
 
 def gather(x, idx, method=2):
@@ -98,7 +97,7 @@ def global_average(x, batch_lengths):
     # Loop over the clouds of the batch
     averaged_features = []
     i0 = 0
-    for b_i, length in enumerate(batch_lengths):
+    for length in batch_lengths:
 
         # Average features for each batch cloud
         averaged_features.append(torch.mean(x[i0 : i0 + length], dim=0))

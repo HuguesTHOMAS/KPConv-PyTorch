@@ -1,10 +1,11 @@
+from enum import Enum
 from os.path import join
 
 import numpy as np
 
 
 # Colors for printing
-class bcolors:
+class BColors(Enum):
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
     OKGREEN = "\033[92m"
@@ -197,8 +198,7 @@ class Config:
 
         layer_blocks = []
         self.deform_layers = []
-        arch = self.architecture
-        for block_i, block in enumerate(arch):
+        for block in self.architecture:
 
             # Get all blocks of the layer
             if not (
@@ -214,13 +214,11 @@ class Config:
             # *****************************
 
             deform_layer = False
-            if layer_blocks:
-                if np.any(["deformable" in blck for blck in layer_blocks]):
-                    deform_layer = True
+            if layer_blocks and np.any(["deformable" in blck for blck in layer_blocks]):
+                deform_layer = True
 
-            if "pool" in block or "strided" in block:
-                if "deformable" in block:
-                    deform_layer = True
+            if ("pool" in block or "strided" in block) and "deformable" in block:
+                deform_layer = True
 
             self.deform_layers += [deform_layer]
             layer_blocks = []
@@ -250,7 +248,7 @@ class Config:
                     }
 
                 elif line_info[0] == "architecture":
-                    self.architecture = [b for b in line_info[2:]]
+                    self.architecture = line_info[2:]
 
                 elif line_info[0] == "augment_symmetries":
                     self.augment_symmetries = [bool(int(b)) for b in line_info[2:]]
@@ -288,7 +286,7 @@ class Config:
             text_file.write("# ****************\n\n")
             text_file.write(f"dataset = {self.dataset:s}\n")
             text_file.write(f"dataset_task = {self.dataset_task:s}\n")
-            if type(self.num_classes) is list:
+            if isinstance(self.num_classes, list):
                 text_file.write("num_classes =")
                 for n in self.num_classes:
                     text_file.write(f" {n:d}")

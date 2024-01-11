@@ -1,16 +1,16 @@
+import contextlib
 from os import listdir, remove
 from os.path import exists, isfile, join
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from sklearn.metrics import confusion_matrix
 
 from kpconv_torch.datasets.S3DIS import S3DISDataset
 from kpconv_torch.utils.config import Config
 from kpconv_torch.utils.metrics import (
-    IoU_from_confusions,
     fast_confusion,
+    IoU_from_confusions,
     smooth_metrics,
 )
 from kpconv_torch.utils.ply import read_ply
@@ -21,10 +21,10 @@ def listdir_str(path):
     # This function ensures a steady behavior
     f_list = []
     for f in listdir(path):
-        try:
+        with contextlib.suppress(
+            UnicodeDecodeError, AttributeError
+        ):  # clearer than try/except
             f = f.decode()
-        except (UnicodeDecodeError, AttributeError):
-            pass
         f_list.append(f)
 
     return f_list
@@ -119,7 +119,7 @@ def load_single_IoU(filename, n_parts):
 
     # Load all IoUs
     all_IoUs = []
-    for i, line in enumerate(lines):
+    for line in lines:
         all_IoUs += [np.reshape([float(IoU) for IoU in line.split()], [-1, n_parts])]
     return all_IoUs
 
@@ -193,8 +193,8 @@ def compare_trainings(list_of_paths, list_of_labels=None):
 
         print(path)
 
-        if ("val_IoUs.txt" in [f for f in listdir_str(path)]) or (
-            "val_confs.txt" in [f for f in listdir_str(path)]
+        if ("val_IoUs.txt" in listdir_str(path)) or (
+            "val_confs.txt" in listdir_str(path)
         ):
             config = Config()
             config.load(path)
@@ -341,7 +341,7 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
         class_IoUs, mIoUs = IoU_class_metrics(val_IoUs, smooth_n)
 
         # Aggregate results
-        all_pred_epochs += [np.array([i for i in range(len(val_IoUs))])]
+        all_pred_epochs += [np.array(range(len(val_IoUs)))]
         all_mIoUs += [mIoUs]
         all_class_IoUs += [class_IoUs]
 
@@ -463,18 +463,10 @@ def compare_convergences_classif(list_of_paths, list_of_labels=None):
         file = join(path, "vote_confs.txt")
         if exists(file):
             vote_C2 = load_confusions(file, n_class)
-            vote_PRE, vote_REC, vote_F1, vote_IoU, vote_ACC = smooth_metrics(
-                vote_C2, smooth_n=2
-            )
+            _, _, _, _, vote_ACC = smooth_metrics(vote_C2, smooth_n=2)
         else:
             vote_C2 = val_C1
-            vote_PRE, vote_REC, vote_F1, vote_IoU, vote_ACC = (
-                val_PRE,
-                val_REC,
-                val_F1,
-                val_IoU,
-                val_ACC,
-            )
+            vote_ACC = val_ACC
 
         # Aggregate results
         all_pred_epochs += [np.array([i + first_e for i in range(len(val_ACC))])]
@@ -558,7 +550,11 @@ def experiment_name_1():
 
     # Gather logs and sort by date
     logs = np.sort(
-        [join(res_path, l) for l in listdir_str(res_path) if start <= l <= end]
+        [
+            join(res_path, log_dir)
+            for log_dir in listdir_str(res_path)
+            if start <= log_dir <= end
+        ]
     )
 
     # Give names to the logs (for plot legends)
@@ -587,7 +583,11 @@ def experiment_name_2():
 
     # Gather logs and sort by date
     logs = np.sort(
-        [join(res_path, l) for l in listdir_str(res_path) if start <= l <= end]
+        [
+            join(res_path, log_dir)
+            for log_dir in listdir_str(res_path)
+            if start <= log_dir <= end
+        ]
     )
 
     # Optionally add a specific log at a specific place in the log list

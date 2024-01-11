@@ -164,7 +164,7 @@ class Toronto3DDataset(PointCloudDataset):
             self.potentials = []
             self.min_potentials = []
             self.argmin_potentials = []
-            for i, tree in enumerate(self.pot_trees):
+            for tree in self.pot_trees:
                 self.potentials += [
                     torch.from_numpy(np.random.rand(tree.data.shape[0]) * 1e-3)
                 ]
@@ -353,7 +353,9 @@ class Toronto3DDataset(PointCloudDataset):
                 input_labels = np.zeros(input_points.shape[0])
             else:
                 input_labels = self.input_labels[cloud_ind][input_inds]
-                input_labels = np.array([self.label_to_idx[l] for l in input_labels])
+                input_labels = np.array(
+                    [self.label_to_idx[label] for label in input_labels]
+                )
 
             t += [time.time()]
 
@@ -579,7 +581,9 @@ class Toronto3DDataset(PointCloudDataset):
                 input_labels = np.zeros(input_points.shape[0])
             else:
                 input_labels = self.input_labels[cloud_ind][input_inds]
-                input_labels = np.array([self.label_to_idx[l] for l in input_labels])
+                input_labels = np.array(
+                    [self.label_to_idx[label] for label in input_labels]
+                )
 
             # Data augmentation
             input_points, scale, R = self.augmentation_transform(input_points)
@@ -821,12 +825,11 @@ class Toronto3DDataset(PointCloudDataset):
             t0 = time.time()
 
             pot_dl = self.config.in_radius / 10
-            cloud_ind = 0
 
-            for i, file_path in enumerate(self.files):
+            for file_idx, _ in enumerate(self.files):
 
                 # Get cloud name
-                cloud_name = self.cloud_names[i]
+                cloud_name = self.cloud_names[file_idx]
 
                 # Name of the input files
                 coarse_KDTree_file = join(
@@ -841,7 +844,7 @@ class Toronto3DDataset(PointCloudDataset):
 
                 else:
                     # Subsample cloud
-                    sub_points = np.array(self.input_trees[cloud_ind].data, copy=False)
+                    sub_points = np.array(self.input_trees[file_idx].data, copy=False)
                     coarse_points = grid_subsampling(
                         sub_points.astype(np.float32), sampleDl=pot_dl
                     )
@@ -855,7 +858,6 @@ class Toronto3DDataset(PointCloudDataset):
 
                 # Fill data containers
                 self.pot_trees += [search_tree]
-                cloud_ind += 1
 
             print(f"Done in {time.time() - t0:.1f}s")
 
@@ -955,7 +957,6 @@ class Toronto3DSampler(Sampler):
             random_pick_n = int(np.ceil(num_centers / self.dataset.config.num_classes))
 
             # Choose random points of each class for each cloud
-            epoch_indices = np.zeros((2, 0), dtype=np.int64)
             for label_ind, label in enumerate(self.dataset.label_values):
                 if label not in self.dataset.ignored_labels:
 
@@ -1063,7 +1064,7 @@ class Toronto3DSampler(Sampler):
         last_display = time.time()
         mean_dt = np.zeros(2)
 
-        for epoch in range(10):
+        for _ in range(10):
             for i, test in enumerate(self):
 
                 # New time
@@ -1283,8 +1284,8 @@ class Toronto3DSampler(Sampler):
 
             # number of batch per epoch
             sample_batches = 999
-            for epoch in range((sample_batches // self.N) + 1):
-                for batch_i, batch in enumerate(dataloader):
+            for _ in range((sample_batches // self.N) + 1):
+                for batch in dataloader:
 
                     # Update neighborhood histogram
                     counts = [
@@ -1743,9 +1744,9 @@ class Toronto3DConfig(Config):
 def debug_upsampling(dataset, loader):
     """Shows which labels are sampled according to strategy chosen"""
 
-    for epoch in range(10):
+    for _ in range(10):
 
-        for batch_i, batch in enumerate(loader):
+        for batch in loader:
 
             pc1 = batch.points[1].numpy()
             pc2 = batch.points[2].numpy()
@@ -1782,7 +1783,7 @@ def debug_timing(dataset, loader):
     estim_b = dataset.config.batch_num
     estim_N = 0
 
-    for epoch in range(10):
+    for _ in range(10):
 
         for batch_i, batch in enumerate(loader):
             # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
@@ -1820,13 +1821,13 @@ def debug_timing(dataset, loader):
 
 def debug_show_clouds(dataset, loader):
 
-    for epoch in range(10):
+    for _ in range(10):
 
         pass
 
         L = dataset.config.num_layers
 
-        for batch_i, batch in enumerate(loader):
+        for batch in loader:
 
             # Print characteristics of input tensors
             print("\nPoints tensors")
@@ -1877,9 +1878,9 @@ def debug_batch_and_neighbors_calib(dataset, loader):
     last_display = time.time()
     mean_dt = np.zeros(2)
 
-    for epoch in range(10):
+    for _ in range(10):
 
-        for batch_i, input_list in enumerate(loader):
+        for batch_i, _ in enumerate(loader):
             # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # New time

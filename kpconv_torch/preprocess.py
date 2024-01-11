@@ -18,7 +18,6 @@ from kpconv_torch.datasets.Toronto3D import (
     Toronto3DConfig,
     Toronto3DDataset,
 )
-from kpconv_torch.utils.config import Config
 
 
 def main(args):

@@ -1,15 +1,15 @@
-import time
 from os import listdir
 from os.path import join
+import time
 
-import numpy as np
-import torch
 from mayavi import mlab
+import numpy as np
 from sklearn.neighbors import KDTree
+import torch
 
 from kpconv_torch.models.blocks import KPConv
-from kpconv_torch.utils.config import Config, bcolors
-from kpconv_torch.utils.ply import read_ply, write_ply
+from kpconv_torch.utils.config import BColors
+from kpconv_torch.utils.ply import write_ply
 
 
 class ModelVisualizer:
@@ -73,9 +73,9 @@ class ModelVisualizer:
         for m in net.modules():
             if isinstance(m, KPConv) and m.deformable:
                 if len(deform_convs) == deform_idx:
-                    color = bcolors.OKGREEN
+                    color = BColors.OKGREEN.value
                 else:
-                    color = bcolors.FAIL
+                    color = BColors.FAIL.value
                 print(
                     fmt_str.format(
                         color,
@@ -83,7 +83,7 @@ class ModelVisualizer:
                         m.radius,
                         m.in_channels,
                         m.out_channels,
-                        bcolors.ENDC,
+                        BColors.ENDC.value,
                     )
                 )
                 deform_convs.append(m)
@@ -102,7 +102,7 @@ class ModelVisualizer:
         count = 0
 
         # Start training loop
-        for epoch in range(config.max_epoch):
+        for _ in range(config.max_epoch):
 
             for batch in loader:
 
@@ -131,10 +131,10 @@ class ModelVisualizer:
                     torch.cuda.synchronize(self.device)
 
                 # Find layer
-                l = None
+                layer = None
                 for i, p in enumerate(batch.points):
                     if p.shape[0] == stacked_deformed_KP.shape[0]:
-                        l = i
+                        layer = i
 
                 t += [time.time()]
 
@@ -145,7 +145,7 @@ class ModelVisualizer:
                 points = []
                 lookuptrees = []
                 i0 = 0
-                for b_i, length in enumerate(batch.lengths[0]):
+                for length in batch.lengths[0]:
                     in_points.append(
                         batch.points[0][i0 : i0 + length].cpu().detach().numpy()
                     )
@@ -158,9 +158,9 @@ class ModelVisualizer:
                     i0 += length
 
                 i0 = 0
-                for b_i, length in enumerate(batch.lengths[l]):
+                for length in batch.lengths[layer]:
                     points.append(
-                        batch.points[l][i0 : i0 + length].cpu().detach().numpy()
+                        batch.points[layer][i0 : i0 + length].cpu().detach().numpy()
                     )
                     deformed_KP.append(stacked_deformed_KP[i0 : i0 + length])
                     lookuptrees.append(KDTree(points[-1]))
@@ -190,39 +190,37 @@ class ModelVisualizer:
                     """Picker callback: this get called when on pick events."""
                     global plots, aim_point
 
-                    if "in_points" in plots:
-                        if plots["in_points"].actor.actor._vtk_obj in [
-                            o._vtk_obj for o in picker.actors
-                        ]:
-                            point_rez = (
-                                plots["in_points"]
-                                .glyph.glyph_source.glyph_source.output.points.to_array()
-                                .shape[0]
-                            )
-                            new_point_i = int(np.floor(picker.point_id / point_rez))
-                            if new_point_i < len(plots["in_points"].mlab_source.points):
-                                # Get closest point in the layer we are interested in
-                                aim_point = plots["in_points"].mlab_source.points[
-                                    new_point_i : new_point_i + 1
-                                ]
-                                update_scene()
+                    if "in_points" in plots and plots[
+                        "in_points"
+                    ].actor.actor._vtk_obj in [o._vtk_obj for o in picker.actors]:
+                        point_rez = (
+                            plots["in_points"]
+                            .glyph.glyph_source.glyph_source.output.points.to_array()
+                            .shape[0]
+                        )
+                        new_point_i = int(np.floor(picker.point_id / point_rez))
+                        if new_point_i < len(plots["in_points"].mlab_source.points):
+                            # Get closest point in the layer we are interested in
+                            aim_point = plots["in_points"].mlab_source.points[
+                                new_point_i : new_point_i + 1
+                            ]
+                            update_scene()
 
-                    if "points" in plots:
-                        if plots["points"].actor.actor._vtk_obj in [
-                            o._vtk_obj for o in picker.actors
-                        ]:
-                            point_rez = (
-                                plots["points"]
-                                .glyph.glyph_source.glyph_source.output.points.to_array()
-                                .shape[0]
-                            )
-                            new_point_i = int(np.floor(picker.point_id / point_rez))
-                            if new_point_i < len(plots["points"].mlab_source.points):
-                                # Get closest point in the layer we are interested in
-                                aim_point = plots["points"].mlab_source.points[
-                                    new_point_i : new_point_i + 1
-                                ]
-                                update_scene()
+                    if "points" in plots and plots["points"].actor.actor._vtk_obj in [
+                        o._vtk_obj for o in picker.actors
+                    ]:
+                        point_rez = (
+                            plots["points"]
+                            .glyph.glyph_source.glyph_source.output.points.to_array()
+                            .shape[0]
+                        )
+                        new_point_i = int(np.floor(picker.point_id / point_rez))
+                        if new_point_i < len(plots["points"].mlab_source.points):
+                            # Get closest point in the layer we are interested in
+                            aim_point = plots["points"].mlab_source.points[
+                                new_point_i : new_point_i + 1
+                            ]
+                            update_scene()
 
                 def update_scene():
                     global plots, offsets, p_scale, show_in_p, aim_point, point_i
@@ -495,7 +493,7 @@ def show_ModelNet_models(all_points):
         points = (points * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
 
         # Show point clouds colorized with activations
-        activations = mlab.points3d(
+        mlab.points3d(
             points[:, 0],
             points[:, 1],
             points[:, 2],

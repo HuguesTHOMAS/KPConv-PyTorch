@@ -36,6 +36,8 @@ repos:
           - flake8-simplify==0.19.3
           - flake8-builtins==2.1.0
           - flake8-pie==0.15.0
+        args:
+          - --per-file-ignores=kpconv_torch/utils/visualizer.py:B023
 
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v2.40.0
