@@ -365,9 +365,7 @@ class PointCloudDataset(Dataset):
         # Loop over the blocks
         ######################
 
-        arch = self.config.architecture
-
-        for block_i, block in enumerate(arch):
+        for block in self.config.architecture:
 
             # Get all blocks of the layer
             if not (
@@ -487,9 +485,7 @@ class PointCloudDataset(Dataset):
         # Loop over the blocks
         ######################
 
-        arch = self.config.architecture
-
-        for block_i, block in enumerate(arch):
+        for block in self.config.architecture:
 
             # Get all blocks of the layer
             if not (

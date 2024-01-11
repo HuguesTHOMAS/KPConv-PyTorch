@@ -1,9 +1,4 @@
 import numpy as np
-import torch
-from sklearn.neighbors import KDTree
-
-from kpconv_torch.utils.config import Config
-from kpconv_torch.utils.ply import read_ply, write_ply
 
 
 def show_ModelNet_models(all_points):
@@ -32,7 +27,7 @@ def show_ModelNet_models(all_points):
         points = (points * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
 
         # Show point clouds colorized with activations
-        activations = mlab.points3d(
+        mlab.points3d(
             points[:, 0],
             points[:, 1],
             points[:, 2],
@@ -106,7 +101,7 @@ def show_ModelNet_examples(clouds, cloud_normals=None, cloud_labels=None):
         points = (points * 1.5 + np.array([1.0, 1.0, 1.0])) * 50.0
 
         # Show point clouds colorized with activations
-        activations = mlab.points3d(
+        mlab.points3d(
             points[:, 0],
             points[:, 1],
             points[:, 2],
@@ -116,7 +111,7 @@ def show_ModelNet_examples(clouds, cloud_normals=None, cloud_labels=None):
             figure=fig1,
         )
         if normals is not None and show_normals:
-            activations = mlab.quiver3d(
+            mlab.quiver3d(
                 points[:, 0],
                 points[:, 1],
                 points[:, 2],
@@ -189,7 +184,7 @@ def show_neighbors(query, supports, neighbors):
         l2[neighbors[file_i]] = 3
 
         # Show point clouds colorized with activations
-        activations = mlab.points3d(
+        mlab.points3d(
             p1[:, 0],
             p1[:, 1],
             p1[:, 2],
@@ -201,7 +196,7 @@ def show_neighbors(query, supports, neighbors):
             figure=fig1,
         )
 
-        activations = mlab.points3d(
+        mlab.points3d(
             p2[:, 0],
             p2[:, 1],
             p2[:, 2],

@@ -1,6 +1,6 @@
 import numpy as np
 
-from kpconv_torch.models.blocks import KPConv, UnaryBlock, block_decider, nn, torch
+from kpconv_torch.models.blocks import block_decider, KPConv, nn, torch, UnaryBlock
 
 
 def p2p_fitting_regularizer(net):
@@ -68,11 +68,10 @@ class KPCNN(nn.Module):
         self.block_ops = nn.ModuleList()
 
         # Loop over consecutive blocks
-        block_in_layer = 0
-        for block_i, block in enumerate(config.architecture):
+        for block in config.architecture:
 
             # Check equivariance
-            if ("equivariant" in block) and (not out_dim % 3 == 0):
+            if ("equivariant" in block) and (out_dim % 3 != 0):
                 raise ValueError(
                     "Equivariant block but features dimension is not a factor of 3"
                 )
@@ -86,9 +85,6 @@ class KPCNN(nn.Module):
                 block_decider(block, r, in_dim, out_dim, layer, config)
             )
 
-            # Index of block in this layer
-            block_in_layer += 1
-
             # Update dimension of input from output
             if "simple" in block:
                 in_dim = out_dim // 2
@@ -101,7 +97,6 @@ class KPCNN(nn.Module):
                 layer += 1
                 r *= 2
                 out_dim *= 2
-                block_in_layer = 0
 
         self.head_mlp = UnaryBlock(out_dim, 1024, False, 0)
         self.head_softmax = UnaryBlock(1024, config.num_classes, False, 0, no_relu=True)
@@ -132,9 +127,7 @@ class KPCNN(nn.Module):
 
         # Head of network
         x = self.head_mlp(x, batch)
-        x = self.head_softmax(x, batch)
-
-        return x
+        return self.head_softmax(x, batch)
 
     def loss(self, outputs, labels):
         """
@@ -207,7 +200,7 @@ class KPFCNN(nn.Module):
         for block_i, block in enumerate(config.architecture):
 
             # Check equivariance
-            if ("equivariant" in block) and (not out_dim % 3 == 0):
+            if ("equivariant" in block) and (out_dim % 3 != 0):
                 raise ValueError(
                     "Equivariant block but features dimension is not a factor of 3"
                 )
@@ -326,9 +319,7 @@ class KPFCNN(nn.Module):
 
         # Head of network
         x = self.head_mlp(x, batch)
-        x = self.head_softmax(x, batch)
-
-        return x
+        return self.head_softmax(x, batch)
 
     def loss(self, outputs, labels):
         """

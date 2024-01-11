@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import get_worker_info, Sampler
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
-from kpconv_torch.utils.config import bcolors, Config
+from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 
 
@@ -289,7 +289,7 @@ class ModelNet40Dataset(PointCloudDataset):
                 pickle.dump((input_points, input_normals, input_labels), file)
 
         lengths = [p.shape[0] for p in input_points]
-        sizes = [l * 4 * 6 for l in lengths]
+        sizes = [length * 4 * 6 for length in lengths]
         print(f"{np.sum(sizes) * 1e-6:.1f} MB loaded in {time.time() - t0:.1f}s")
 
         if orient_correction:
@@ -341,10 +341,12 @@ class ModelNet40Sampler(Sampler):
 
                 gen_indices = []
                 pick_n = self.dataset.epoch_n // self.dataset.num_classes + 1
-                for i, l in enumerate(self.dataset.label_values):
+                for label_value in self.dataset.label_values:
 
                     # Get the potentials of the objects of this class
-                    label_inds = np.where(np.equal(self.dataset.input_labels, l))[0]
+                    label_inds = np.where(
+                        np.equal(self.dataset.input_labels, label_value)
+                    )[0]
                     class_potentials = self.potentials[label_inds]
 
                     # Get the indices to generate thanks to potentials
@@ -381,8 +383,10 @@ class ModelNet40Sampler(Sampler):
             if self.balance_labels:
                 pick_n = self.dataset.epoch_n // self.dataset.num_classes + 1
                 gen_indices = []
-                for l in self.dataset.label_values:
-                    label_inds = np.where(np.equal(self.dataset.input_labels, l))[0]
+                for label_value in self.dataset.label_values:
+                    label_inds = np.where(
+                        np.equal(self.dataset.input_labels, label_value)
+                    )[0]
                     rand_inds = np.random.choice(label_inds, size=pick_n, replace=True)
                     gen_indices += [rand_inds]
                 gen_indices = np.random.permutation(np.hstack(gen_indices))
@@ -469,12 +473,12 @@ class ModelNet40Sampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = bcolors.OKGREEN
+                color = BColors.OKGREEN.value
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = bcolors.FAIL
+                color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
+            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
@@ -517,12 +521,12 @@ class ModelNet40Sampler(Sampler):
                 key = f"{dl:.3f}_{r:.3f}"
 
                 if key in neighb_lim_dict:
-                    color = bcolors.OKGREEN
+                    color = BColors.OKGREEN.value
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = bcolors.FAIL
+                    color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
+                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
 
         if redo:
 
@@ -566,8 +570,8 @@ class ModelNet40Sampler(Sampler):
             # Perform calibration
             #####################
 
-            for epoch in range(10):
-                for batch_i, batch in enumerate(dataloader):
+            for _ in range(10):
+                for batch in dataloader:
 
                     # Update neighborhood histogram
                     counts = [
@@ -639,11 +643,11 @@ class ModelNet40Sampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = bcolors.FAIL
+                            color = BColors.FAIL.value
                         else:
-                            color = bcolors.OKGREEN
+                            color = BColors.OKGREEN.value
                         line0 += "|{:}{:10d}{:}  ".format(
-                            color, neighb_hists[layer, neighb_size], bcolors.ENDC
+                            color, neighb_hists[layer, neighb_size], BColors.ENDC.value
                         )
 
                     print(line0)
@@ -956,14 +960,12 @@ class ModelNet40Config(Config):
 def debug_sampling(dataset, sampler, loader):
     """Shows which labels are sampled according to strategy chosen"""
     label_sum = np.zeros((dataset.num_classes), dtype=np.int32)
-    for epoch in range(10):
+    for _ in range(10):
 
-        for batch_i, (points, normals, labels, indices, in_sizes) in enumerate(loader):
-            # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
+        for _, _, labels, _, _ in loader:
 
             label_sum += np.bincount(labels.numpy(), minlength=dataset.num_classes)
             print(label_sum)
-            # print(sampler.potentials[:6])
 
             print("******************")
         print("*******************************************")
@@ -980,7 +982,7 @@ def debug_timing(dataset, sampler, loader):
     mean_dt = np.zeros(2)
     estim_b = dataset.config.batch_num
 
-    for epoch in range(10):
+    for _ in range(10):
 
         for batch_i, batch in enumerate(loader):
             # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
@@ -1017,13 +1019,13 @@ def debug_timing(dataset, sampler, loader):
 
 def debug_show_clouds(dataset, sampler, loader):
 
-    for epoch in range(10):
+    for _ in range(10):
 
         pass
 
         L = dataset.config.num_layers
 
-        for batch_i, batch in enumerate(loader):
+        for batch in loader:
 
             # Print characteristics of input tensors
             print("\nPoints tensors")
@@ -1074,9 +1076,9 @@ def debug_batch_and_neighbors_calib(dataset, sampler, loader):
     last_display = time.time()
     mean_dt = np.zeros(2)
 
-    for epoch in range(10):
+    for _ in range(10):
 
-        for batch_i, input_list in enumerate(loader):
+        for batch_i, _ in enumerate(loader):
             # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # New time

@@ -1,15 +1,12 @@
-import time
 from os import makedirs
 from os.path import exists, join
+import time
 
 import numpy as np
 import torch
-import torch.nn as nn
-from sklearn.metrics import confusion_matrix
-from sklearn.neighbors import KDTree
 
-from kpconv_torch.utils.metrics import IoU_from_confusions, fast_confusion
-from kpconv_torch.utils.ply import read_ply, write_ply
+from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
+from kpconv_torch.utils.ply import write_ply
 
 
 class ModelTester:
@@ -160,7 +157,8 @@ class ModelTester:
 
         # Initiate global prediction over test clouds
         self.test_probs = [
-            np.zeros((l.shape[0], nc_model)) for l in test_loader.dataset.input_labels
+            np.zeros((input_label.shape[0], nc_model))
+            for input_label in test_loader.dataset.input_labels
         ]
 
         # Test saving path
@@ -286,7 +284,7 @@ class ModelTester:
             # Update minimum od potentials
             new_min = torch.min(test_loader.dataset.min_potentials)
             print(
-                "Test epoch {:d}, end. Min potential = {:.1f} (last: {:.1f})".format(
+                "Test epoch {:d}, end. Min potential = {:.2f} (last: {:.1f})".format(
                     test_epoch, new_min, last_min
                 )
             )
@@ -294,6 +292,7 @@ class ModelTester:
 
             # Save predicted cloud
             if last_min + 1 < new_min:
+                print("Save predicted cloud...")
 
                 # Update last_min
                 last_min += 1
@@ -302,10 +301,10 @@ class ModelTester:
                 if test_loader.dataset.set == "validation":
                     print("\nConfusion on sub clouds")
                     Confs = []
-                    for i, file_path in enumerate(test_loader.dataset.files):
+                    for file_idx, _ in enumerate(test_loader.dataset.files):
 
                         # Insert false columns for ignored labels
-                        probs = np.array(self.test_probs[i], copy=True)
+                        probs = np.array(self.test_probs[file_idx], copy=True)
                         for l_ind, label_value in enumerate(
                             test_loader.dataset.label_values
                         ):
@@ -318,7 +317,7 @@ class ModelTester:
                         ].astype(np.int32)
 
                         # Targets
-                        targets = test_loader.dataset.input_labels[i]
+                        targets = test_loader.dataset.input_labels[file_idx]
 
                         # Confs
                         Confs += [
@@ -356,7 +355,7 @@ class ModelTester:
                     print(f"\nReproject Vote #{int(np.floor(new_min)):d}")
                     t1 = time.time()
                     proj_probs = []
-                    for i, file_path in enumerate(test_loader.dataset.files):
+                    for file_idx, _ in enumerate(test_loader.dataset.files):
 
                         # print(i, file_path, test_loader.dataset.test_proj[i].shape, self.test_probs[i].shape)
 
@@ -364,7 +363,9 @@ class ModelTester:
                         # print(test_loader.dataset.test_proj[i][:5])
 
                         # Reproject probs on the evaluations points
-                        probs = self.test_probs[i][test_loader.dataset.test_proj[i], :]
+                        probs = self.test_probs[file_idx][
+                            test_loader.dataset.test_proj[file_idx], :
+                        ]
                         proj_probs += [probs]
 
                         # Insert false columns for ignored labels
@@ -372,8 +373,8 @@ class ModelTester:
                             test_loader.dataset.label_values
                         ):
                             if label_value in test_loader.dataset.ignored_labels:
-                                proj_probs[i] = np.insert(
-                                    proj_probs[i], l_ind, 0, axis=1
+                                proj_probs[file_idx] = np.insert(
+                                    proj_probs[file_idx], l_ind, 0, axis=1
                                 )
 
                     t2 = time.time()
@@ -384,15 +385,15 @@ class ModelTester:
                         print("Confusion on full clouds")
                         t1 = time.time()
                         Confs = []
-                        for i, file_path in enumerate(test_loader.dataset.files):
+                        for file_idx, _ in enumerate(test_loader.dataset.files):
 
                             # Get the predicted labels
                             preds = test_loader.dataset.label_values[
-                                np.argmax(proj_probs[i], axis=1)
+                                np.argmax(proj_probs[file_idx], axis=1)
                             ].astype(np.int32)
 
                             # Confusion
-                            targets = test_loader.dataset.validation_labels[i]
+                            targets = test_loader.dataset.validation_labels[file_idx]
                             Confs += [
                                 fast_confusion(
                                     targets, preds, test_loader.dataset.label_values
@@ -486,6 +487,7 @@ class ModelTester:
             # Break when reaching number of desired votes
             if last_min > num_votes:
                 break
+            print("---")
 
         return
 
@@ -533,7 +535,7 @@ class ModelTester:
         all_f_preds = []
         all_f_labels = []
         if test_loader.dataset.set == "validation":
-            for i, seq_frames in enumerate(test_loader.dataset.frames):
+            for seq_frames in test_loader.dataset.frames:
                 all_f_preds.append([np.zeros((0,), dtype=np.int32) for _ in seq_frames])
                 all_f_labels.append(
                     [np.zeros((0,), dtype=np.int32) for _ in seq_frames]
@@ -688,9 +690,9 @@ class ModelTester:
                                 test_path, folder, filename[:-4] + "_probs.ply"
                             )
                             lbl_names = [
-                                test_loader.dataset.label_to_names[l]
-                                for l in test_loader.dataset.label_values
-                                if l not in test_loader.dataset.ignored_labels
+                                test_loader.dataset.label_to_names[label_value]
+                                for label_value in test_loader.dataset.label_values
+                                if label_value not in test_loader.dataset.ignored_labels
                             ]
                             write_ply(
                                 probpath,
@@ -822,9 +824,9 @@ class ModelTester:
                     val_preds = []
                     val_labels = []
                     t1 = time.time()
-                    for i, seq_frames in enumerate(test_loader.dataset.frames):
-                        val_preds += [np.hstack(all_f_preds[i])]
-                        val_labels += [np.hstack(all_f_labels[i])]
+                    for frame_idx, _ in enumerate(test_loader.dataset.frames):
+                        val_preds += [np.hstack(all_f_preds[frame_idx])]
+                        val_labels += [np.hstack(all_f_labels[frame_idx])]
                     val_preds = np.hstack(val_preds)
                     val_labels = np.hstack(val_labels)
                     t2 = time.time()
@@ -865,15 +867,15 @@ class ModelTester:
                     report_file = join(
                         report_path, f"report_{int(np.floor(last_min)):04d}.txt"
                     )
-                    str = "Report of the confusion and metrics\n"
-                    str += "***********************************\n\n\n"
-                    str += "Confusion matrix:\n\n"
-                    str += s1
-                    str += "\nIoU values:\n\n"
-                    str += s2
-                    str += "\n\n"
+                    str_report = "Report of the confusion and metrics\n"
+                    str_report += "***********************************\n\n\n"
+                    str_report += "Confusion matrix:\n\n"
+                    str_report += s1
+                    str_report += "\nIoU values:\n\n"
+                    str_report += s2
+                    str_report += "\n\n"
                     with open(report_file, "w") as f:
-                        f.write(str)
+                        f.write(str_report)
 
             test_epoch += 1
 

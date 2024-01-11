@@ -3,9 +3,8 @@ from os.path import exists, join
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
 
-from kpconv_torch.utils.config import bcolors
+from kpconv_torch.utils.config import BColors
 from kpconv_torch.utils.ply import read_ply, write_ply
 
 
@@ -147,7 +146,7 @@ def spherical_Lloyd(
     # moving vectors of kernel points saved to detect convergence
     max_moves = np.zeros((0,))
 
-    for iter in range(max_iter):
+    for idx in range(max_iter):
 
         # In the case of monte-carlo, renew the sampled points
         if approximation == "monte-carlo":
@@ -189,13 +188,13 @@ def spherical_Lloyd(
         if verbose:
             print(
                 "iter {:5d} / max move = {:f}".format(
-                    iter, np.max(np.linalg.norm(moves, axis=1))
+                    idx, np.max(np.linalg.norm(moves, axis=1))
                 )
             )
             if warning:
                 print(
                     "{:}WARNING: at least one point has no cell{:}".format(
-                        bcolors.WARNING, bcolors.ENDC
+                        BColors.WARNING.value, BColors.ENDC.value
                     )
                 )
         if verbose > 1:
@@ -371,18 +370,18 @@ def kernel_point_optimization_debug(
         # Stop if all moving points are gradients fixed (low gradients diff)
 
         if (
-            fixed == "center"
-            and np.max(np.abs(old_gradient_norms[:, 1:] - gradients_norms[:, 1:]))
-            < thresh
+            (
+                fixed == "center"
+                and np.max(np.abs(old_gradient_norms[:, 1:] - gradients_norms[:, 1:]))
+                < thresh
+            )
+            or (
+                fixed == "verticals"
+                and np.max(np.abs(old_gradient_norms[:, 3:] - gradients_norms[:, 3:]))
+                < thresh
+            )
+            or (np.max(np.abs(old_gradient_norms - gradients_norms)) < thresh)
         ):
-            break
-        elif (
-            fixed == "verticals"
-            and np.max(np.abs(old_gradient_norms[:, 3:] - gradients_norms[:, 3:]))
-            < thresh
-        ):
-            break
-        elif np.max(np.abs(old_gradient_norms - gradients_norms)) < thresh:
             break
         old_gradient_norms = gradients_norms
 

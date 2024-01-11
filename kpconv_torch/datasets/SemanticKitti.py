@@ -10,7 +10,7 @@ from torch.utils.data import Sampler
 import yaml
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
-from kpconv_torch.utils.config import bcolors, Config
+from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import KDTree
 
 
@@ -69,14 +69,12 @@ class SemanticKittiDataset(PointCloudDataset):
             all_labels = doc["labels"]
             learning_map_inv = doc["learning_map_inv"]
             learning_map = doc["learning_map"]
-            self.learning_map = np.zeros(
-                (np.max([k for k in learning_map.keys()]) + 1), dtype=np.int32
-            )
+            self.learning_map = np.zeros((max(learning_map) + 1), dtype=np.int32)
             for k, v in learning_map.items():
                 self.learning_map[k] = v
 
             self.learning_map_inv = np.zeros(
-                (np.max([k for k in learning_map_inv.keys()]) + 1), dtype=np.int32
+                (max(learning_map_inv) + 1), dtype=np.int32
             )
             for k, v in learning_map_inv.items():
                 self.learning_map_inv[k] = v
@@ -616,7 +614,7 @@ class SemanticKittiDataset(PointCloudDataset):
             class_frames_bool = np.zeros((0, self.num_classes), dtype=np.bool)
             self.class_proportions = np.zeros((self.num_classes,), dtype=np.int32)
 
-            for s_ind, (seq, seq_frames) in enumerate(zip(self.sequences, self.frames)):
+            for seq, seq_frames in zip(self.sequences, self.frames):
 
                 frame_mode = "single"
                 if self.config.n_frames > 1:
@@ -667,7 +665,11 @@ class SemanticKittiDataset(PointCloudDataset):
 
                         # Add this frame to the frame lists of all class present
                         frame_labels = np.array(
-                            [self.label_to_idx[l] for l in unique], dtype=np.int32
+                            [
+                                self.label_to_idx[unique_label]
+                                for unique_label in unique
+                            ],
+                            dtype=np.int32,
                         )
                         seq_class_frames[f_ind, frame_labels] = True
 
@@ -698,7 +700,7 @@ class SemanticKittiDataset(PointCloudDataset):
             self.val_labels = []
             self.val_confs = []
 
-            for s_ind, seq_frames in enumerate(self.frames):
+            for seq_frames in self.frames:
                 self.val_confs.append(
                     np.zeros((len(seq_frames), self.num_classes, self.num_classes))
                 )
@@ -847,7 +849,7 @@ class SemanticKittiSampler(Sampler):
                         error_message += "{:>15s} {:>15s}\n".format(
                             "Class", "# of frames"
                         )
-                        for iii, ccc in enumerate(self.dataset.label_values):
+                        for iii, _ in enumerate(self.dataset.label_values):
                             error_message += f"{self.dataset.label_names[iii]:>15s} {len(self.dataset.class_frames[iii]):>15d}\n"
                         error_message += "\nThis error is raised if one of the classes is not ignored and does not appear in any of the frames of the dataset.\n"
                         raise ValueError(error_message)
@@ -905,8 +907,7 @@ class SemanticKittiSampler(Sampler):
             self.dataset.epoch_inds += gen_indices
 
         # Generator loop
-        for i in range(self.N):
-            yield i
+        yield from range(self.N)
 
     def __len__(self):
         """
@@ -964,12 +965,12 @@ class SemanticKittiSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check max_in limit dictionary")
             if key in max_in_lim_dict:
-                color = bcolors.OKGREEN
+                color = BColors.OKGREEN.value
                 v = str(int(max_in_lim_dict[key]))
             else:
-                color = bcolors.FAIL
+                color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
+            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
 
         if redo:
 
@@ -989,8 +990,8 @@ class SemanticKittiSampler(Sampler):
             # Perform calibration
             #####################
 
-            for epoch in range(10):
-                for batch_i, batch in enumerate(dataloader):
+            for _ in range(10):
+                for batch in dataloader:
 
                     # Control max_in_points value
                     all_lengths += batch.lengths[0].tolist()
@@ -1088,12 +1089,12 @@ class SemanticKittiSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = bcolors.OKGREEN
+                color = BColors.OKGREEN.value
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = bcolors.FAIL
+                color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
+            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
@@ -1136,12 +1137,12 @@ class SemanticKittiSampler(Sampler):
                 key = f"{sampler_method:s}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
 
                 if key in neighb_lim_dict:
-                    color = bcolors.OKGREEN
+                    color = BColors.OKGREEN.value
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = bcolors.FAIL
+                    color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
+                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
 
         if redo:
 
@@ -1191,8 +1192,8 @@ class SemanticKittiSampler(Sampler):
 
             # self.dataset.batch_limit[0] = self.dataset.max_in_p * (self.dataset.batch_num - 1)
 
-            for epoch in range(10):
-                for batch_i, batch in enumerate(dataloader):
+            for _ in range(10):
+                for batch in dataloader:
 
                     # Control max_in_points value
                     are_cropped = batch.lengths[0] > self.dataset.max_in_p - 1
@@ -1271,11 +1272,11 @@ class SemanticKittiSampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = bcolors.FAIL
+                            color = BColors.FAIL.value
                         else:
-                            color = bcolors.OKGREEN
+                            color = BColors.OKGREEN.value
                         line0 += "|{:}{:10d}{:}  ".format(
-                            color, neighb_hists[layer, neighb_size], bcolors.ENDC
+                            color, neighb_hists[layer, neighb_size], BColors.ENDC.value
                         )
 
                     print(line0)
@@ -1287,15 +1288,15 @@ class SemanticKittiSampler(Sampler):
             # Control max_in_points value
             print("\n**************************************************\n")
             if cropped_n > 0.3 * all_n:
-                color = bcolors.FAIL
+                color = BColors.FAIL.value
             else:
-                color = bcolors.OKGREEN
+                color = BColors.OKGREEN.value
             print(f"Current value of max_in_points {self.dataset.max_in_p:d}")
             print(
-                f"  > {color}{100 * cropped_n / all_n:.1f}% inputs are cropped{bcolors.ENDC}"
+                f"  > {color}{100 * cropped_n / all_n:.1f}% inputs are cropped{BColors.ENDC.value}"
             )
             if cropped_n > 0.3 * all_n:
-                print(f"\nTry a higher max_in_points value\n")
+                print("\nTry a higher max_in_points value\n")
                 # raise ValueError('Value of max_in_points too low')
             print("\n**************************************************\n")
 
@@ -1652,7 +1653,7 @@ def debug_timing(dataset, loader):
     estim_b = dataset.batch_num
     estim_N = 0
 
-    for epoch in range(10):
+    for _ in range(10):
 
         for batch_i, batch in enumerate(loader):
             # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
@@ -1701,8 +1702,8 @@ def debug_class_w(dataset, loader):
     print(s)
     print(6 * "-" + "|" + 6 * dataset.num_classes * "-")
 
-    for epoch in range(10):
-        for batch_i, batch in enumerate(loader):
+    for _ in range(10):
+        for batch in loader:
             # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # count labels

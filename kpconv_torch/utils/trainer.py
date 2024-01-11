@@ -1,16 +1,13 @@
-import time
 from os import makedirs, remove
 from os.path import exists, join
+import time
 
 import numpy as np
 import torch
-import torch.nn as nn
-from sklearn.neighbors import KDTree
 
-from kpconv_torch.models.blocks import KPConv
 from kpconv_torch.utils.config import Config
-from kpconv_torch.utils.metrics import IoU_from_confusions, fast_confusion
-from kpconv_torch.utils.ply import read_ply, write_ply
+from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
+from kpconv_torch.utils.ply import write_ply
 
 
 class ModelTrainer:
@@ -423,8 +420,8 @@ class ModelTrainer:
         # Initiate global prediction over validation clouds
         if not hasattr(self, "validation_probs"):
             self.validation_probs = [
-                np.zeros((l.shape[0], nc_model))
-                for l in val_loader.dataset.input_labels
+                np.zeros((input_label.shape[0], nc_model))
+                for input_label in val_loader.dataset.input_labels
             ]
             self.val_proportions = np.zeros(nc_model, dtype=np.float32)
             i = 0
