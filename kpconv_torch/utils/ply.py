@@ -5,22 +5,22 @@ import numpy as np
 
 # Define PLY types
 ply_dtypes = {
-    (b"int8", "i1"),
-    (b"char", "i1"),
-    (b"uint8", "u1"),
-    (b"uchar", "u1"),
-    (b"int16", "i2"),
-    (b"short", "i2"),
-    (b"uint16", "u2"),
-    (b"ushort", "u2"),
-    (b"int32", "i4"),
-    (b"int", "i4"),
-    (b"uint32", "u4"),
-    (b"uint", "u4"),
-    (b"float32", "f4"),
-    (b"float", "f4"),
-    (b"float64", "f8"),
-    (b"double", "f8"),
+    b"int8": "i1",
+    b"char": "i1",
+    b"uint8": "u1",
+    b"uchar": "u1",
+    b"int16": "i2",
+    b"short": "i2",
+    b"uint16": "u2",
+    b"ushort": "u2",
+    b"int32": "i4",
+    b"int": "i4",
+    b"uint32": "u4",
+    b"uint": "u4",
+    b"float32": "f4",
+    b"float": "f4",
+    b"float64": "f8",
+    b"double": "f8",
 }
 
 # Numpy reader format
