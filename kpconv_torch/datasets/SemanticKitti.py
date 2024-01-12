@@ -5,13 +5,13 @@ import pickle
 import time
 
 import numpy as np
+from sklearn.neighbors import KDTree
 import torch
 from torch.utils.data import Sampler
 import yaml
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
-from kpconv_torch.utils.mayavi_visu import KDTree
 
 
 class SemanticKittiDataset(PointCloudDataset):
