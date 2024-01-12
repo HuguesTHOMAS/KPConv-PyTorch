@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import get_worker_info, Sampler
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
-from kpconv_torch.utils.config import bcolors, Config
+from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply
 
@@ -261,7 +261,7 @@ class Toronto3DDataset(PointCloudDataset):
                 message = ""
                 for wi in range(info.num_workers):
                     if wi == wid:
-                        message += f" {bcolors.FAIL}X{bcolors.ENDC} "
+                        message += f" {BColors.FAIL.value}X{BColors.ENDC.value} "
                     elif self.worker_waiting[wi] == 0:
                         message += "   "
                     elif self.worker_waiting[wi] == 1:
@@ -277,7 +277,7 @@ class Toronto3DDataset(PointCloudDataset):
                     message = ""
                     for wi in range(info.num_workers):
                         if wi == wid:
-                            message += f" {bcolors.OKGREEN}v{bcolors.ENDC} "
+                            message += f" {BColors.OKGREEN.value}v{BColors.ENDC.value} "
                         elif self.worker_waiting[wi] == 0:
                             message += "   "
                         elif self.worker_waiting[wi] == 1:
@@ -447,7 +447,7 @@ class Toronto3DDataset(PointCloudDataset):
             message = ""
             for wi in range(info.num_workers):
                 if wi == wid:
-                    message += f" {bcolors.OKBLUE}0{bcolors.ENDC} "
+                    message += f" {BColors.OKBLUE.value}0{BColors.ENDC.value} "
                 elif self.worker_waiting[wi] == 0:
                     message += "   "
                 elif self.worker_waiting[wi] == 1:
@@ -1172,12 +1172,12 @@ class Toronto3DSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = bcolors.OKGREEN
+                color = BColors.OKGREEN.value
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = bcolors.FAIL
+                color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
+            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
@@ -1220,12 +1220,12 @@ class Toronto3DSampler(Sampler):
                 key = f"{dl:.3f}_{r:.3f}"
 
                 if key in neighb_lim_dict:
-                    color = bcolors.OKGREEN
+                    color = BColors.OKGREEN.value
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = bcolors.FAIL
+                    color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{bcolors.ENDC}')
+                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
 
         if redo:
 
@@ -1397,11 +1397,11 @@ class Toronto3DSampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = bcolors.FAIL
+                            color = BColors.FAIL.value
                         else:
-                            color = bcolors.OKGREEN
+                            color = BColors.OKGREEN.value
                         line0 += "|{:}{:10d}{:}  ".format(
-                            color, neighb_hists[layer, neighb_size], bcolors.ENDC
+                            color, neighb_hists[layer, neighb_size], BColors.ENDC.value
                         )
 
                     print(line0)
