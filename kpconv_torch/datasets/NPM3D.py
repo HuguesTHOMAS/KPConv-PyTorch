@@ -6,17 +6,14 @@ import time
 import warnings
 
 import numpy as np
+from sklearn.neighbors import KDTree
 import torch
 from torch.utils.data import get_worker_info, Sampler
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
-from kpconv_torch.utils.mayavi_visu import (
-    KDTree,
-    read_ply,
-    show_input_batch,
-    write_ply,
-)
+from kpconv_torch.utils.mayavi_visu import show_input_batch
+from kpconv_torch.utils.ply import read_ply, write_ply
 
 
 class NPM3DDataset(PointCloudDataset):
