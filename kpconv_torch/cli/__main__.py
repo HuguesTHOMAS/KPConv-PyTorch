@@ -40,6 +40,7 @@ def kpconv_parser(subparser, reference_func, command, command_description):
         type=valid_dir,
         help="Path of the dataset on the file system",
     )
+
     if command == "test":
         parser.add_argument(
             "-f",
@@ -50,10 +51,12 @@ def kpconv_parser(subparser, reference_func, command, command_description):
                 "(if None, use the validation split)"
             ),
         )
+
     #   Here you can choose which model you want to use. Here are the possible values :
     #
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
     #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
+    
     if command != "preprocess":
         parser.add_argument(
             "-l",
@@ -62,6 +65,7 @@ def kpconv_parser(subparser, reference_func, command, command_description):
             type=valid_dir,
             help="Path of the KPConv log folder on the file system",
         )
+    
     parser.add_argument(
         "-s",
         "--dataset",
@@ -69,6 +73,7 @@ def kpconv_parser(subparser, reference_func, command, command_description):
         type=valid_dataset,
         help="Name of the dataset",
     )
+
     parser.set_defaults(func=reference_func)
 
 
@@ -90,15 +95,6 @@ def main():
     )
     kpconv_parser(sub_parsers, train.main, "train", "Train a KPConv model")
     kpconv_parser(sub_parsers, test.main, "test", "Test a KPConv trained model")
-    kpconv_parser(
-        sub_parsers, visualize.main, "visualize", "Visualize kernel deformations"
-    )
-    kpconv_parser(
-        sub_parsers,
-        plot_convergence.main,
-        "plotconv",
-        "Plot convergence for a set of models",
-    )
 
     args = parser.parse_args()
 
