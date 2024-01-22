@@ -1,5 +1,6 @@
 from os import makedirs
 from os.path import exists, join
+from pathlib import Path
 import time
 
 import numpy as np
@@ -7,7 +8,6 @@ import torch
 
 from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.utils.ply import write_ply
-
 
 class ModelTester:
     def __init__(self, net, chkp_path=None, on_gpu=True):
@@ -134,8 +134,8 @@ class ModelTester:
         return
 
     def cloud_segmentation_test(
-        self, net, test_loader, config, num_votes=100, debug=False
-    ):
+            self, net, test_loader, config, num_votes=100, debug=False
+        ):
         """
         Test method for cloud segmentation models
         """
@@ -161,9 +161,9 @@ class ModelTester:
             for input_label in test_loader.dataset.input_labels
         ]
 
-        # Test saving path
+        # Test saving path 
         if config.saving:
-            test_path = join("test", config.saving_path.split("/")[-1])
+            test_path = config.get_test_save_path()
             if not exists(test_path):
                 makedirs(test_path)
             if not exists(join(test_path, "predictions")):
@@ -515,7 +515,7 @@ class ModelTester:
         test_path = None
         report_path = None
         if config.saving:
-            test_path = join("test", config.saving_path.split("/")[-1])
+            test_path = config.get_test_save_path()
             if not exists(test_path):
                 makedirs(test_path)
             report_path = join(test_path, "reports")

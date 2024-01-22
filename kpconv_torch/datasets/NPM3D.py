@@ -1169,7 +1169,7 @@ class NPM3DSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.dataset.path, "batch_limits.pkl")
+        batch_lim_file = join(self.dataset.config.get_test_save_path(), "batch_limits.pkl")
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -1207,7 +1207,7 @@ class NPM3DSampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.dataset.path, "neighbors_limits.pkl")
+        neighb_lim_file = join(self.dataset.config.get_test_save_path(), "neighbors_limits.pkl")
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
@@ -1758,7 +1758,7 @@ class NPM3DConfig(Config):
 
     # Do we nee to save convergence
     saving = True
-    saving_path = None
+    chosen_log = None
 
 
 # ----------------------------------------------------------------------------------------------------------------------

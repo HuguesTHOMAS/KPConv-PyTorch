@@ -42,6 +42,8 @@ def main(args):
         config = SemanticKittiConfig()
     elif args.dataset == "Toronto3D":
         config = Toronto3DConfig()
+    
+    config.command = "preprocess"
 
     ##################################
     # Change model parameters for test

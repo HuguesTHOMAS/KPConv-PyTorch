@@ -1,6 +1,7 @@
 from multiprocessing import Lock
 from os import listdir, makedirs
 from os.path import exists, isdir, join
+from pathlib import Path
 import pickle
 import time
 import warnings
@@ -25,8 +26,7 @@ class S3DISDataset(PointCloudDataset):
         config,
         split="training",
         use_potentials=True,
-        load_data=True,
-        infered_file=None,
+        load_data=True
     ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
@@ -101,13 +101,13 @@ class S3DISDataset(PointCloudDataset):
             self.cloud_names = self.training_cloud_names + self.validation_cloud_names
         elif self.set == "training":
             self.cloud_names = self.training_cloud_names
-        elif self.set == "test" and infered_file is not None:
-            self.cloud_names = [infered_file]
+        elif self.set == "test" and config.infered_file is not None:
+            self.cloud_names = [config.infered_file]
         else:
             self.cloud_names = self.validation_cloud_names
         self.files = [
             cloud_name
-            if self.set == "test" and infered_file is not None
+            if self.set == "test" and config.infered_file is not None
             else join(self.train_path, cloud_name + ".ply")
             for i, cloud_name in enumerate(self.cloud_names)
         ]
@@ -123,10 +123,9 @@ class S3DISDataset(PointCloudDataset):
         ###################
         # Prepare ply files
         ###################
-        print("infered file:", infered_file)
-        if infered_file is None:
-            self.prepare_S3DIS_ply()
-
+        if config.infered_file is None and (config.command!="preprocess"):
+            self.prepare_S3DIS_ply(self.config)
+        
         # Stop data is not needed
         if not load_data:
             return
@@ -608,7 +607,7 @@ class S3DISDataset(PointCloudDataset):
 
         return input_list
 
-    def prepare_S3DIS_ply(self):
+    def prepare_S3DIS_ply(self, config):
 
         print("\nPreparing ply files")
         t0 = time.time()
@@ -616,7 +615,7 @@ class S3DISDataset(PointCloudDataset):
         for cloud_name in self.cloud_names:
 
             # Pass if the cloud has already been computed
-            cloud_file = join(self.train_path, cloud_name + ".ply")
+            cloud_file = join(config.get_train_save_path(), cloud_name + ".ply")
             if exists(cloud_file):
                 print(f"{cloud_file} does already exist.")
                 continue
@@ -699,7 +698,7 @@ class S3DISDataset(PointCloudDataset):
 
         # Restart timer
         t0 = time.time()
-
+        
         # Name of the input files
         KDTree_file = join(self.tree_path, f"{cloud_name:s}_KDTree.pkl")
         sub_ply_file = join(self.tree_path, f"{cloud_name:s}.ply")
@@ -1145,7 +1144,7 @@ class S3DISSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.dataset.path, "batch_limits.pkl")
+        batch_lim_file = join(self.dataset.config.get_test_save_path(), "batch_limits.pkl")
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -1183,7 +1182,7 @@ class S3DISSampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.dataset.path, "neighbors_limits.pkl")
+        neighb_lim_file = join(self.dataset.config.get_test_save_path(), "neighbors_limits.pkl")
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
@@ -1728,10 +1727,10 @@ class S3DISConfig(Config):
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
     segloss_balance = "none"
 
-    # Do we nee to save convergence
+    # Do we need to save convergence
     saving = True
-    saving_path = None
-
+    chosen_log_folder = None
+    output_folder = None
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -1902,3 +1901,4 @@ def debug_batch_and_neighbors_calib(dataset, loader):
 
     _, counts = np.unique(dataset.input_labels, return_counts=True)
     print(counts)
+

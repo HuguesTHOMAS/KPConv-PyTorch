@@ -1,8 +1,10 @@
 from enum import Enum
-from os.path import join
+from os import makedirs
+from os.path import exists, join
+from pathlib import Path
 
 import numpy as np
-
+import time
 
 # Colors for printing
 class BColors(Enum):
@@ -22,11 +24,22 @@ class Config:
     """
 
     ##################
+    # CLI parameters
+    ##################
+
+    command = "" # type of CLI command
+    dataset = "" # pointed by the -s/--dataset option
+    infered_file = None # pointed by the -f/--filename option
+    data_folder = None # pointed by the -d/--datapath option
+    chosen_log_folder = None # pointed by the -l/--chosen-log option
+    output_folder = None # pointed by the -o/--output option
+
+    ##################
     # Input parameters
     ##################
 
-    # Dataset name
-    dataset = ""
+    # Do we need to save convergence
+    saving = True
 
     # Type of network model
     dataset_task = ""
@@ -167,11 +180,7 @@ class Config:
 
     # Number of epoch between each checkpoint
     checkpoint_gap = 50
-
-    # Do we nee to save convergence
-    saving = True
-    saving_path = None
-
+    
     def __init__(self):
         """
         Class Initialyser
@@ -227,12 +236,18 @@ class Config:
             if "global" in block or "upsample" in block:
                 break
 
-    def load(self, path):
+    def set_chosen_log_folder(self, chosen_log_folder):
+        self.chosen_log_folder = chosen_log_folder
+    
+    def set_output_folder(self, output_folder):
+        self.output_folder = output_folder
 
-        filename = join(path, "parameters.txt")
+    def load(self):
+
+        filename = join(self.get_train_save_path(), "parameters.txt")
         with open(filename) as f:
             lines = f.readlines()
-
+        
         # Class variable dictionary
         for line in lines:
             line_info = line.split()
@@ -270,13 +285,12 @@ class Config:
                         setattr(self, line_info[0], attr_type(line_info[2]))
 
         self.saving = True
-        self.saving_path = path
+        self.save_path = self.get_train_save_path()
         self.__init__()
+    
+    def save_parameters(self):
 
-    def save(self):
-
-        with open(join(self.saving_path, "parameters.txt"), "w") as text_file:
-
+        with open(join(self.get_train_save_path(), "parameters.txt"), "w") as text_file:
             text_file.write("# -----------------------------------#\n")
             text_file.write("# Parameters of the training session #\n")
             text_file.write("# -----------------------------------#\n\n")
@@ -385,3 +399,29 @@ class Config:
                 text_file.write(f"epoch_steps = {self.epoch_steps:d}\n")
             text_file.write(f"validation_size = {self.validation_size:d}\n")
             text_file.write(f"checkpoint_gap = {self.checkpoint_gap:d}\n")
+
+    def set_infered_file_path(self, path):
+        self.infered_file = path
+    
+    def get_infered_file_path(self):
+        return self.infered_file
+
+    def get_test_save_path(self):
+        if self.infered_file is not None:
+            test_path = join(Path(self.infered_file).parent, "test", str(self.chosen_log_folder).split("/")[-1])
+        else:
+            test_path = join(self.chosen_log_folder, "test")
+        if not exists(test_path):
+            makedirs(test_path)
+        return test_path
+    
+    def get_train_save_path(self):
+        if self.chosen_log_folder is not None:
+            train_path = self.chosen_log_folder
+        elif self.output_folder is not None:
+            train_path = join(self.output_folder, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime()))
+        if not exists(train_path):
+            makedirs(train_path)
+        return train_path
+
+

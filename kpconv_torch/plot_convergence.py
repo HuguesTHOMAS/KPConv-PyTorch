@@ -190,9 +190,6 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     all_times = []
 
     for path in list_of_paths:
-
-        print(path)
-
         if ("val_IoUs.txt" in listdir_str(path)) or (
             "val_confs.txt" in listdir_str(path)
         ):

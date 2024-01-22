@@ -101,7 +101,10 @@ def main(args):
 
     # Initialize configuration class
     config = Config()
-    config.load(chosen_log)
+    config.set_infered_file_path(args.filename)
+    config.set_chosen_log_folder(args.chosen_log)
+    config.command = "test"
+    config.load()
 
     ##################################
     # Change model parameters for test
@@ -139,7 +142,6 @@ def main(args):
             config,
             split="validation" if args.filename is None else "test",
             use_potentials=True,
-            infered_file=args.filename
         )
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
@@ -148,7 +150,7 @@ def main(args):
             args.datapath, 
             config, 
             split="test", 
-            use_potentials=True
+            use_potentials=True,
         )
         test_sampler = Toronto3DSampler(test_dataset)
         collate_fn = Toronto3DCollate
@@ -157,7 +159,7 @@ def main(args):
             args.datapath, 
             config, 
             split=split, 
-            balance_classes=False
+            balance_classes=False,
         )
         test_sampler = SemanticKittiSampler(test_dataset)
         collate_fn = SemanticKittiCollate
@@ -174,7 +176,7 @@ def main(args):
         pin_memory=True,
     )
 
-    # Calibrate samplers
+    # Calibrate samplers, one for each dataset
     test_sampler.calibration(test_loader, verbose=True)
 
     print("\nModel Preparation")
@@ -196,7 +198,7 @@ def main(args):
     print("\nStart test")
     print("**********\n")
 
-    # Training
+    # Testing
     if config.dataset_task == "classification":
         tester.classification_test(net, test_loader, config)
     elif config.dataset_task == "cloud_segmentation":

@@ -51,26 +51,8 @@ def main(args):
     # Set GPU visible device
     os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
 
-    # Choose index of checkpoint to start from. If None, uses the latest chkp
-    chkp_idx = None
-    if args.chosen_log:
-
-        # Find all snapshot in the chosen training folder
-        chkp_path = os.path.join(args.chosen_log, "checkpoints")
-        chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
-
-        # Find which snapshot to restore
-        if chkp_idx is None:
-            chosen_chkp = "current_chkp.tar"
-        else:
-            chosen_chkp = np.sort(chkps)[chkp_idx]
-        chosen_chkp = os.path.join(args.chosen_log, "checkpoints", chosen_chkp)
-
-    else:
-        chosen_chkp = None
-
     ##############
-    # Prepare Data
+    # Prepare Data 
     ##############
     print()
     print("Data Preparation")
@@ -87,19 +69,23 @@ def main(args):
         config = SemanticKittiConfig()
     elif args.dataset == "Toronto3D":
         config = Toronto3DConfig()
+    config.command = "train"
+
+    config.set_output_folder(args.output)
+    config.set_chosen_log_folder(args.chosen_log)
 
     if args.chosen_log:
-        config.load(args.chosen_log)
+        config.load()
         if config.dataset != args.dataset:
             raise ValueError(
                 f"Config dataset ({config.dataset}) "
                 f"does not match provided dataset ({args.dataset})."
             )
-        config.saving_path = None
+        config.chosen_log = None
 
     # Get path from argument if given
     if len(sys.argv) > 1:
-        config.saving_path = sys.argv[1]
+        config.chosen_log = sys.argv[1]
 
     # Initialize datasets and samplers
     if config.dataset == "ModelNet40":
@@ -209,6 +195,24 @@ def main(args):
             % sum(param.numel() for param in net.parameters() if param.requires_grad)
         )
         print("\n*************************************\n")
+
+    # Choose index of checkpoint to start from. If None, uses the latest chkp
+    chkp_idx = None
+    if config.get_train_save_path():
+
+        # Find all snapshot in the chosen training folder
+        chkp_path = os.path.join(config.get_train_save_path(), "checkpoints")
+        chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
+
+        # Find which snapshot to restore
+        if chkp_idx is None:
+            chosen_chkp = "current_chkp.tar"
+        else:
+            chosen_chkp = np.sort(chkps)[chkp_idx]
+        chosen_chkp = os.path.join(config.get_train_save_path(), "checkpoints", chosen_chkp)
+
+    else:
+        chosen_chkp = None
 
     # Define a trainer class
     trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)
