@@ -1,6 +1,7 @@
 from multiprocessing import Lock
 from os import listdir, makedirs
 from os.path import exists, isdir, join
+from pathlib import Path
 import pickle
 import time
 import warnings
@@ -14,23 +15,32 @@ from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply
+from kpconv_torch.utils.tester import get_test_save_path
+from kpconv_torch.utils.trainer import get_train_save_path
 
 
 class S3DISDataset(PointCloudDataset):
     """Class to handle S3DIS dataset."""
 
     def __init__(
-        self,
-        datapath,
-        config,
-        split="training",
-        use_potentials=True,
-        load_data=True,
-        infered_file=None,
-    ):
+            self,
+            command,
+            config,
+            datapath,
+            chosen_log=None,
+            infered_file=None,
+            output_dir=None,
+            split="training",
+            use_potentials=True,
+            load_data=True
+        ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
+
+        self.train_save_path = get_train_save_path(output_dir, chosen_log)
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
+
         PointCloudDataset.__init__(self, "S3DIS")
 
         ############
@@ -123,10 +133,9 @@ class S3DISDataset(PointCloudDataset):
         ###################
         # Prepare ply files
         ###################
-        print("infered file:", infered_file)
-        if infered_file is None:
+        if infered_file is None and (command != "preprocess"):
             self.prepare_S3DIS_ply()
-
+        
         # Stop data is not needed
         if not load_data:
             return
@@ -609,14 +618,12 @@ class S3DISDataset(PointCloudDataset):
         return input_list
 
     def prepare_S3DIS_ply(self):
-
         print("\nPreparing ply files")
         t0 = time.time()
 
         for cloud_name in self.cloud_names:
-
             # Pass if the cloud has already been computed
-            cloud_file = join(self.train_path, cloud_name + ".ply")
+            cloud_file = join(self.train_save_path, cloud_name + ".ply")
             if exists(cloud_file):
                 print(f"{cloud_file} does already exist.")
                 continue
@@ -701,8 +708,8 @@ class S3DISDataset(PointCloudDataset):
         t0 = time.time()
 
         # Name of the input files
-        KDTree_file = join(self.tree_path, f"{cloud_name:s}_KDTree.pkl")
-        sub_ply_file = join(self.tree_path, f"{cloud_name:s}.ply")
+        KDTree_file = join(self.tree_path, f"{cloud_name}_KDTree.pkl")
+        sub_ply_file = join(self.tree_path, f"{cloud_name}.ply")
 
         print("kdtree file:", KDTree_file)
         print("sub ply file:", sub_ply_file)
@@ -710,9 +717,7 @@ class S3DISDataset(PointCloudDataset):
         # Check if inputs have already been computed
         if exists(KDTree_file):
             print(
-                "\nFound KDTree for cloud {:s}, subsampled at {:.3f}".format(
-                    cloud_name, self.config.first_subsampling_dl
-                )
+                f"\nFound KDTree for cloud {cloud_name}, subsampled at {self.config.first_subsampling_dl:3f}"
             )
 
             # read ply with data
@@ -724,9 +729,7 @@ class S3DISDataset(PointCloudDataset):
 
         else:
             print(
-                "\nPreparing KDTree for cloud {:s}, subsampled at {:.3f}".format(
-                    cloud_name, self.config.first_subsampling_dl
-                )
+                f"\nPreparing KDTree for cloud {cloud_name}, subsampled at {self.config.first_subsampling_dl:3f}"
             )
 
             points, colors, labels = self.read_input(file_path)
@@ -765,7 +768,7 @@ class S3DISDataset(PointCloudDataset):
         self.input_labels += [sub_labels]
 
         size = sub_colors.shape[0] * 4 * 7
-        print(f"{size * 1e-6:.1f} MB loaded in {time.time() - t0:.1f}s")
+        print(f"{size * 1e-6:.1f} MB loaded in {time.time() - t0:1f}s")
         return search_tree
 
     def load_coarse_potential_locations(self, cloud_name, kdtree_data):
@@ -774,7 +777,7 @@ class S3DISDataset(PointCloudDataset):
         t0 = time.time()
 
         # Name of the input files
-        coarse_KDTree_file = join(self.tree_path, f"{cloud_name:s}_coarse_KDTree.pkl")
+        coarse_KDTree_file = join(self.tree_path, f"{cloud_name}_coarse_KDTree.pkl")
 
         # Check if inputs have already been computed
         if exists(coarse_KDTree_file):
@@ -809,7 +812,7 @@ class S3DISDataset(PointCloudDataset):
         t0 = time.time()
 
         # File name for saving
-        proj_file = join(self.tree_path, f"{cloud_name:s}_proj.pkl")
+        proj_file = join(self.tree_path, f"{cloud_name}_proj.pkl")
 
         # Try to load previous indices
         if exists(proj_file):
@@ -829,7 +832,7 @@ class S3DISDataset(PointCloudDataset):
 
         self.test_proj += [proj_inds]
         self.validation_labels += [labels]
-        print(f"{cloud_name:s} done in {time.time() - t0:.1f}s")
+        print(f"{cloud_name} done in {time.time() - t0:.1f}s")
 
     def set_batch_selection_parameters(self):
         # Initialize value for batch limit (max number of points per batch).
@@ -925,11 +928,13 @@ class S3DISDataset(PointCloudDataset):
 class S3DISSampler(Sampler):
     """Sampler for S3DIS"""
 
-    def __init__(self, dataset: S3DISDataset):
+    def __init__(self, dataset: S3DISDataset, chosen_log, infered_file):
         Sampler.__init__(self, dataset)
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
+
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         # Number of step per epoch
         if dataset.set == "training":
@@ -992,15 +997,10 @@ class S3DISSampler(Sampler):
                                 )
                             )
                         warnings.warn(
-                            "When choosing random epoch indices (use_potentials=False), \
-                                       class {:d}: {:s} only had {:d} available points, while we \
-                                       needed {:d}. Repeating indices in the same epoch".format(
-                                label,
-                                self.dataset.label_names[label_ind],
-                                N_inds,
-                                random_pick_n,
+                            f"When choosing random epoch indices (use_potentials=False), \
+                                       class {label:d}: {self.dataset.label_names[label_ind]} only had {N_inds:d} available points, while we \
+                                       needed {random_pick_n:d}. Repeating indices in the same epoch"
                             )
-                        )
 
                     elif N_inds < 50 * random_pick_n:
                         rand_inds = np.random.choice(
@@ -1145,7 +1145,7 @@ class S3DISSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.dataset.path, "batch_limits.pkl")
+        batch_lim_file = join(self.test_save_path, "batch_limits.pkl")
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -1157,12 +1157,7 @@ class S3DISSampler(Sampler):
             sampler_method = "potentials"
         else:
             sampler_method = "random"
-        key = "{:s}_{:.3f}_{:.3f}_{:d}".format(
-            sampler_method,
-            self.dataset.config.in_radius,
-            self.dataset.config.first_subsampling_dl,
-            self.dataset.config.batch_num,
-        )
+        key = f"{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num}"
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -1177,13 +1172,13 @@ class S3DISSampler(Sampler):
             else:
                 color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.dataset.path, "neighbors_limits.pkl")
+        neighb_lim_file = join(self.test_save_path, "neighbors_limits.pkl")
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
@@ -1225,7 +1220,7 @@ class S3DISSampler(Sampler):
                 else:
                     color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 
@@ -1415,12 +1410,7 @@ class S3DISSampler(Sampler):
                 sampler_method = "potentials"
             else:
                 sampler_method = "random"
-            key = "{:s}_{:.3f}_{:.3f}_{:d}".format(
-                sampler_method,
-                self.dataset.config.in_radius,
-                self.dataset.config.first_subsampling_dl,
-                self.dataset.config.batch_num,
-            )
+            key = f"{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1552,7 +1542,7 @@ class S3DISCustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_name:s}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):
@@ -1728,10 +1718,10 @@ class S3DISConfig(Config):
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
     segloss_balance = "none"
 
-    # Do we nee to save convergence
+    # Do we need to save convergence
     saving = True
-    saving_path = None
-
+    chosen_log = None
+    output_dir = None
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -1902,3 +1892,4 @@ def debug_batch_and_neighbors_calib(dataset, loader):
 
     _, counts = np.unique(dataset.input_labels, return_counts=True)
     print(counts)
+

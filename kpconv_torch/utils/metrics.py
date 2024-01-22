@@ -26,10 +26,10 @@ def fast_confusion(true, pred, label_values=None):
             )
         )
     if true.dtype not in [np.int32, np.int64]:
-        raise ValueError(f"Truth values are {true.dtype:s} instead of int32 or int64")
+        raise ValueError(f"Truth values are {true.dtype} instead of int32 or int64")
     if pred.dtype not in [np.int32, np.int64]:
         raise ValueError(
-            f"Prediction values are {pred.dtype:s} instead of int32 or int64"
+            f"Prediction values are {pred.dtype} instead of int32 or int64"
         )
     true = true.astype(np.int32)
     pred = pred.astype(np.int32)
@@ -42,9 +42,7 @@ def fast_confusion(true, pred, label_values=None):
         # Ensure they are good if given
         if label_values.dtype not in [np.int32, np.int64]:
             raise ValueError(
-                "label values are {:s} instead of int32 or int64".format(
-                    label_values.dtype
-                )
+                f"label values are {label_values.dtype} instead of int32 or int64"
             )
         if len(np.unique(label_values)) < len(label_values):
             raise ValueError("Given labels are not unique")

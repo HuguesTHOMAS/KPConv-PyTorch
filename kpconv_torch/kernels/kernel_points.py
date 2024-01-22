@@ -130,7 +130,7 @@ def spherical_Lloyd(
     elif approximation == "monte-carlo":
         X = np.zeros((0, dimension))
     else:
-        raise ValueError(f'Wrong approximation method chosen: "{approximation:s}"')
+        raise ValueError(f'Wrong approximation method chosen: "{approximation}"')
 
     # Only points inside the sphere are used
     d2 = np.sum(np.power(X, 2), axis=1)
@@ -450,7 +450,7 @@ def load_kernels(radius, num_kpoints, dimension, fixed, lloyd=False):
         lloyd = True
 
     # Kernel_file
-    kernel_file = join(kernel_dir, f"k_{num_kpoints:03d}_{fixed:s}_{dimension:d}D.ply")
+    kernel_file = join(kernel_dir, f"k_{num_kpoints:3d}_{fixed}_{dimension:d}D.ply")
 
     # Check if already done
     if not exists(kernel_file):

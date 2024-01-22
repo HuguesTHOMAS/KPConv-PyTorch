@@ -9,16 +9,29 @@ from torch.utils.data import get_worker_info, Sampler
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
-
+from kpconv_torch.utils.tester import get_test_save_path
 
 class ModelNet40Dataset(PointCloudDataset):
     """Class to handle Modelnet 40 dataset."""
 
-    def __init__(self, datapath, config, train=True, orient_correction=True):
+    def __init__(
+            self,
+            command,
+            config,
+            datapath,
+            chosen_log=None,
+            infered_file=None,
+            output_dir=None,
+            train=True,
+            orient_correction=True
+        ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
         PointCloudDataset.__init__(self, "ModelNet40")
+
+        self.train_save_path = get_train_save_path(output_dir, chosen_log)
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         ############
         # Parameters
@@ -216,10 +229,10 @@ class ModelNet40Dataset(PointCloudDataset):
             split = "test"
 
         print(
-            f"\nLoading {split:s} points subsampled at {self.config.first_subsampling_dl:.3f}"
+            f"\nLoading {split} points subsampled at {self.config.first_subsampling_dl:3f}"
         )
         filename = join(
-            self.path, f"{split:s}_{self.config.first_subsampling_dl:.3f}_record.pkl"
+            self.path, f"{split}_{self.config.first_subsampling_dl:3f}_record.pkl"
         )
 
         if exists(filename):
@@ -303,7 +316,7 @@ class ModelNet40Sampler(Sampler):
     """Sampler for ModelNet40"""
 
     def __init__(
-        self, dataset: ModelNet40Dataset, use_potential=True, balance_labels=False
+        self, dataset: ModelNet40Dataset, chosen_log, infered_file, use_potential=True, balance_labels=False
     ):
         Sampler.__init__(self, dataset)
 
@@ -315,6 +328,8 @@ class ModelNet40Sampler(Sampler):
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
+
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         # Create potentials
         if self.use_potential:
@@ -453,7 +468,7 @@ class ModelNet40Sampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.dataset.path, "batch_limits.pkl")
+        batch_lim_file = join(self.test_save_path, "batch_limits.pkl")
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -478,13 +493,13 @@ class ModelNet40Sampler(Sampler):
             else:
                 color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.dataset.path, "neighbors_limits.pkl")
+        neighb_lim_file = join(self.test_save_path, "neighbors_limits.pkl")
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
@@ -526,7 +541,7 @@ class ModelNet40Sampler(Sampler):
                 else:
                     color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 
@@ -777,7 +792,7 @@ class ModelNet40CustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_name:s}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):
@@ -946,9 +961,9 @@ class ModelNet40Config(Config):
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
     segloss_balance = "none"
 
-    # Do we nee to save convergence
+    # Do we need to save convergence
     saving = True
-    saving_path = None
+    chosen_log = None
 
 
 # ----------------------------------------------------------------------------------------------------------------------

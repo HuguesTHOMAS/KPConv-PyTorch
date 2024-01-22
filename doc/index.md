@@ -12,10 +12,7 @@ caption: Sommaire
 maxdepth: 1
 ---
 principles
-install
 cli
-processing_chain
-preprocessing
 object_classification_guide
 pretrained_models_guide
 scene_segmentation_guide

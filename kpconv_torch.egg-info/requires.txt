@@ -1,0 +1,7 @@
+
+[dev]
+black==22.3.0
+flake8==3.8.3
+importlib-metadata<5.0
+pre-commit==2.9.2
+pytest==5.3.0

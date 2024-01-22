@@ -9,6 +9,17 @@ from kpconv_torch.utils.config import Config
 from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.utils.ply import write_ply
 
+def get_train_save_path(output_dir, chosen_log):
+    print(output_dir, chosen_log)
+    if chosen_log is None and output_dir is None:
+        train_path=None
+    elif chosen_log is not None:
+        train_path = chosen_log
+    elif output_dir is not None:
+        train_path = join(output_dir, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime()))
+    if train_path is not None and not exists(train_path):
+        makedirs(train_path)
+    return train_path
 
 class ModelTrainer:
     def __init__(self, net, config, chkp_path=None, finetune=False, on_gpu=True):
@@ -66,13 +77,7 @@ class ModelTrainer:
 
         # Path of the result folder
         if config.saving:
-            if config.saving_path is None:
-                config.saving_path = time.strftime(
-                    "results/Log_%Y-%m-%d_%H-%M-%S", time.gmtime()
-                )
-            if not exists(config.saving_path):
-                makedirs(config.saving_path)
-            config.save()
+            config.save_parameters(get_train_save_path(args.output_dir, args.chosen_log))
 
         return
 
@@ -90,17 +95,17 @@ class ModelTrainer:
 
         if config.saving:
             # Training log file
-            with open(join(config.saving_path, "training.txt"), "w") as file:
+            with open(get_train_save_path() + "/" + "training.txt", "w") as file:
                 file.write("epochs steps out_loss offset_loss train_accuracy time\n")
 
             # Killing file (simply delete this file when you want to stop the training)
-            PID_file = join(config.saving_path, "running_PID.txt")
+            PID_file = get_train_save_path() + "/" + "running_PID.txt"
             if not exists(PID_file):
                 with open(PID_file, "w") as file:
                     file.write("Launched with PyCharm")
 
             # Checkpoints directory
-            checkpoint_directory = join(config.saving_path, "checkpoints")
+            checkpoint_directory = get_train_save_path() + "/" + "checkpoints"
             if not exists(checkpoint_directory):
                 makedirs(checkpoint_directory)
         else:
@@ -187,7 +192,7 @@ class ModelTrainer:
 
                 # Log file
                 if config.saving:
-                    with open(join(config.saving_path, "training.txt"), "a") as file:
+                    with open(get_train_save_path() + "/" +  "training.txt", "a") as file:
                         message = "{:d} {:d} {:.3f} {:.3f} {:.3f} {:.3f}\n"
                         file.write(
                             message.format(
@@ -225,7 +230,7 @@ class ModelTrainer:
                     "epoch": self.epoch,
                     "model_state_dict": net.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
-                    "saving_path": config.saving_path,
+                    "chosen_log": config.chosen_log,
                 }
 
                 # Save current state of the network (for restoring purposes)
@@ -368,7 +373,7 @@ class ModelTrainer:
             conf_list = [C1, C2]
             file_list = ["val_confs.txt", "vote_confs.txt"]
             for conf, conf_file in zip(conf_list, file_list):
-                test_file = join(config.saving_path, conf_file)
+                test_file = get_train_save_path() + "/" +  conf_file
                 if exists(test_file):
                     with open(test_file, "a") as text_file:
                         for line in conf:
@@ -554,7 +559,7 @@ class ModelTrainer:
         if config.saving:
 
             # Name of saving file
-            test_file = join(config.saving_path, "val_IoUs.txt")
+            test_file = get_train_save_path() + "/" + "val_IoUs.txt"
 
             # Line to write:
             line = ""
@@ -572,7 +577,7 @@ class ModelTrainer:
 
             # Save potentials
             if val_loader.dataset.use_potentials:
-                pot_path = join(config.saving_path, "potentials")
+                pot_path = get_train_save_path() + "/" + "potentials"
                 if not exists(pot_path):
                     makedirs(pot_path)
                 files = val_loader.dataset.files
@@ -593,11 +598,11 @@ class ModelTrainer:
 
         # Print instance mean
         mIoU = 100 * np.mean(IoUs)
-        print(f"{config.dataset:s} mean IoU = {mIoU:.1f}%")
+        print(f"{config.dataset} mean IoU = {mIoU:.1f}%")
 
         # Save predicted cloud occasionally
         if config.saving and (self.epoch + 1) % config.checkpoint_gap == 0:
-            val_path = join(config.saving_path, f"val_preds_{self.epoch + 1:d}")
+            val_path = get_train_save_path() + "/" + f"val_preds_{self.epoch + 1:d}"
             if not exists(val_path):
                 makedirs(val_path)
             files = val_loader.dataset.files
@@ -667,8 +672,8 @@ class ModelTrainer:
         softmax = torch.nn.Softmax(1)
 
         # Create folder for validation predictions
-        if not exists(join(config.saving_path, "val_preds")):
-            makedirs(join(config.saving_path, "val_preds"))
+        if not exists(get_train_save_path() + "/" + "val_preds"):
+            makedirs(get_train_save_path() + "/" + "val_preds")
 
         # initiate the dataset validation containers
         val_loader.dataset.val_points = []
@@ -744,10 +749,8 @@ class ModelTrainer:
                 preds = val_loader.dataset.label_values[np.argmax(proj_probs, axis=1)]
 
                 # Save predictions in a binary file
-                filename = "{:s}_{:07d}.npy".format(
-                    val_loader.dataset.sequences[s_ind], f_ind
-                )
-                filepath = join(config.saving_path, "val_preds", filename)
+                filename = f"{val_loader.dataset.sequences[s_ind]}_{f_ind:7d}.npy"
+                filepath = get_train_save_path() + "/" + "val_preds" + "/" + filename
                 if exists(filepath):
                     frame_preds = np.load(filepath)
                 else:
@@ -885,7 +888,7 @@ class ModelTrainer:
             for IoUs_to_save, IoU_file in zip(IoU_list, file_list):
 
                 # Name of saving file
-                test_file = join(config.saving_path, IoU_file)
+                test_file = get_train_save_path() + "/" + IoU_file
 
                 # Line to write:
                 line = ""
@@ -903,9 +906,9 @@ class ModelTrainer:
 
         # Print instance mean
         mIoU = 100 * np.mean(IoUs)
-        print(f"{config.dataset:s} : subpart mIoU = {mIoU:.1f} %")
+        print(f"{config.dataset} : subpart mIoU = {mIoU:1f} %")
         mIoU = 100 * np.mean(val_IoUs)
-        print(f"{config.dataset:s} :     val mIoU = {mIoU:.1f} %")
+        print(f"{config.dataset} :     val mIoU = {mIoU:1f} %")
 
         t6 = time.time()
 
