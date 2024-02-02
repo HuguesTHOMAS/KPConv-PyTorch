@@ -1,5 +1,6 @@
 [flake8]
-ignore = B028,E203,E501,PIE786,SIM115,W503
+max-line-length = 88
+ignore = B028,E203,E501,E704,PIE786,SIM115,W503
 exclude =
     build/,
     *venv/,
