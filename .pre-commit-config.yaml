@@ -23,7 +23,7 @@ repos:
     rev: 22.12.0
     hooks:
       - id: black
-        args: [--target-version=py38]
+        args: [--target-version=py38,--line-length=100]
 
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
