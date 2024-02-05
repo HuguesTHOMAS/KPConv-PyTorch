@@ -1400,7 +1400,7 @@ class S3DISSampler(Sampler):
                 sampler_method = "potentials"
             else:
                 sampler_method = "random"
-            key = f"{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"           )
+            key = f"{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
