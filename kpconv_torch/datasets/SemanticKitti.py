@@ -620,7 +620,7 @@ class SemanticKittiDataset(PointCloudDataset):
                 if self.config.n_frames > 1:
                     frame_mode = "multi"
                 seq_stat_file = join(
-                    self.path, "sequences", seq, f"stats_{frame_mode:s}.pkl"
+                    self.path, "sequences", seq, f"stats_{frame_mode}.pkl"
                 )
 
                 # Check if inputs have already been computed
@@ -633,7 +633,7 @@ class SemanticKittiDataset(PointCloudDataset):
 
                     # Initiate dict
                     print(
-                        f"Preparing seq {seq:s} class frames. (Long but one time only)"
+                        f"Preparing seq {seq} class frames. (Long but one time only)"
                     )
 
                     # Class frames as a boolean mask
@@ -953,9 +953,7 @@ class SemanticKittiSampler(Sampler):
             sampler_method = "balanced"
         else:
             sampler_method = "random"
-        key = "{:s}_{:.3f}_{:.3f}".format(
-            sampler_method, self.dataset.in_R, self.dataset.config.first_subsampling_dl
-        )
+        key = f"{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:3f}"
         if not redo and key in max_in_lim_dict:
             self.dataset.max_in_p = max_in_lim_dict[key]
         else:
@@ -970,7 +968,7 @@ class SemanticKittiSampler(Sampler):
             else:
                 color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 
@@ -1073,13 +1071,7 @@ class SemanticKittiSampler(Sampler):
             sampler_method = "balanced"
         else:
             sampler_method = "random"
-        key = "{:s}_{:.3f}_{:.3f}_{:d}_{:d}".format(
-            sampler_method,
-            self.dataset.in_R,
-            self.dataset.config.first_subsampling_dl,
-            self.dataset.batch_num,
-            self.dataset.max_in_p,
-        )
+        key = "{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:f}_{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -1094,7 +1086,7 @@ class SemanticKittiSampler(Sampler):
             else:
                 color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
@@ -1117,7 +1109,7 @@ class SemanticKittiSampler(Sampler):
             else:
                 r = dl * self.dataset.config.conv_radius
 
-            key = f"{sampler_method:s}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
+            key = f"{sampler_method}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
@@ -1134,7 +1126,7 @@ class SemanticKittiSampler(Sampler):
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
-                key = f"{sampler_method:s}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
+                key = f"{sampler_method}_{self.dataset.max_in_p:d}_{dl:3f}_{r:3f}"
 
                 if key in neighb_lim_dict:
                     color = BColors.OKGREEN.value
@@ -1142,7 +1134,7 @@ class SemanticKittiSampler(Sampler):
                 else:
                     color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 

@@ -611,7 +611,7 @@ class ModelTester:
                     else:
                         folder = "probs"
                         pred_folder = "predictions"
-                    filename = f"{seq_name:s}_{f_ind:07d}.npy"
+                    filename = f"{seq_name}_{f_ind:7d}.npy"
                     filepath = join(test_path, folder, filename)
                     if exists(filepath):
                         frame_probs_uint8 = np.load(filepath)

@@ -588,7 +588,7 @@ class ModelTrainer:
 
         # Print instance mean
         mIoU = 100 * np.mean(IoUs)
-        print(f"{config.dataset:s} mean IoU = {mIoU:.1f}%")
+        print(f"{config.dataset} mean IoU = {mIoU:.1f}%")
 
         # Save predicted cloud occasionally
         if config.saving and (self.epoch + 1) % config.checkpoint_gap == 0:
@@ -739,9 +739,7 @@ class ModelTrainer:
                 preds = val_loader.dataset.label_values[np.argmax(proj_probs, axis=1)]
 
                 # Save predictions in a binary file
-                filename = "{:s}_{:07d}.npy".format(
-                    val_loader.dataset.sequences[s_ind], f_ind
-                )
+                filename = f"{val_loader.dataset.sequences[s_ind]}_{f_ind:7d}.npy"
                 filepath = config.get_train_save_path() + "/" + "val_preds" + "/" + filename
                 if exists(filepath):
                     frame_preds = np.load(filepath)
@@ -898,9 +896,9 @@ class ModelTrainer:
 
         # Print instance mean
         mIoU = 100 * np.mean(IoUs)
-        print(f"{config.dataset:s} : subpart mIoU = {mIoU:.1f} %")
+        print(f"{config.dataset} : subpart mIoU = {mIoU:.1f} %")
         mIoU = 100 * np.mean(val_IoUs)
-        print(f"{config.dataset:s} :     val mIoU = {mIoU:.1f} %")
+        print(f"{config.dataset :     val mIoU = {mIoU:.1f} %")
 
         t6 = time.time()
 

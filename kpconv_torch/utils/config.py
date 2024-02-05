@@ -332,19 +332,19 @@ class Config:
             text_file.write("# KPConv parameters\n")
             text_file.write("# *****************\n\n")
 
-            text_file.write(f"first_subsampling_dl = {self.first_subsampling_dl:.6f}\n")
+            text_file.write(f"first_subsampling_dl = {self.first_subsampling_dl:6f}\n")
             text_file.write(f"num_kernel_points = {self.num_kernel_points:d}\n")
-            text_file.write(f"conv_radius = {self.conv_radius:.6f}\n")
+            text_file.write(f"conv_radius = {self.conv_radius:6f}\n")
             text_file.write(f"deform_radius = {self.deform_radius:.6f}\n")
-            text_file.write(f"fixed_kernel_points = {self.fixed_kernel_points:s}\n")
+            text_file.write(f"fixed_kernel_points = {self.fixed_kernel_points}\n")
             text_file.write(f"KP_extent = {self.KP_extent:.6f}\n")
-            text_file.write(f"KP_influence = {self.KP_influence:s}\n")
-            text_file.write(f"aggregation_mode = {self.aggregation_mode:s}\n")
+            text_file.write(f"KP_influence = {self.KP_influence}\n")
+            text_file.write(f"aggregation_mode = {self.aggregation_mode}\n")
             text_file.write(f"modulated = {int(self.modulated):d}\n")
             text_file.write(f"n_frames = {self.n_frames:d}\n")
             text_file.write(f"max_in_points = {self.max_in_points:d}\n\n")
             text_file.write(f"max_val_points = {self.max_val_points:d}\n\n")
-            text_file.write(f"val_radius = {self.val_radius:.6f}\n\n")
+            text_file.write(f"val_radius = {self.val_radius:6f}\n\n")
 
             # Training parameters
             text_file.write("# Training parameters\n")
@@ -362,9 +362,9 @@ class Config:
             for a in self.augment_symmetries:
                 text_file.write(f" {int(a):d}")
             text_file.write("\n")
-            text_file.write(f"augment_rotation = {self.augment_rotation:s}\n")
+            text_file.write(f"augment_rotation = {self.augment_rotation}\n")
             text_file.write(f"augment_noise = {self.augment_noise:f}\n")
-            text_file.write(f"augment_occlusion = {self.augment_occlusion:s}\n")
+            text_file.write(f"augment_occlusion = {self.augment_occlusion}\n")
             text_file.write(
                 "augment_occlusion_ratio = {:.6f}\n".format(
                     self.augment_occlusion_ratio
@@ -381,12 +381,12 @@ class Config:
             text_file.write(f"augment_color = {self.augment_color:.6f}\n\n")
 
             text_file.write(f"weight_decay = {self.weight_decay:f}\n")
-            text_file.write(f"segloss_balance = {self.segloss_balance:s}\n")
+            text_file.write(f"segloss_balance = {self.segloss_balance}\n")
             text_file.write("class_w =")
             for a in self.class_w:
                 text_file.write(f" {a:.6f}")
             text_file.write("\n")
-            text_file.write(f"deform_fitting_mode = {self.deform_fitting_mode:s}\n")
+            text_file.write(f"deform_fitting_mode = {self.deform_fitting_mode}\n")
             text_file.write(f"deform_fitting_power = {self.deform_fitting_power:.6f}\n")
             text_file.write(f"deform_lr_factor = {self.deform_lr_factor:.6f}\n")
             text_file.write(f"repulse_extent = {self.repulse_extent:.6f}\n")

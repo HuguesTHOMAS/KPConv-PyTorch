@@ -49,7 +49,7 @@ class ModelVisualizer:
         net.load_state_dict(new_dict)
         self.epoch = checkpoint["epoch"]
         net.eval()
-        print(f"\nModel state restored from {chkp_path:s}.")
+        print(f"\nModel state restored from {chkp_path}.")
 
         return
 

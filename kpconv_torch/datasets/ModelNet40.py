@@ -216,10 +216,10 @@ class ModelNet40Dataset(PointCloudDataset):
             split = "test"
 
         print(
-            f"\nLoading {split:s} points subsampled at {self.config.first_subsampling_dl:.3f}"
+            f"\nLoading {split} points subsampled at {self.config.first_subsampling_dl:3f}"
         )
         filename = join(
-            self.path, f"{split:s}_{self.config.first_subsampling_dl:.3f}_record.pkl"
+            self.path, f"{split}_{self.config.first_subsampling_dl:3f}_record.pkl"
         )
 
         if exists(filename):
@@ -478,7 +478,7 @@ class ModelNet40Sampler(Sampler):
             else:
                 color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
@@ -526,7 +526,7 @@ class ModelNet40Sampler(Sampler):
                 else:
                     color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 
@@ -777,7 +777,7 @@ class ModelNet40CustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_name:s}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):
