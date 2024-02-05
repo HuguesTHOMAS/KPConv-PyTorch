@@ -700,8 +700,8 @@ class S3DISDataset(PointCloudDataset):
         t0 = time.time()
         
         # Name of the input files
-        KDTree_file = join(self.tree_path, f"{cloud_name:s}_KDTree.pkl")
-        sub_ply_file = join(self.tree_path, f"{cloud_name:s}.ply")
+        KDTree_file = join(self.tree_path, f"{cloud_name}_KDTree.pkl")
+        sub_ply_file = join(self.tree_path, f"{cloud_name}.ply")
 
         print("kdtree file:", KDTree_file)
         print("sub ply file:", sub_ply_file)
@@ -723,9 +723,7 @@ class S3DISDataset(PointCloudDataset):
 
         else:
             print(
-                "\nPreparing KDTree for cloud {:s}, subsampled at {:.3f}".format(
-                    cloud_name, self.config.first_subsampling_dl
-                )
+                f"\nPreparing KDTree for cloud {cloud_name}, subsampled at {self.config.first_subsampling_dl:.3f}"
             )
 
             points, colors, labels = self.read_input(file_path)
