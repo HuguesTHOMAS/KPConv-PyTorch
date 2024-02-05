@@ -709,9 +709,7 @@ class S3DISDataset(PointCloudDataset):
         # Check if inputs have already been computed
         if exists(KDTree_file):
             print(
-                "\nFound KDTree for cloud {:s}, subsampled at {:.3f}".format(
-                    cloud_name, self.config.first_subsampling_dl
-                )
+                f"\nFound KDTree for cloud {cloud_name}, subsampled at {self.config.first_subsampling_dl:3d}"
             )
 
             # read ply with data
@@ -723,7 +721,7 @@ class S3DISDataset(PointCloudDataset):
 
         else:
             print(
-                f"\nPreparing KDTree for cloud {cloud_name}, subsampled at {self.config.first_subsampling_dl:.3f}"
+                f"\nPreparing KDTree for cloud {cloud_name}, subsampled at {self.config.first_subsampling_dl:3d}"
             )
 
             points, colors, labels = self.read_input(file_path)
