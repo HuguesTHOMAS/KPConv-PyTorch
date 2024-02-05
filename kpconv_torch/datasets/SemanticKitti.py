@@ -1293,13 +1293,7 @@ class SemanticKittiSampler(Sampler):
             print("\n**************************************************\n")
 
             # Save batch_limit dictionary
-            key = "{:s}_{:.3f}_{:.3f}_{:d}_{:d}".format(
-                sampler_method,
-                self.dataset.in_R,
-                self.dataset.config.first_subsampling_dl,
-                self.dataset.batch_num,
-                self.dataset.max_in_p,
-            )
+            key = f"{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit[0])
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1311,7 +1305,7 @@ class SemanticKittiSampler(Sampler):
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
-                key = f"{sampler_method:s}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
+                key = f"{sampler_method}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
                 neighb_lim_dict[key] = self.dataset.neighborhood_limits[layer_ind]
             with open(neighb_lim_file, "wb") as file:
                 pickle.dump(neighb_lim_dict, file)
@@ -1433,7 +1427,7 @@ class SemanticKittiCustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_name:s}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):

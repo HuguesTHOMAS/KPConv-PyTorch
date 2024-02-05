@@ -1533,7 +1533,7 @@ class S3DISCustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_name:s}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):

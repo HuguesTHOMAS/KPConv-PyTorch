@@ -298,8 +298,8 @@ class Config:
             # Input parameters
             text_file.write("# Input parameters\n")
             text_file.write("# ****************\n\n")
-            text_file.write(f"dataset = {self.dataset:s}\n")
-            text_file.write(f"dataset_task = {self.dataset_task:s}\n")
+            text_file.write(f"dataset = {self.dataset}\n")
+            text_file.write(f"dataset_task = {self.dataset_task}\n")
             if isinstance(self.num_classes, list):
                 text_file.write("num_classes =")
                 for n in self.num_classes:
@@ -309,7 +309,7 @@ class Config:
                 text_file.write(f"num_classes = {self.num_classes:d}\n")
             text_file.write(f"in_points_dim = {self.in_points_dim:d}\n")
             text_file.write(f"in_features_dim = {self.in_features_dim:d}\n")
-            text_file.write(f"in_radius = {self.in_radius:.6f}\n")
+            text_file.write(f"in_radius = {self.in_radius:6f}\n")
             text_file.write(f"input_threads = {self.input_threads:d}\n\n")
 
             # Model parameters
@@ -318,15 +318,15 @@ class Config:
 
             text_file.write("architecture =")
             for a in self.architecture:
-                text_file.write(f" {a:s}")
+                text_file.write(f" {a}")
             text_file.write("\n")
-            text_file.write(f"equivar_mode = {self.equivar_mode:s}\n")
-            text_file.write(f"invar_mode = {self.invar_mode:s}\n")
+            text_file.write(f"equivar_mode = {self.equivar_mode}\n")
+            text_file.write(f"invar_mode = {self.invar_mode}\n")
             text_file.write(f"num_layers = {self.num_layers:d}\n")
             text_file.write(f"first_features_dim = {self.first_features_dim:d}\n")
             text_file.write(f"use_batch_norm = {int(self.use_batch_norm):d}\n")
-            text_file.write(f"batch_norm_momentum = {self.batch_norm_momentum:.6f}\n\n")
-            text_file.write(f"segmentation_ratio = {self.segmentation_ratio:.6f}\n\n")
+            text_file.write(f"batch_norm_momentum = {self.batch_norm_momentum:6f}\n\n")
+            text_file.write(f"segmentation_ratio = {self.segmentation_ratio:6f}\n\n")
 
             # KPConv parameters
             text_file.write("# KPConv parameters\n")

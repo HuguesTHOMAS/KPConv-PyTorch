@@ -1239,7 +1239,7 @@ class NPM3DSampler(Sampler):
                 else:
                     color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 
@@ -1429,12 +1429,7 @@ class NPM3DSampler(Sampler):
                 sampler_method = "potentials"
             else:
                 sampler_method = "random"
-            key = "{:s}_{:.3f}_{:.3f}_{:d}".format(
-                sampler_method,
-                self.dataset.config.in_radius,
-                self.dataset.config.first_subsampling_dl,
-                self.dataset.config.batch_num,
-            )
+            key = "{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1566,7 +1561,7 @@ class NPM3DCustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_name:s}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):
