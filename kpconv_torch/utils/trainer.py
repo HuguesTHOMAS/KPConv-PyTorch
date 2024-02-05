@@ -896,9 +896,9 @@ class ModelTrainer:
 
         # Print instance mean
         mIoU = 100 * np.mean(IoUs)
-        print(f"{config.dataset} : subpart mIoU = {mIoU:.1f} %")
+        print(f"{config.dataset} : subpart mIoU = {mIoU:1f} %")
         mIoU = 100 * np.mean(val_IoUs)
-        print(f"{config.dataset :     val mIoU = {mIoU:.1f} %")
+        print(f"{config.dataset} :     val mIoU = {mIoU:1f} %")
 
         t6 = time.time()
 
