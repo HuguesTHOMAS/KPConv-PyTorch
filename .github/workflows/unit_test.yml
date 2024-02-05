@@ -1,0 +1,61 @@
+name: "Unit tests"
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+  push:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  unit_test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Get source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: compile C++ wrappers
+        run: |
+          cd cpp_wrappers
+          sh compile_wrappers.sh
+          cd ..
+
+      - name: Run unit test with pytest
+        run: |
+          # Must use the "python -m pytest" version instead of raw "pytest"
+          # because we need the current dir to be in `sys.path`
+          # See https://docs.pytest.org/en/latest/how-to/usage.html#calling-pytest-through-python-m-pytest
+          python -m pytest -vvvs tests/ --cov=./ --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          fail_ci_if_error: false
+          flags: unittests
+          name: pytest
+          file: ./coverage.xml
