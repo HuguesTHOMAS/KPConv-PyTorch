@@ -991,7 +991,6 @@ class S3DISSampler(Sampler):
                                        class {label:d}: {self.dataset.label_names[label_ind]} only had {N_inds:d} available points, while we \
                                        needed {random_pick_n:d}. Repeating indices in the same epoch"
                             )
-                        )
 
                     elif N_inds < 50 * random_pick_n:
                         rand_inds = np.random.choice(
