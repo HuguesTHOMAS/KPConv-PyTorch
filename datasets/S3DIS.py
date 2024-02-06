@@ -303,11 +303,13 @@ class S3DISDataset(PointCloudDataset):
                 pot_points = np.array(self.pot_trees[cloud_ind].data, copy=False)
 
                 # Center point of input region
-                center_point = pot_points[point_ind, :].reshape(1, -1)
+                center_point = np.copy(pot_points[point_ind, :].reshape(1, -1))
 
                 # Add a small noise to center point
                 if self.set != 'ERF':
-                    center_point += np.random.normal(scale=self.config.in_radius / 10, size=center_point.shape)
+                    center_point += np.clip(np.random.normal(scale=self.config.in_radius / 10, size=center_point.shape),
+                                            -self.config.in_radius / 2,
+                                            self.config.in_radius / 2)
 
                 # Indices of points in input region
                 pot_inds, dists = self.pot_trees[cloud_ind].query_radius(center_point,
@@ -534,11 +536,13 @@ class S3DISDataset(PointCloudDataset):
             points = np.array(self.input_trees[cloud_ind].data, copy=False)
 
             # Center point of input region
-            center_point = points[point_ind, :].reshape(1, -1)
+            center_point = np.copy(points[point_ind, :].reshape(1, -1))
 
             # Add a small noise to center point
             if self.set != 'ERF':
-                center_point += np.random.normal(scale=self.config.in_radius / 10, size=center_point.shape)
+                center_point += np.clip(np.random.normal(scale=self.config.in_radius / 10, size=center_point.shape),
+                                        -self.config.in_radius / 2,
+                                        self.config.in_radius / 2)
 
             # Indices of points in input region
             input_inds = self.input_trees[cloud_ind].query_radius(center_point,
