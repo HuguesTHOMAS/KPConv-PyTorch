@@ -14,18 +14,31 @@ from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply
+from kpconv_torch.utils.tester import get_test_save_path
 
 
 class NPM3DDataset(PointCloudDataset):
     """Class to handle NPM3D dataset."""
 
     def __init__(
-        self, datapath, config, split="training", use_potentials=True, load_data=True
-    ):
+            self,
+            command,
+            config,
+            datapath,
+            chosen_log=None,
+            infered_file=None,
+            output_dir=None,
+            split="training",
+            use_potentials=True,
+            load_data=True
+        ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
         PointCloudDataset.__init__(self, "NPM3D")
+
+        self.train_save_path = get_train_save_path(output_dir, chosen_log)
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         ############
         # Parameters
@@ -769,13 +782,13 @@ class NPM3DDataset(PointCloudDataset):
             cloud_name = self.cloud_names[i]
 
             # Name of the input files
-            KDTree_file = join(tree_path, f"{cloud_name:s}_KDTree.pkl")
-            sub_ply_file = join(tree_path, f"{cloud_name:s}.ply")
+            KDTree_file = join(tree_path, f"{cloud_name}_KDTree.pkl")
+            sub_ply_file = join(tree_path, f"{cloud_name}.ply")
 
             # Check if inputs have already been computed
             if exists(KDTree_file):
                 print(
-                    f"\nFound KDTree for cloud {cloud_name:s}, subsampled at {dl:.3f}"
+                    f"\nFound KDTree for cloud {cloud_name}, subsampled at {dl:3f}"
                 )
 
                 # read ply with data
@@ -789,7 +802,7 @@ class NPM3DDataset(PointCloudDataset):
 
             else:
                 print(
-                    f"\nPreparing KDTree for cloud {cloud_name:s}, subsampled at {dl:.3f}"
+                    f"\nPreparing KDTree for cloud {cloud_name}, subsampled at {dl:3f}"
                 )
 
                 # Read ply file
@@ -854,7 +867,7 @@ class NPM3DDataset(PointCloudDataset):
 
                 # Name of the input files
                 coarse_KDTree_file = join(
-                    tree_path, f"{cloud_name:s}_coarse_KDTree.pkl"
+                    tree_path, f"{cloud_name}_coarse_KDTree.pkl"
                 )
 
                 # Check if inputs have already been computed
@@ -904,7 +917,7 @@ class NPM3DDataset(PointCloudDataset):
                 cloud_name = self.cloud_names[i]
 
                 # File name for saving
-                proj_file = join(tree_path, f"{cloud_name:s}_proj.pkl")
+                proj_file = join(tree_path, f"{cloud_name}_proj.pkl")
 
                 # Try to load previous indices
                 if exists(proj_file):
@@ -931,7 +944,7 @@ class NPM3DDataset(PointCloudDataset):
 
                 self.test_proj += [proj_inds]
                 self.validation_labels += [labels]
-                print(f"{cloud_name:s} done in {time.time() - t0:.1f}s")
+                print(f"{cloud_name} done in {time.time() - t0:.1f}s")
 
         print()
         return
@@ -949,11 +962,13 @@ class NPM3DDataset(PointCloudDataset):
 class NPM3DSampler(Sampler):
     """Sampler for NPM3D"""
 
-    def __init__(self, dataset: NPM3DDataset):
+    def __init__(self, dataset: NPM3DDataset, chosen_log, infered_file):
         Sampler.__init__(self, dataset)
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
+
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         # Number of step per epoch
         if dataset.set == "training":
@@ -1016,15 +1031,10 @@ class NPM3DSampler(Sampler):
                                 )
                             )
                         warnings.warn(
-                            "When choosing random epoch indices (use_potentials=False), \
-                                       class {:d}: {:s} only had {:d} available points, while we \
-                                       needed {:d}. Repeating indices in the same epoch".format(
-                                label,
-                                self.dataset.label_names[label_ind],
-                                N_inds,
-                                random_pick_n,
+                            f"When choosing random epoch indices (use_potentials=False), \
+                                       class {label:d}: {self.dataset.label_names[label_ind]} only had {N_inds:d} available points, while we \
+                                       needed {random_pick_n:d}. Repeating indices in the same epoch"
                             )
-                        )
 
                     elif N_inds < 50 * random_pick_n:
                         rand_inds = np.random.choice(
@@ -1169,7 +1179,7 @@ class NPM3DSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.dataset.path, "batch_limits.pkl")
+        batch_lim_file = join(self.test_save_path, "batch_limits.pkl")
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -1181,12 +1191,7 @@ class NPM3DSampler(Sampler):
             sampler_method = "potentials"
         else:
             sampler_method = "random"
-        key = "{:s}_{:.3f}_{:.3f}_{:d}".format(
-            sampler_method,
-            self.dataset.config.in_radius,
-            self.dataset.config.first_subsampling_dl,
-            self.dataset.config.batch_num,
-        )
+        key = f"{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -1201,13 +1206,13 @@ class NPM3DSampler(Sampler):
             else:
                 color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.dataset.path, "neighbors_limits.pkl")
+        neighb_lim_file = join(self.test_save_path, "neighbors_limits.pkl")
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
@@ -1249,7 +1254,7 @@ class NPM3DSampler(Sampler):
                 else:
                     color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 
@@ -1439,12 +1444,7 @@ class NPM3DSampler(Sampler):
                 sampler_method = "potentials"
             else:
                 sampler_method = "random"
-            key = "{:s}_{:.3f}_{:.3f}_{:d}".format(
-                sampler_method,
-                self.dataset.config.in_radius,
-                self.dataset.config.first_subsampling_dl,
-                self.dataset.config.batch_num,
-            )
+            key = "{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1576,7 +1576,7 @@ class NPM3DCustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_name:s}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):
@@ -1756,9 +1756,9 @@ class NPM3DConfig(Config):
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
     segloss_balance = "none"
 
-    # Do we nee to save convergence
+    # Do we need to save convergence
     saving = True
-    saving_path = None
+    chosen_log = None
 
 
 # ----------------------------------------------------------------------------------------------------------------------

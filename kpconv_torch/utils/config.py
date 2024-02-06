@@ -1,8 +1,10 @@
 from enum import Enum
-from os.path import join
+from os import makedirs
+from os.path import exists, join
+from pathlib import Path
 
 import numpy as np
-
+import time
 
 # Colors for printing
 class BColors(Enum):
@@ -22,11 +24,18 @@ class Config:
     """
 
     ##################
+    # CLI parameters
+    ##################
+
+    dataset = "" # pointed by the -s/--dataset option
+    data_folder = None # pointed by the -d/--datapath option
+
+    ##################
     # Input parameters
     ##################
 
-    # Dataset name
-    dataset = ""
+    # Do we need to save convergence
+    saving = True
 
     # Type of network model
     dataset_task = ""
@@ -167,11 +176,7 @@ class Config:
 
     # Number of epoch between each checkpoint
     checkpoint_gap = 50
-
-    # Do we nee to save convergence
-    saving = True
-    saving_path = None
-
+    
     def __init__(self):
         """
         Class Initialyser
@@ -227,12 +232,17 @@ class Config:
             if "global" in block or "upsample" in block:
                 break
 
-    def load(self, path):
+    def set_chosen_log(self, chosen_log):
+        self.chosen_log = chosen_log
+    
+    def set_output_dir(self, output_dir):
+        self.output_dir = output_dir
 
-        filename = join(path, "parameters.txt")
+    def load(self, train_save_path):
+        filename = join(train_save_path, "parameters.txt")
         with open(filename) as f:
             lines = f.readlines()
-
+        
         # Class variable dictionary
         for line in lines:
             line_info = line.split()
@@ -270,13 +280,12 @@ class Config:
                         setattr(self, line_info[0], attr_type(line_info[2]))
 
         self.saving = True
-        self.saving_path = path
+        self.save_path = train_save_path
         self.__init__()
+    
+    def save_parameters(self, train_save_path):
 
-    def save(self):
-
-        with open(join(self.saving_path, "parameters.txt"), "w") as text_file:
-
+        with open(join(train_save_path, "parameters.txt"), "w") as text_file:
             text_file.write("# -----------------------------------#\n")
             text_file.write("# Parameters of the training session #\n")
             text_file.write("# -----------------------------------#\n\n")
@@ -284,8 +293,8 @@ class Config:
             # Input parameters
             text_file.write("# Input parameters\n")
             text_file.write("# ****************\n\n")
-            text_file.write(f"dataset = {self.dataset:s}\n")
-            text_file.write(f"dataset_task = {self.dataset_task:s}\n")
+            text_file.write(f"dataset = {self.dataset}\n")
+            text_file.write(f"dataset_task = {self.dataset_task}\n")
             if isinstance(self.num_classes, list):
                 text_file.write("num_classes =")
                 for n in self.num_classes:
@@ -295,7 +304,7 @@ class Config:
                 text_file.write(f"num_classes = {self.num_classes:d}\n")
             text_file.write(f"in_points_dim = {self.in_points_dim:d}\n")
             text_file.write(f"in_features_dim = {self.in_features_dim:d}\n")
-            text_file.write(f"in_radius = {self.in_radius:.6f}\n")
+            text_file.write(f"in_radius = {self.in_radius:6f}\n")
             text_file.write(f"input_threads = {self.input_threads:d}\n\n")
 
             # Model parameters
@@ -304,33 +313,33 @@ class Config:
 
             text_file.write("architecture =")
             for a in self.architecture:
-                text_file.write(f" {a:s}")
+                text_file.write(f" {a}")
             text_file.write("\n")
-            text_file.write(f"equivar_mode = {self.equivar_mode:s}\n")
-            text_file.write(f"invar_mode = {self.invar_mode:s}\n")
+            text_file.write(f"equivar_mode = {self.equivar_mode}\n")
+            text_file.write(f"invar_mode = {self.invar_mode}\n")
             text_file.write(f"num_layers = {self.num_layers:d}\n")
             text_file.write(f"first_features_dim = {self.first_features_dim:d}\n")
             text_file.write(f"use_batch_norm = {int(self.use_batch_norm):d}\n")
-            text_file.write(f"batch_norm_momentum = {self.batch_norm_momentum:.6f}\n\n")
-            text_file.write(f"segmentation_ratio = {self.segmentation_ratio:.6f}\n\n")
+            text_file.write(f"batch_norm_momentum = {self.batch_norm_momentum:6f}\n\n")
+            text_file.write(f"segmentation_ratio = {self.segmentation_ratio:6f}\n\n")
 
             # KPConv parameters
             text_file.write("# KPConv parameters\n")
             text_file.write("# *****************\n\n")
 
-            text_file.write(f"first_subsampling_dl = {self.first_subsampling_dl:.6f}\n")
+            text_file.write(f"first_subsampling_dl = {self.first_subsampling_dl:6f}\n")
             text_file.write(f"num_kernel_points = {self.num_kernel_points:d}\n")
-            text_file.write(f"conv_radius = {self.conv_radius:.6f}\n")
+            text_file.write(f"conv_radius = {self.conv_radius:6f}\n")
             text_file.write(f"deform_radius = {self.deform_radius:.6f}\n")
-            text_file.write(f"fixed_kernel_points = {self.fixed_kernel_points:s}\n")
+            text_file.write(f"fixed_kernel_points = {self.fixed_kernel_points}\n")
             text_file.write(f"KP_extent = {self.KP_extent:.6f}\n")
-            text_file.write(f"KP_influence = {self.KP_influence:s}\n")
-            text_file.write(f"aggregation_mode = {self.aggregation_mode:s}\n")
+            text_file.write(f"KP_influence = {self.KP_influence}\n")
+            text_file.write(f"aggregation_mode = {self.aggregation_mode}\n")
             text_file.write(f"modulated = {int(self.modulated):d}\n")
             text_file.write(f"n_frames = {self.n_frames:d}\n")
             text_file.write(f"max_in_points = {self.max_in_points:d}\n\n")
             text_file.write(f"max_val_points = {self.max_val_points:d}\n\n")
-            text_file.write(f"val_radius = {self.val_radius:.6f}\n\n")
+            text_file.write(f"val_radius = {self.val_radius:6f}\n\n")
 
             # Training parameters
             text_file.write("# Training parameters\n")
@@ -348,9 +357,9 @@ class Config:
             for a in self.augment_symmetries:
                 text_file.write(f" {int(a):d}")
             text_file.write("\n")
-            text_file.write(f"augment_rotation = {self.augment_rotation:s}\n")
+            text_file.write(f"augment_rotation = {self.augment_rotation}\n")
             text_file.write(f"augment_noise = {self.augment_noise:f}\n")
-            text_file.write(f"augment_occlusion = {self.augment_occlusion:s}\n")
+            text_file.write(f"augment_occlusion = {self.augment_occlusion}\n")
             text_file.write(
                 "augment_occlusion_ratio = {:.6f}\n".format(
                     self.augment_occlusion_ratio
@@ -367,12 +376,12 @@ class Config:
             text_file.write(f"augment_color = {self.augment_color:.6f}\n\n")
 
             text_file.write(f"weight_decay = {self.weight_decay:f}\n")
-            text_file.write(f"segloss_balance = {self.segloss_balance:s}\n")
+            text_file.write(f"segloss_balance = {self.segloss_balance}\n")
             text_file.write("class_w =")
             for a in self.class_w:
                 text_file.write(f" {a:.6f}")
             text_file.write("\n")
-            text_file.write(f"deform_fitting_mode = {self.deform_fitting_mode:s}\n")
+            text_file.write(f"deform_fitting_mode = {self.deform_fitting_mode}\n")
             text_file.write(f"deform_fitting_power = {self.deform_fitting_power:.6f}\n")
             text_file.write(f"deform_lr_factor = {self.deform_lr_factor:.6f}\n")
             text_file.write(f"repulse_extent = {self.repulse_extent:.6f}\n")

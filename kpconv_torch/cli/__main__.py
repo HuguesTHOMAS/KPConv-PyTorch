@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 
 from kpconv_torch import __version__ as kpconv_version
-from kpconv_torch import plot_convergence, preprocess, test, train, visualize
+from kpconv_torch import preprocess, test, train
 
 
 SUPPORTED_DATASETS = {"ModelNet40", "NPM3D", "S3DIS", "SemanticKitti", "Toronto3D"}
@@ -24,15 +24,23 @@ def valid_dir(str_dir):
     return path_dir
 
 
+def valid_file(str_path):
+    path = Path(str_path)
+    if not path.is_file():
+        raise argparse.ArgumentTypeError(f"The {str(str_path)} file does not exists")
+    return path
+
+
 def kpconv_parser(subparser, reference_func, command, command_description):
     """CLI definition for kpconv commands
 
     Parameters
     ----------
-    subparser : argparser.parser.SubParsersAction
-    reference_func : function
+    subparser: argparser.parser.SubParsersAction
+    reference_func: function
     """
     parser = subparser.add_parser(command, help=command_description)
+
     parser.add_argument(
         "-d",
         "--datapath",
@@ -40,28 +48,46 @@ def kpconv_parser(subparser, reference_func, command, command_description):
         type=valid_dir,
         help="Path of the dataset on the file system",
     )
+
     if command == "test":
         parser.add_argument(
             "-f",
             "--filename",
-            type=str,
+            required=False,
+            type=valid_file,
             help=(
                 "File on which to predict semantic labels starting from a trained model "
                 "(if None, use the validation split)"
             ),
         )
-    #   Here you can choose which model you want to use. Here are the possible values :
-    #
-    #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
-    #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
-    if command != "preprocess":
+    
         parser.add_argument(
             "-l",
             "--chosen-log",
             required=True,
             type=valid_dir,
-            help="Path of the KPConv log folder on the file system",
+            help="If mentioned with the test command, the test will use this folder for the inference procedure.",
         )
+        # '.../Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
+        # 'last_XXX': Automatically retrieve the last trained model on dataset XXX
+    
+     
+    if command == "train":
+        group = parser.add_mutually_exclusive_group(required=False)
+        group.add_argument(
+            "-l",
+            "--chosen-log",
+            type=valid_dir,
+            help="If mentioned with the train command,the training starts from an already trained model, contained in the mentioned folder.",
+        )
+    
+        group.add_argument(
+            "-o",
+            "--output-dir",
+            type=valid_dir,
+            help="If mentioned, starts training from the begining. Otherwise, the -l option must be mentioned."
+        )
+
     parser.add_argument(
         "-s",
         "--dataset",
@@ -88,16 +114,17 @@ def main():
         "preprocess",
         "Preprocess a dataset to make it compliant with the program",
     )
-    kpconv_parser(sub_parsers, train.main, "train", "Train a KPConv model")
-    kpconv_parser(sub_parsers, test.main, "test", "Test a KPConv trained model")
     kpconv_parser(
-        sub_parsers, visualize.main, "visualize", "Visualize kernel deformations"
+        sub_parsers, 
+        train.main, 
+        "train", 
+        "Train a KPConv model",
     )
     kpconv_parser(
-        sub_parsers,
-        plot_convergence.main,
-        "plotconv",
-        "Plot convergence for a set of models",
+        sub_parsers, 
+        test.main, 
+        "test", 
+        "Test a KPConv trained model",
     )
 
     args = parser.parse_args()

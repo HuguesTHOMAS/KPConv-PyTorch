@@ -1,5 +1,6 @@
 from os import makedirs
 from os.path import exists, join
+from pathlib import Path
 import time
 
 import numpy as np
@@ -8,6 +9,16 @@ import torch
 from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.utils.ply import write_ply
 
+def get_test_save_path(infered_file, chosen_log):
+    if infered_file is None and chosen_log is None:
+        test_path = None
+    elif infered_file is not None:
+        test_path = Path(infered_file).parent / "test" / Path(chosen_log).name
+    else:
+        test_path = Path(chosen_log) / "test"
+    if test_path is not None and not exists(test_path):
+        makedirs(test_path)
+    return test_path
 
 class ModelTester:
     def __init__(self, net, chkp_path=None, on_gpu=True):
@@ -163,7 +174,7 @@ class ModelTester:
 
         # Test saving path
         if config.saving:
-            test_path = join("test", config.saving_path.split("/")[-1])
+            test_path = get_test_save_path()
             if not exists(test_path):
                 makedirs(test_path)
             if not exists(join(test_path, "predictions")):
@@ -515,7 +526,7 @@ class ModelTester:
         test_path = None
         report_path = None
         if config.saving:
-            test_path = join("test", config.saving_path.split("/")[-1])
+            test_path = get_test_save_path()
             if not exists(test_path):
                 makedirs(test_path)
             report_path = join(test_path, "reports")
@@ -611,7 +622,7 @@ class ModelTester:
                     else:
                         folder = "probs"
                         pred_folder = "predictions"
-                    filename = f"{seq_name:s}_{f_ind:07d}.npy"
+                    filename = f"{seq_name}_{f_ind:7d}.npy"
                     filepath = join(test_path, folder, filename)
                     if exists(filepath):
                         frame_probs_uint8 = np.load(filepath)

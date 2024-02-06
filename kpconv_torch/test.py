@@ -3,6 +3,7 @@ import time
 
 import numpy as np
 from torch.utils.data import DataLoader
+from kpconv_torch.utils.trainer import get_train_save_path
 
 from kpconv_torch.datasets.ModelNet40 import (
     ModelNet40Collate,
@@ -101,7 +102,7 @@ def main(args):
 
     # Initialize configuration class
     config = Config()
-    config.load(chosen_log)
+    config.load(args.chosen_log)
 
     ##################################
     # Change model parameters for test
@@ -126,30 +127,67 @@ def main(args):
 
     # Initiate dataset
     if config.dataset == "ModelNet40":
-        test_dataset = ModelNet40Dataset(args.datapath, config, train=False)
-        test_sampler = ModelNet40Sampler(test_dataset)
+        test_dataset = ModelNet40Dataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath, 
+            chosen_log=args.chosen_log,
+            infered_file=args.filename,
+            train=False,
+        )
+        test_sampler = ModelNet40Sampler(
+            test_dataset, 
+            args.chosen_log, 
+            args.filename,
+        )
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
         test_dataset = S3DISDataset(
-            args.datapath,
-            config,
+            command=args.command,
+            config=config,
+            datapath=args.datapath, 
+            chosen_log=args.chosen_log,
+            infered_file=args.filename,
             split="validation" if args.filename is None else "test",
             use_potentials=True,
-            infered_file=args.filename,
         )
-        test_sampler = S3DISSampler(test_dataset)
+        test_sampler = S3DISSampler(
+            test_dataset, 
+            args.chosen_log, 
+            args.filename,
+        )
         collate_fn = S3DISCollate
     elif config.dataset == "Toronto3D":
         test_dataset = Toronto3DDataset(
-            args.datapath, config, split="test", use_potentials=True
+            command=args.command,
+            config=config,
+            datapath=args.datapath, 
+            chosen_log=args.chosen_log,
+            infered_file=args.filename,
+            split="test", 
+            use_potentials=True,
         )
-        test_sampler = Toronto3DSampler(test_dataset)
+        test_sampler = Toronto3DSampler(
+            test_dataset, 
+            args.chosen_log, 
+            args.filename,
+        )
         collate_fn = Toronto3DCollate
     elif config.dataset == "SemanticKitti":
         test_dataset = SemanticKittiDataset(
-            args.datapath, config, split=split, balance_classes=False
+            command=args.command,
+            config=config,
+            datapath=args.datapath, 
+            chosen_log=args.chosen_log,
+            infered_file=args.filename,
+            split=split, 
+            balance_classes=False,
         )
-        test_sampler = SemanticKittiSampler(test_dataset)
+        test_sampler = SemanticKittiSampler(
+            test_dataset, 
+            args.chosen_log, 
+            args.filename,
+        )
         collate_fn = SemanticKittiCollate
     else:
         raise ValueError("Unsupported dataset : " + config.dataset)
@@ -164,7 +202,7 @@ def main(args):
         pin_memory=True,
     )
 
-    # Calibrate samplers
+    # Calibrate samplers, one for each dataset
     test_sampler.calibration(test_loader, verbose=True)
 
     print("\nModel Preparation")
@@ -186,7 +224,7 @@ def main(args):
     print("\nStart test")
     print("**********\n")
 
-    # Training
+    # Testing
     if config.dataset_task == "classification":
         tester.classification_test(net, test_loader, config)
     elif config.dataset_task == "cloud_segmentation":

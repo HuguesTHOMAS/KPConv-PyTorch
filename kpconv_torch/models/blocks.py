@@ -476,9 +476,7 @@ class BatchNormBlock(nn.Module):
 
     def __repr__(self):
         return (
-            "BatchNormBlock(in_feat: {:d}, momentum: {:.3f}, only_bias: {:s})".format(
-                self.in_dim, self.bn_momentum, str(not self.use_bn)
-            )
+            f"BatchNormBlock(in_feat: {self.in_dim:d}, momentum: {self.bn_momentum:3f}, only_bias: {str(not self.use_bn)})"
         )
 
 
@@ -512,9 +510,7 @@ class UnaryBlock(nn.Module):
         return x
 
     def __repr__(self):
-        return "UnaryBlock(in_feat: {:d}, out_feat: {:d}, BN: {:s}, ReLU: {:s})".format(
-            self.in_dim, self.out_dim, str(self.use_bn), str(not self.no_relu)
-        )
+        return f"UnaryBlock(in_feat: {self.in_dim:d}, out_feat: {self.out_dim:d}, BN: {str(self.use_bn)}, ReLU: {str(not self.no_relu)})"
 
 
 class SimpleBlock(nn.Module):

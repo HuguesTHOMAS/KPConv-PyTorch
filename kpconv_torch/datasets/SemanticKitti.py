@@ -12,12 +12,23 @@ import yaml
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
+from kpconv_torch.utils.tester import get_test_save_path
 
 
 class SemanticKittiDataset(PointCloudDataset):
     """Class to handle SemanticKitti dataset."""
 
-    def __init__(self, datapath, config, split="training", balance_classes=True):
+    def __init__(
+            self,
+            command,
+            config,
+            datapath,
+            chosen_log=None,
+            infered_file=None,
+            output_dir=None,
+            split="training",
+            balance_classes=True
+        ):
         PointCloudDataset.__init__(self, "SemanticKitti")
 
         ##########################
@@ -26,6 +37,9 @@ class SemanticKittiDataset(PointCloudDataset):
 
         # Dataset folder
         self.path = datapath
+
+        self.train_save_path = get_train_save_path(output_dir, chosen_log)
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         # Type of task conducted on this dataset
         self.dataset_task = "slam_segmentation"
@@ -620,7 +634,7 @@ class SemanticKittiDataset(PointCloudDataset):
                 if self.config.n_frames > 1:
                     frame_mode = "multi"
                 seq_stat_file = join(
-                    self.path, "sequences", seq, f"stats_{frame_mode:s}.pkl"
+                    self.path, "sequences", seq, f"stats_{frame_mode}.pkl"
                 )
 
                 # Check if inputs have already been computed
@@ -633,7 +647,7 @@ class SemanticKittiDataset(PointCloudDataset):
 
                     # Initiate dict
                     print(
-                        f"Preparing seq {seq:s} class frames. (Long but one time only)"
+                        f"Preparing seq {seq} class frames. (Long but one time only)"
                     )
 
                     # Class frames as a boolean mask
@@ -766,11 +780,13 @@ class SemanticKittiDataset(PointCloudDataset):
 class SemanticKittiSampler(Sampler):
     """Sampler for SemanticKitti"""
 
-    def __init__(self, dataset: SemanticKittiDataset):
+    def __init__(self, dataset: SemanticKittiDataset, chosen_log, infered_file):
         Sampler.__init__(self, dataset)
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
+
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         # Number of step per epoch
         if dataset.set == "training":
@@ -953,9 +969,7 @@ class SemanticKittiSampler(Sampler):
             sampler_method = "balanced"
         else:
             sampler_method = "random"
-        key = "{:s}_{:.3f}_{:.3f}".format(
-            sampler_method, self.dataset.in_R, self.dataset.config.first_subsampling_dl
-        )
+        key = f"{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:3f}"
         if not redo and key in max_in_lim_dict:
             self.dataset.max_in_p = max_in_lim_dict[key]
         else:
@@ -970,7 +984,7 @@ class SemanticKittiSampler(Sampler):
             else:
                 color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 
@@ -1061,7 +1075,7 @@ class SemanticKittiSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.dataset.path, "batch_limits.pkl")
+        batch_lim_file = join(self.dataset.config.get_test_save_path(), "batch_limits.pkl")
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -1073,13 +1087,7 @@ class SemanticKittiSampler(Sampler):
             sampler_method = "balanced"
         else:
             sampler_method = "random"
-        key = "{:s}_{:.3f}_{:.3f}_{:d}_{:d}".format(
-            sampler_method,
-            self.dataset.in_R,
-            self.dataset.config.first_subsampling_dl,
-            self.dataset.batch_num,
-            self.dataset.max_in_p,
-        )
+        key = "{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:f}_{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -1094,13 +1102,13 @@ class SemanticKittiSampler(Sampler):
             else:
                 color = BColors.FAIL.value
                 v = "?"
-            print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         # Neighbors limit
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.dataset.path, "neighbors_limits.pkl")
+        neighb_lim_file = join(self.dataset.config.get_test_save_path(), "neighbors_limits.pkl")
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
@@ -1117,7 +1125,7 @@ class SemanticKittiSampler(Sampler):
             else:
                 r = dl * self.dataset.config.conv_radius
 
-            key = f"{sampler_method:s}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
+            key = f"{sampler_method}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
@@ -1134,7 +1142,7 @@ class SemanticKittiSampler(Sampler):
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
-                key = f"{sampler_method:s}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
+                key = f"{sampler_method}_{self.dataset.max_in_p:d}_{dl:3f}_{r:3f}"
 
                 if key in neighb_lim_dict:
                     color = BColors.OKGREEN.value
@@ -1142,7 +1150,7 @@ class SemanticKittiSampler(Sampler):
                 else:
                     color = BColors.FAIL.value
                     v = "?"
-                print(f'{color}"{key:s}": {v:s}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
 
         if redo:
 
@@ -1301,13 +1309,7 @@ class SemanticKittiSampler(Sampler):
             print("\n**************************************************\n")
 
             # Save batch_limit dictionary
-            key = "{:s}_{:.3f}_{:.3f}_{:d}_{:d}".format(
-                sampler_method,
-                self.dataset.in_R,
-                self.dataset.config.first_subsampling_dl,
-                self.dataset.batch_num,
-                self.dataset.max_in_p,
-            )
+            key = f"{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit[0])
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1319,7 +1321,7 @@ class SemanticKittiSampler(Sampler):
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
-                key = f"{sampler_method:s}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
+                key = f"{sampler_method}_{self.dataset.max_in_p:d}_{dl:.3f}_{r:.3f}"
                 neighb_lim_dict[key] = self.dataset.neighborhood_limits[layer_ind]
             with open(neighb_lim_file, "wb") as file:
                 pickle.dump(neighb_lim_dict, file)
@@ -1441,7 +1443,7 @@ class SemanticKittiCustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_name:s}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):
@@ -1633,9 +1635,9 @@ class SemanticKittiConfig(Config):
     # class_w = [1.430, 5.000, 5.000, 4.226, 5.000, 5.000, 5.000, 5.000, 0.719, 2.377,
     #            0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.000, 5.000]
 
-    # Do we nee to save convergence
+    # Do we need to save convergence
     saving = True
-    saving_path = None
+    chosen_log = None
 
 
 # ----------------------------------------------------------------------------------------------------------------------
