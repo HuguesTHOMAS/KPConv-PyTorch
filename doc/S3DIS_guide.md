@@ -1,6 +1,8 @@
 
 ## Scene Segmentation on S3DIS
 
+S3DIS is used to train models on indoor large spaces.
+
 ### Data
 
 We consider our experiment folder is located at `XXXX/Experiments/KPConv-PyTorch`. And we use a common Data folder
@@ -9,8 +11,41 @@ loacated at `XXXX/Data`. Therefore the relative path to the Data folder is `../.
 S3DIS dataset can be downloaded <a href="https://goo.gl/forms/4SoGp4KtH1jfRqEj2">here (4.8 GB)</a>.
 Download the file named `Stanford3dDataset_v1.2.zip`, uncompress the data and move it to `../../data/S3DIS`.
 
-N.B. If you want to place your data anywhere else, you just have to change the variable
-`self.path` of `S3DISDataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/afa18c92f00c6ed771b61cb08b285d2f93446ea4/datasets/S3DIS.py#L88)).
+> If you want to place your data anywhere else, you just have to change the variable `self.path` of `S3DISDataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/afa18c92f00c6ed771b61cb08b285d2f93446ea4/datasets/S3DIS.py#L88)).
+
+S3DIS dataset is documented [here](http://buildingparser.stanford.edu/dataset.html). It contains:
+- 6 large-scale indoor areas, 3 buildings, 273 million points;
+- annotated with 13 semantic classes:
+    - 0: ceiling;
+    - 1: floor;
+    - 2: wall;
+    - 3: beam;
+    - 4: column;
+    - 5: window;
+    - 6: door;
+    - 7: chair;
+    - 8: table;
+    - 9: bookcase;
+    - 10: sofa;
+    - 11: board;
+    - 12: clutter.
+
+The dataset Area-5 is used as test scene to better measure the generalization ability of the method.
+
+When you use a S3DIS dataset, you must check that the folder contains a tree architecture, having the following organisation, for each sample area $x$ and each room of type $y$.
+
+```bash
+Area_x
+├── Annotations
+│   ├── cat-z_m.txt
+└── room-type-y_n.txt
+```
+
+- `room-type-y_n.txt` is the file containing all (unlabeled) data points describing the room. $y$ is a user-defined room type.
+
+- `cat-s_m.txt` is a file containing the labeled data points corresponding to the $z$ semantic categories (among the 13 available).
+
+There are $M$ `cat-z_m.txt` files, each one corresponding to one labeled object and $m$  varying from 1 to $M$.
 
 ### Preprocessing
 

@@ -475,9 +475,7 @@ class BatchNormBlock(nn.Module):
             return x + self.bias
 
     def __repr__(self):
-        return (
-            f"BatchNormBlock(in_feat: {self.in_dim:d}, momentum: {self.bn_momentum:3f}, only_bias: {str(not self.use_bn)})"
-        )
+        return f"BatchNormBlock(in_feat: {self.in_dim:d}, momentum: {self.bn_momentum:3f}, only_bias: {str(not self.use_bn)})"
 
 
 class UnaryBlock(nn.Module):

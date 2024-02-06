@@ -15,23 +15,24 @@ from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply
 from kpconv_torch.utils.tester import get_test_save_path
+from kpconv_torch.utils.trainer import get_train_save_path
 
 
 class NPM3DDataset(PointCloudDataset):
     """Class to handle NPM3D dataset."""
 
     def __init__(
-            self,
-            command,
-            config,
-            datapath,
-            chosen_log=None,
-            infered_file=None,
-            output_dir=None,
-            split="training",
-            use_potentials=True,
-            load_data=True
-        ):
+        self,
+        command,
+        config,
+        datapath,
+        chosen_log=None,
+        infered_file=None,
+        output_dir=None,
+        split="training",
+        use_potentials=True,
+        load_data=True,
+    ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -787,9 +788,7 @@ class NPM3DDataset(PointCloudDataset):
 
             # Check if inputs have already been computed
             if exists(KDTree_file):
-                print(
-                    f"\nFound KDTree for cloud {cloud_name}, subsampled at {dl:3f}"
-                )
+                print(f"\nFound KDTree for cloud {cloud_name}, subsampled at {dl:3f}")
 
                 # read ply with data
                 data = read_ply(sub_ply_file)
@@ -866,9 +865,7 @@ class NPM3DDataset(PointCloudDataset):
                 cloud_name = self.cloud_names[file_idx]
 
                 # Name of the input files
-                coarse_KDTree_file = join(
-                    tree_path, f"{cloud_name}_coarse_KDTree.pkl"
-                )
+                coarse_KDTree_file = join(tree_path, f"{cloud_name}_coarse_KDTree.pkl")
 
                 # Check if inputs have already been computed
                 if exists(coarse_KDTree_file):
@@ -1034,7 +1031,7 @@ class NPM3DSampler(Sampler):
                             f"When choosing random epoch indices (use_potentials=False), \
                                        class {label:d}: {self.dataset.label_names[label_ind]} only had {N_inds:d} available points, while we \
                                        needed {random_pick_n:d}. Repeating indices in the same epoch"
-                            )
+                        )
 
                     elif N_inds < 50 * random_pick_n:
                         rand_inds = np.random.choice(

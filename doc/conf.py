@@ -5,15 +5,14 @@
 """
 
 # standard
+from datetime import datetime
 import os
 import sys
-from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(r".."))
 
 # -- Project information -----------------------------------------------------
 author = "Hugues Thomas", "Oslandia"
-copyright = "Oslandia - CC-BY-SA"
 description = "KPConv-Torch documentation"
 project = "Preprocessing, training and inference of the model"
 version = release = datetime.today().strftime("%Y.%m.%d")

@@ -13,22 +13,23 @@ import yaml
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.tester import get_test_save_path
+from kpconv_torch.utils.trainer import get_train_save_path
 
 
 class SemanticKittiDataset(PointCloudDataset):
     """Class to handle SemanticKitti dataset."""
 
     def __init__(
-            self,
-            command,
-            config,
-            datapath,
-            chosen_log=None,
-            infered_file=None,
-            output_dir=None,
-            split="training",
-            balance_classes=True
-        ):
+        self,
+        command,
+        config,
+        datapath,
+        chosen_log=None,
+        infered_file=None,
+        output_dir=None,
+        split="training",
+        balance_classes=True,
+    ):
         PointCloudDataset.__init__(self, "SemanticKitti")
 
         ##########################
@@ -646,9 +647,7 @@ class SemanticKittiDataset(PointCloudDataset):
                 else:
 
                     # Initiate dict
-                    print(
-                        f"Preparing seq {seq} class frames. (Long but one time only)"
-                    )
+                    print(f"Preparing seq {seq} class frames. (Long but one time only)")
 
                     # Class frames as a boolean mask
                     seq_class_frames = np.zeros(
@@ -1075,7 +1074,9 @@ class SemanticKittiSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.dataset.config.get_test_save_path(), "batch_limits.pkl")
+        batch_lim_file = join(
+            self.dataset.config.get_test_save_path(), "batch_limits.pkl"
+        )
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -1108,7 +1109,9 @@ class SemanticKittiSampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.dataset.config.get_test_save_path(), "neighbors_limits.pkl")
+        neighb_lim_file = join(
+            self.dataset.config.get_test_save_path(), "neighbors_limits.pkl"
+        )
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)

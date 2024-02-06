@@ -9,20 +9,23 @@ from kpconv_torch.utils.config import Config
 from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.utils.ply import write_ply
 
+
 def get_train_save_path(output_dir, chosen_log):
-    print(output_dir, chosen_log)
     if chosen_log is None and output_dir is None:
-        train_path=None
+        train_path = None
     elif chosen_log is not None:
         train_path = chosen_log
     elif output_dir is not None:
-        train_path = join(output_dir, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime()))
+        train_path = join(
+            output_dir, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime())
+        )
     if train_path is not None and not exists(train_path):
         makedirs(train_path)
     return train_path
 
+
 class ModelTrainer:
-    def __init__(self, net, config, chkp_path=None, finetune=False, on_gpu=True):
+    def __init__(self, net, config, args, chkp_path=None, finetune=False, on_gpu=True):
         """
         Initialize training parameters and reload previous model for restore/finetune
         :param net: network object
@@ -77,14 +80,16 @@ class ModelTrainer:
 
         # Path of the result folder
         if config.saving:
-            config.save_parameters(get_train_save_path(args.output_dir, args.chosen_log))
+            config.save_parameters(
+                get_train_save_path(args.output_dir, args.chosen_log)
+            )
 
         return
 
     # Training main method
     # ------------------------------------------------------------------------------------------------------------------
 
-    def train(self, net, training_loader, val_loader, config):
+    def train(self, net, training_loader, val_loader, config, args):
         """
         Train the model on a particular dataset.
         """
@@ -95,17 +100,30 @@ class ModelTrainer:
 
         if config.saving:
             # Training log file
-            with open(get_train_save_path() + "/" + "training.txt", "w") as file:
+            with open(
+                get_train_save_path(args.output_dir, args.chosen_log)
+                + "/"
+                + "training.txt",
+                "w",
+            ) as file:
                 file.write("epochs steps out_loss offset_loss train_accuracy time\n")
 
             # Killing file (simply delete this file when you want to stop the training)
-            PID_file = get_train_save_path() + "/" + "running_PID.txt"
+            PID_file = (
+                get_train_save_path(args.output_dir, args.chosen_log)
+                + "/"
+                + "running_PID.txt"
+            )
             if not exists(PID_file):
                 with open(PID_file, "w") as file:
                     file.write("Launched with PyCharm")
 
             # Checkpoints directory
-            checkpoint_directory = get_train_save_path() + "/" + "checkpoints"
+            checkpoint_directory = (
+                get_train_save_path(args.output_dir, args.chosen_log)
+                + "/"
+                + "checkpoints"
+            )
             if not exists(checkpoint_directory):
                 makedirs(checkpoint_directory)
         else:
@@ -192,7 +210,12 @@ class ModelTrainer:
 
                 # Log file
                 if config.saving:
-                    with open(get_train_save_path() + "/" +  "training.txt", "a") as file:
+                    with open(
+                        get_train_save_path(args.output_dir, args.chosen_log)
+                        + "/"
+                        + "training.txt",
+                        "a",
+                    ) as file:
                         message = "{:d} {:d} {:.3f} {:.3f} {:.3f} {:.3f}\n"
                         file.write(
                             message.format(
@@ -246,7 +269,7 @@ class ModelTrainer:
 
             # Validation
             net.eval()
-            self.validation(net, val_loader, config)
+            self.validation(net, val_loader, config, args)
             net.train()
 
         print("Finished Training")
@@ -255,20 +278,19 @@ class ModelTrainer:
     # Validation methods
     # ------------------------------------------------------------------------------------------------------------------
 
-    def validation(self, net, val_loader, config: Config):
-
+    def validation(self, net, val_loader, config: Config, args):
         if config.dataset_task == "classification":
-            self.object_classification_validation(net, val_loader, config)
+            self.object_classification_validation(net, val_loader, config, args)
         elif config.dataset_task == "segmentation":
             self.object_segmentation_validation(net, val_loader, config)
         elif config.dataset_task == "cloud_segmentation":
-            self.cloud_segmentation_validation(net, val_loader, config)
+            self.cloud_segmentation_validation(net, val_loader, config, args)
         elif config.dataset_task == "slam_segmentation":
-            self.slam_segmentation_validation(net, val_loader, config)
+            self.slam_segmentation_validation(net, val_loader, config, args)
         else:
             raise ValueError("No validation method implemented for this network type")
 
-    def object_classification_validation(self, net, val_loader, config):
+    def object_classification_validation(self, net, val_loader, config, args):
         """
         Perform a round of validation and show/save results
         :param net: network object
@@ -373,7 +395,11 @@ class ModelTrainer:
             conf_list = [C1, C2]
             file_list = ["val_confs.txt", "vote_confs.txt"]
             for conf, conf_file in zip(conf_list, file_list):
-                test_file = get_train_save_path() + "/" +  conf_file
+                test_file = (
+                    get_train_save_path(args.output_dir, args.chosen_log)
+                    + "/"
+                    + conf_file
+                )
                 if exists(test_file):
                     with open(test_file, "a") as text_file:
                         for line in conf:
@@ -393,7 +419,7 @@ class ModelTrainer:
 
         return C1
 
-    def cloud_segmentation_validation(self, net, val_loader, config, debug=False):
+    def cloud_segmentation_validation(self, net, val_loader, config, args, debug=False):
         """
         Validation method for cloud segmentation models
         """
@@ -559,7 +585,11 @@ class ModelTrainer:
         if config.saving:
 
             # Name of saving file
-            test_file = get_train_save_path() + "/" + "val_IoUs.txt"
+            test_file = (
+                get_train_save_path(args.output_dir, args.chosen_log)
+                + "/"
+                + "val_IoUs.txt"
+            )
 
             # Line to write:
             line = ""
@@ -577,7 +607,11 @@ class ModelTrainer:
 
             # Save potentials
             if val_loader.dataset.use_potentials:
-                pot_path = get_train_save_path() + "/" + "potentials"
+                pot_path = (
+                    get_train_save_path(args.output_dir, args.chosen_log)
+                    + "/"
+                    + "potentials"
+                )
                 if not exists(pot_path):
                     makedirs(pot_path)
                 files = val_loader.dataset.files
@@ -602,7 +636,11 @@ class ModelTrainer:
 
         # Save predicted cloud occasionally
         if config.saving and (self.epoch + 1) % config.checkpoint_gap == 0:
-            val_path = get_train_save_path() + "/" + f"val_preds_{self.epoch + 1:d}"
+            val_path = (
+                get_train_save_path(args.output_dir, args.chosen_log)
+                + "/"
+                + f"val_preds_{self.epoch + 1:d}"
+            )
             if not exists(val_path):
                 makedirs(val_path)
             files = val_loader.dataset.files
@@ -653,7 +691,7 @@ class ModelTrainer:
 
         return
 
-    def slam_segmentation_validation(self, net, val_loader, config, debug=True):
+    def slam_segmentation_validation(self, net, val_loader, config, args, debug=True):
         """
         Validation method for slam segmentation models
         """
@@ -672,8 +710,14 @@ class ModelTrainer:
         softmax = torch.nn.Softmax(1)
 
         # Create folder for validation predictions
-        if not exists(get_train_save_path() + "/" + "val_preds"):
-            makedirs(get_train_save_path() + "/" + "val_preds")
+        if not exists(
+            get_train_save_path(args.output_dir, args.chosen_log) + "/" + "val_preds"
+        ):
+            makedirs(
+                get_train_save_path(args.output_dir, args.chosen_log)
+                + "/"
+                + "val_preds"
+            )
 
         # initiate the dataset validation containers
         val_loader.dataset.val_points = []
@@ -750,7 +794,13 @@ class ModelTrainer:
 
                 # Save predictions in a binary file
                 filename = f"{val_loader.dataset.sequences[s_ind]}_{f_ind:7d}.npy"
-                filepath = get_train_save_path() + "/" + "val_preds" + "/" + filename
+                filepath = (
+                    get_train_save_path(args.output_dir, args.chosen_log)
+                    + "/"
+                    + "val_preds"
+                    + "/"
+                    + filename
+                )
                 if exists(filepath):
                     frame_preds = np.load(filepath)
                 else:
@@ -888,7 +938,11 @@ class ModelTrainer:
             for IoUs_to_save, IoU_file in zip(IoU_list, file_list):
 
                 # Name of saving file
-                test_file = get_train_save_path() + "/" + IoU_file
+                test_file = (
+                    get_train_save_path(args.output_dir, args.chosen_log)
+                    + "/"
+                    + IoU_file
+                )
 
                 # Line to write:
                 line = ""

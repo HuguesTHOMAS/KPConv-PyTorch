@@ -636,7 +636,12 @@ def main(args):
         compare_convergences_classif(logs, logs_names)
     elif config.dataset_task == "cloud_segmentation":
         if config.dataset.startswith("S3DIS"):
-            dataset = S3DISDataset(command=args.command, config=config, datapath=args.datapath, load_data=False)
+            dataset = S3DISDataset(
+                command=args.command,
+                config=config,
+                datapath=args.datapath,
+                load_data=False,
+            )
             compare_convergences_segment(dataset, logs, logs_names)
     else:
         raise ValueError("Unsupported dataset : " + plot_dataset)

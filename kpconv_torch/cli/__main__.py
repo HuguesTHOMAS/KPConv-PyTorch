@@ -60,7 +60,7 @@ def kpconv_parser(subparser, reference_func, command, command_description):
                 "(if None, use the validation split)"
             ),
         )
-    
+
         parser.add_argument(
             "-l",
             "--chosen-log",
@@ -70,8 +70,7 @@ def kpconv_parser(subparser, reference_func, command, command_description):
         )
         # '.../Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
         # 'last_XXX': Automatically retrieve the last trained model on dataset XXX
-    
-     
+
     if command == "train":
         group = parser.add_mutually_exclusive_group(required=False)
         group.add_argument(
@@ -80,12 +79,12 @@ def kpconv_parser(subparser, reference_func, command, command_description):
             type=valid_dir,
             help="If mentioned with the train command,the training starts from an already trained model, contained in the mentioned folder.",
         )
-    
+
         group.add_argument(
             "-o",
             "--output-dir",
             type=valid_dir,
-            help="If mentioned, starts training from the begining. Otherwise, the -l option must be mentioned."
+            help="If mentioned, starts training from the begining. Otherwise, the -l option must be mentioned.",
         )
 
     parser.add_argument(
@@ -115,15 +114,15 @@ def main():
         "Preprocess a dataset to make it compliant with the program",
     )
     kpconv_parser(
-        sub_parsers, 
-        train.main, 
-        "train", 
+        sub_parsers,
+        train.main,
+        "train",
         "Train a KPConv model",
     )
     kpconv_parser(
-        sub_parsers, 
-        test.main, 
-        "test", 
+        sub_parsers,
+        test.main,
+        "test",
         "Test a KPConv trained model",
     )
 

@@ -10,21 +10,23 @@ from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.tester import get_test_save_path
+from kpconv_torch.utils.trainer import get_train_save_path
+
 
 class ModelNet40Dataset(PointCloudDataset):
     """Class to handle Modelnet 40 dataset."""
 
     def __init__(
-            self,
-            command,
-            config,
-            datapath,
-            chosen_log=None,
-            infered_file=None,
-            output_dir=None,
-            train=True,
-            orient_correction=True
-        ):
+        self,
+        command,
+        config,
+        datapath,
+        chosen_log=None,
+        infered_file=None,
+        output_dir=None,
+        train=True,
+        orient_correction=True,
+    ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -316,7 +318,12 @@ class ModelNet40Sampler(Sampler):
     """Sampler for ModelNet40"""
 
     def __init__(
-        self, dataset: ModelNet40Dataset, chosen_log, infered_file, use_potential=True, balance_labels=False
+        self,
+        dataset: ModelNet40Dataset,
+        chosen_log,
+        infered_file,
+        use_potential=True,
+        balance_labels=False,
     ):
         Sampler.__init__(self, dataset)
 

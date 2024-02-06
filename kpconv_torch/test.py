@@ -3,7 +3,6 @@ import time
 
 import numpy as np
 from torch.utils.data import DataLoader
-from kpconv_torch.utils.trainer import get_train_save_path
 
 from kpconv_torch.datasets.ModelNet40 import (
     ModelNet40Collate,
@@ -130,14 +129,14 @@ def main(args):
         test_dataset = ModelNet40Dataset(
             command=args.command,
             config=config,
-            datapath=args.datapath, 
+            datapath=args.datapath,
             chosen_log=args.chosen_log,
             infered_file=args.filename,
             train=False,
         )
         test_sampler = ModelNet40Sampler(
-            test_dataset, 
-            args.chosen_log, 
+            test_dataset,
+            args.chosen_log,
             args.filename,
         )
         collate_fn = ModelNet40Collate
@@ -145,15 +144,15 @@ def main(args):
         test_dataset = S3DISDataset(
             command=args.command,
             config=config,
-            datapath=args.datapath, 
+            datapath=args.datapath,
             chosen_log=args.chosen_log,
             infered_file=args.filename,
             split="validation" if args.filename is None else "test",
             use_potentials=True,
         )
         test_sampler = S3DISSampler(
-            test_dataset, 
-            args.chosen_log, 
+            test_dataset,
+            args.chosen_log,
             args.filename,
         )
         collate_fn = S3DISCollate
@@ -161,15 +160,15 @@ def main(args):
         test_dataset = Toronto3DDataset(
             command=args.command,
             config=config,
-            datapath=args.datapath, 
+            datapath=args.datapath,
             chosen_log=args.chosen_log,
             infered_file=args.filename,
-            split="test", 
+            split="test",
             use_potentials=True,
         )
         test_sampler = Toronto3DSampler(
-            test_dataset, 
-            args.chosen_log, 
+            test_dataset,
+            args.chosen_log,
             args.filename,
         )
         collate_fn = Toronto3DCollate
@@ -177,15 +176,15 @@ def main(args):
         test_dataset = SemanticKittiDataset(
             command=args.command,
             config=config,
-            datapath=args.datapath, 
+            datapath=args.datapath,
             chosen_log=args.chosen_log,
             infered_file=args.filename,
-            split=split, 
+            split=split,
             balance_classes=False,
         )
         test_sampler = SemanticKittiSampler(
-            test_dataset, 
-            args.chosen_log, 
+            test_dataset,
+            args.chosen_log,
             args.filename,
         )
         collate_fn = SemanticKittiCollate

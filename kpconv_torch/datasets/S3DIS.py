@@ -1,7 +1,6 @@
 from multiprocessing import Lock
 from os import listdir, makedirs
 from os.path import exists, isdir, join
-from pathlib import Path
 import pickle
 import time
 import warnings
@@ -23,17 +22,17 @@ class S3DISDataset(PointCloudDataset):
     """Class to handle S3DIS dataset."""
 
     def __init__(
-            self,
-            command,
-            config,
-            datapath,
-            chosen_log=None,
-            infered_file=None,
-            output_dir=None,
-            split="training",
-            use_potentials=True,
-            load_data=True
-        ):
+        self,
+        command,
+        config,
+        datapath,
+        chosen_log=None,
+        infered_file=None,
+        output_dir=None,
+        split="training",
+        use_potentials=True,
+        load_data=True,
+    ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -135,7 +134,7 @@ class S3DISDataset(PointCloudDataset):
         ###################
         if infered_file is None and (command != "preprocess"):
             self.prepare_S3DIS_ply()
-        
+
         # Stop data is not needed
         if not load_data:
             return
@@ -1000,7 +999,7 @@ class S3DISSampler(Sampler):
                             f"When choosing random epoch indices (use_potentials=False), \
                                        class {label:d}: {self.dataset.label_names[label_ind]} only had {N_inds:d} available points, while we \
                                        needed {random_pick_n:d}. Repeating indices in the same epoch"
-                            )
+                        )
 
                     elif N_inds < 50 * random_pick_n:
                         rand_inds = np.random.choice(
@@ -1723,6 +1722,7 @@ class S3DISConfig(Config):
     chosen_log = None
     output_dir = None
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 #
 #           Debug functions
@@ -1892,4 +1892,3 @@ def debug_batch_and_neighbors_calib(dataset, loader):
 
     _, counts = np.unique(dataset.input_labels, return_counts=True)
     print(counts)
-
