@@ -13,8 +13,8 @@ maxdepth: 1
 ---
 principles
 cli
-object_classification_guide
-pretrained_models_guide
-scene_segmentation_guide
+S3DIS_guide
+ModelNet40_guide
+Semantic-Kitti_guide
 visualization_guide
 ```
