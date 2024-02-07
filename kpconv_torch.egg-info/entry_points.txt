@@ -1,3 +1,0 @@
-[console_scripts]
-kpconv = kpconv_torch.cli.__main__:main
-
