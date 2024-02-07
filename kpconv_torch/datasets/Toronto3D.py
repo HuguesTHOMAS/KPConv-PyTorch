@@ -15,23 +15,24 @@ from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply
 from kpconv_torch.utils.tester import get_test_save_path
+from kpconv_torch.utils.trainer import get_train_save_path
 
 
 class Toronto3DDataset(PointCloudDataset):
     """Class to handle Toronto3D dataset."""
 
     def __init__(
-            self,
-            config,
-            command,
-            datapath,
-            chosen_log=None,
-            infered_file=None,
-            output_dir=None,
-            split="training",
-            use_potentials=True,
-            load_data=True
-        ):
+        self,
+        config,
+        command,
+        datapath,
+        chosen_log=None,
+        infered_file=None,
+        output_dir=None,
+        split="training",
+        use_potentials=True,
+        load_data=True,
+    ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -756,9 +757,7 @@ class Toronto3DDataset(PointCloudDataset):
 
             # Check if inputs have already been computed
             if exists(KDTree_file):
-                print(
-                    f"\nFound KDTree for cloud {cloud_name}, subsampled at {dl:.3f}"
-                )
+                print(f"\nFound KDTree for cloud {cloud_name}, subsampled at {dl:.3f}")
 
                 # read ply with data
                 data = read_ply(sub_ply_file)
@@ -847,9 +846,7 @@ class Toronto3DDataset(PointCloudDataset):
                 cloud_name = self.cloud_names[file_idx]
 
                 # Name of the input files
-                coarse_KDTree_file = join(
-                    tree_path, f"{cloud_name}_coarse_KDTree.pkl"
-                )
+                coarse_KDTree_file = join(tree_path, f"{cloud_name}_coarse_KDTree.pkl")
 
                 # Check if inputs have already been computed
                 if exists(coarse_KDTree_file):
@@ -1420,7 +1417,7 @@ class Toronto3DSampler(Sampler):
                 sampler_method = "potentials"
             else:
                 sampler_method = "random"
-            key = f"{sampler_methods}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
+            key = f"{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1552,7 +1549,7 @@ class Toronto3DCustomBatch:
         elif element_name == "pools":
             elements = self.pools[:-1]
         else:
-            raise ValueError(f"Unknown element name: {element_nam}")
+            raise ValueError(f"Unknown element name: {element_name}")
 
         all_p_list = []
         for layer_i, layer_elems in enumerate(elements):

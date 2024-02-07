@@ -119,12 +119,18 @@ def main(args):
 
     # Initiate dataset
     if config.dataset.startswith("ModelNet40"):
-        test_dataset = ModelNet40Dataset(command=args.command, config=config, datapath=args.datapath, train=False)
+        test_dataset = ModelNet40Dataset(
+            command=args.command, config=config, datapath=args.datapath, train=False
+        )
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
         test_dataset = S3DISDataset(
-            command=args.command, config=config, datapath=args.datapath, split="validation", use_potentials=True
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="validation",
+            use_potentials=True,
         )
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate

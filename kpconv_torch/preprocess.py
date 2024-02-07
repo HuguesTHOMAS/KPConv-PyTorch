@@ -42,7 +42,7 @@ def main(args):
         config = SemanticKittiConfig()
     elif args.dataset == "Toronto3D":
         config = Toronto3DConfig()
-    
+
     ##################################
     # Change model parameters for test
     ##################################
@@ -64,19 +64,71 @@ def main(args):
 
     # Initialize datasets and samplers
     if config.dataset == "ModelNet40":
-        _ = ModelNet40Dataset(command=args.command, config=config, datapath=args.datapath, train=True)
-        _ = ModelNet40Dataset(command=args.command, config=config, datapath=args.datapath, train=False)
+        _ = ModelNet40Dataset(
+            command=args.command, config=config, datapath=args.datapath, train=True
+        )
+        _ = ModelNet40Dataset(
+            command=args.command, config=config, datapath=args.datapath, train=False
+        )
     elif config.dataset == "NPM3D":
-        _ = NPM3DDataset(command=args.command, config=config, datapath=args.datapath, split="training", use_potentials=True)
-        _ = NPM3DDataset(command=args.command, config=config, datapath=args.datapath, split="validation", use_potentials=True)
+        _ = NPM3DDataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="training",
+            use_potentials=True,
+        )
+        _ = NPM3DDataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="validation",
+            use_potentials=True,
+        )
     elif config.dataset == "S3DIS":
-        _ = S3DISDataset(command=args.command, config=config, datapath=args.datapath, split="training", use_potentials=True)
-        _ = S3DISDataset(command=args.command, config=config, datapath=args.datapath, split="validation", use_potentials=True)
+        _ = S3DISDataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="training",
+            use_potentials=True,
+        )
+        _ = S3DISDataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="validation",
+            use_potentials=True,
+        )
     elif config.dataset == "SemanticKitti":
-        _ = SemanticKittiDataset(command=args.command, config=config, datapath=args.datapath, split="training", balance_classes=True)
-        _ = SemanticKittiDataset(command=args.command, config=config, datapath=args.datapath, split="validation", balance_classes=False)
+        _ = SemanticKittiDataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="training",
+            balance_classes=True,
+        )
+        _ = SemanticKittiDataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="validation",
+            balance_classes=False,
+        )
     elif config.dataset == "Toronto3D":
-        _ = Toronto3DDataset(command=args.command, config=config, datapath=args.datapath, split="training", use_potentials=True)
-        _ = Toronto3DDataset(command=args.command, config=config, datapath=args.datapath, split="validation", use_potentials=True)
+        _ = Toronto3DDataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="training",
+            use_potentials=True,
+        )
+        _ = Toronto3DDataset(
+            command=args.command,
+            config=config,
+            datapath=args.datapath,
+            split="validation",
+            use_potentials=True,
+        )
     else:
         raise ValueError("Unsupported dataset : " + config.dataset)

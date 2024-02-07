@@ -9,6 +9,7 @@ import torch
 from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.utils.ply import write_ply
 
+
 def get_test_save_path(infered_file, chosen_log):
     if infered_file is None and chosen_log is None:
         test_path = None
@@ -19,6 +20,7 @@ def get_test_save_path(infered_file, chosen_log):
     if test_path is not None and not exists(test_path):
         makedirs(test_path)
     return test_path
+
 
 class ModelTester:
     def __init__(self, net, chkp_path=None, on_gpu=True):

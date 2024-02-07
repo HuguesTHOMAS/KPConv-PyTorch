@@ -1,10 +1,8 @@
 from enum import Enum
-from os import makedirs
-from os.path import exists, join
-from pathlib import Path
+from os.path import join
 
 import numpy as np
-import time
+
 
 # Colors for printing
 class BColors(Enum):
@@ -27,8 +25,8 @@ class Config:
     # CLI parameters
     ##################
 
-    dataset = "" # pointed by the -s/--dataset option
-    data_folder = None # pointed by the -d/--datapath option
+    dataset = ""  # pointed by the -s/--dataset option
+    data_folder = None  # pointed by the -d/--datapath option
 
     ##################
     # Input parameters
@@ -176,7 +174,7 @@ class Config:
 
     # Number of epoch between each checkpoint
     checkpoint_gap = 50
-    
+
     def __init__(self):
         """
         Class Initialyser
@@ -234,7 +232,7 @@ class Config:
 
     def set_chosen_log(self, chosen_log):
         self.chosen_log = chosen_log
-    
+
     def set_output_dir(self, output_dir):
         self.output_dir = output_dir
 
@@ -242,7 +240,7 @@ class Config:
         filename = join(train_save_path, "parameters.txt")
         with open(filename) as f:
             lines = f.readlines()
-        
+
         # Class variable dictionary
         for line in lines:
             line_info = line.split()
@@ -282,7 +280,7 @@ class Config:
         self.saving = True
         self.save_path = train_save_path
         self.__init__()
-    
+
     def save_parameters(self, train_save_path):
 
         with open(join(train_save_path, "parameters.txt"), "w") as text_file:

@@ -5,8 +5,6 @@ import time
 
 import numpy as np
 from torch.utils.data import DataLoader
-from kpconv_torch.utils.trainer import get_train_save_path
-
 
 from kpconv_torch.datasets.ModelNet40 import (
     ModelNet40Collate,
@@ -39,7 +37,7 @@ from kpconv_torch.datasets.Toronto3D import (
     Toronto3DSampler,
 )
 from kpconv_torch.models.architectures import KPCNN, KPFCNN
-from kpconv_torch.utils.trainer import ModelTrainer
+from kpconv_torch.utils.trainer import get_train_save_path, ModelTrainer
 
 
 def main(args):
@@ -306,7 +304,9 @@ def main(args):
     if get_train_save_path():
 
         # Find all snapshot in the chosen training folder
-        chkp_path = os.path.join(get_train_save_path(), "checkpoints")
+        chkp_path = os.path.join(
+            get_train_save_path(args.output_dir, args.chosen_log), "checkpoints"
+        )
         chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
 
         # Find which snapshot to restore
@@ -314,20 +314,24 @@ def main(args):
             chosen_chkp = "current_chkp.tar"
         else:
             chosen_chkp = np.sort(chkps)[chkp_idx]
-        chosen_chkp = os.path.join(get_train_save_path(), "checkpoints", chosen_chkp)
+        chosen_chkp = os.path.join(
+            get_train_save_path(args.output_dir, args.chosen_log),
+            "checkpoints",
+            chosen_chkp,
+        )
 
     else:
         chosen_chkp = None
 
     # Define a trainer class
-    trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)
+    trainer = ModelTrainer(net, config, args, chkp_path=chosen_chkp)
     print(f"Done in {time.time() - t1:.1f}s\n")
 
     print("\nStart training")
     print("**************")
 
     # Training
-    trainer.train(net, training_loader, test_loader, config)
+    trainer.train(net, training_loader, test_loader, config, args)
 
     print("Forcing exit now")
     os.kill(os.getpid(), signal.SIGINT)
