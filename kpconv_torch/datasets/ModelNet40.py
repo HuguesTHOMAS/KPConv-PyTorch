@@ -10,7 +10,6 @@ from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.tester import get_test_save_path
-from kpconv_torch.utils.trainer import get_train_save_path
 
 
 class ModelNet40Dataset(PointCloudDataset):
@@ -24,16 +23,22 @@ class ModelNet40Dataset(PointCloudDataset):
         chosen_log=None,
         infered_file=None,
         output_dir=None,
-        train=True,
         orient_correction=True,
+        split="training",
     ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
-        PointCloudDataset.__init__(self, "ModelNet40")
-
-        self.train_save_path = get_train_save_path(output_dir, chosen_log)
-        self.test_save_path = get_test_save_path(infered_file, chosen_log)
+        super().__init__(
+            self,
+            config=config,
+            datapath=datapath,
+            dataset="ModelNet40",
+            chosen_log=chosen_log,
+            infered_file=infered_file,
+            output_dir=output_dir,
+            split=split,
+        )
 
         ############
         # Parameters
@@ -89,9 +94,6 @@ class ModelNet40Dataset(PointCloudDataset):
         # List of classes ignored during training (can be empty)
         self.ignored_labels = np.array([])
 
-        # Dataset folder
-        self.path = datapath
-
         # Type of task conducted on this dataset
         self.dataset_task = "classification"
 
@@ -99,14 +101,8 @@ class ModelNet40Dataset(PointCloudDataset):
         config.num_classes = self.num_classes
         config.dataset_task = self.dataset_task
 
-        # Parameters from config
-        self.config = config
-
-        # Training or test set
-        self.train = train
-
         # Number of models and models used per epoch
-        if self.train:
+        if self.set == "training":
             self.num_models = 9843
             if (
                 config.epoch_steps
@@ -225,7 +221,7 @@ class ModelNet40Dataset(PointCloudDataset):
         t0 = time.time()
 
         # Load wanted points if possible
-        if self.train:
+        if self.set == "training":
             split = "training"
         else:
             split = "test"
@@ -245,7 +241,7 @@ class ModelNet40Dataset(PointCloudDataset):
         else:
 
             # Collect training file names
-            if self.train:
+            if self.set == "training":
                 names = np.loadtxt(
                     join(self.path, "modelnet40_train.txt"), dtype=np.str
                 )

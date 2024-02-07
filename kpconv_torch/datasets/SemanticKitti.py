@@ -13,7 +13,6 @@ import yaml
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.tester import get_test_save_path
-from kpconv_torch.utils.trainer import get_train_save_path
 
 
 class SemanticKittiDataset(PointCloudDataset):
@@ -21,32 +20,31 @@ class SemanticKittiDataset(PointCloudDataset):
 
     def __init__(
         self,
-        command,
         config,
         datapath,
         chosen_log=None,
         infered_file=None,
         output_dir=None,
-        split="training",
         balance_classes=True,
+        split="training",
     ):
-        PointCloudDataset.__init__(self, "SemanticKitti")
+        super().__init__(
+            self,
+            config=config,
+            datapath=datapath,
+            dataset="SemanticKitti",
+            chosen_log=chosen_log,
+            infered_file=infered_file,
+            output_dir=output_dir,
+            split=split,
+        )
 
         ##########################
         # Parameters for the files
         ##########################
 
-        # Dataset folder
-        self.path = datapath
-
-        self.train_save_path = get_train_save_path(output_dir, chosen_log)
-        self.test_save_path = get_test_save_path(infered_file, chosen_log)
-
         # Type of task conducted on this dataset
         self.dataset_task = "slam_segmentation"
-
-        # Training or test set
-        self.set = split
 
         # Get a list of sequences
         if self.set == "training":
@@ -110,9 +108,6 @@ class SemanticKittiDataset(PointCloudDataset):
         # Update number of class and data task in configuration
         config.num_classes = self.num_classes
         config.dataset_task = self.dataset_task
-
-        # Parameters from config
-        self.config = config
 
         ##################
         # Load calibration

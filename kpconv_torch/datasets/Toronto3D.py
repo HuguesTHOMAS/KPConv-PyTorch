@@ -15,7 +15,6 @@ from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply
 from kpconv_torch.utils.tester import get_test_save_path
-from kpconv_torch.utils.trainer import get_train_save_path
 
 
 class Toronto3DDataset(PointCloudDataset):
@@ -23,23 +22,29 @@ class Toronto3DDataset(PointCloudDataset):
 
     def __init__(
         self,
-        config,
         command,
+        config,
         datapath,
         chosen_log=None,
         infered_file=None,
         output_dir=None,
-        split="training",
         use_potentials=True,
         load_data=True,
+        split="training",
     ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
-        PointCloudDataset.__init__(self, "Toronto3D")
-
-        self.train_save_path = get_train_save_path(output_dir, chosen_log)
-        self.test_save_path = get_test_save_path(infered_file, chosen_log)
+        super().__init__(
+            self,
+            config=config,
+            datapath=datapath,
+            dataset="Toronto3D",
+            chosen_log=chosen_log,
+            infered_file=infered_file,
+            output_dir=output_dir,
+            split=split,
+        )
 
         ############
         # Parameters
@@ -64,9 +69,6 @@ class Toronto3DDataset(PointCloudDataset):
         # List of classes ignored during training (can be empty)
         self.ignored_labels = np.array([0])
 
-        # Dataset folder
-        self.path = datapath
-
         # Type of task conducted on this dataset
         self.dataset_task = "cloud_segmentation"
 
@@ -74,20 +76,14 @@ class Toronto3DDataset(PointCloudDataset):
         config.num_classes = self.num_classes - len(self.ignored_labels)
         config.dataset_task = self.dataset_task
 
-        # Parameters from config
-        self.config = config
-
-        # Training or test set
-        self.set = split
-
         # Using potential or random epoch generation
         self.use_potentials = use_potentials
 
         # Path of the training files
-        self.train_path = "train"
+        self.train_files_path = "train"
 
         # List of files to process
-        ply_path = join(self.path, self.train_path)
+        ply_path = join(self.path, self.train_files_path)
 
         # Proportion of validation scenes
         self.cloud_names = ["L001", "L002", "L003", "L004"]
@@ -118,8 +114,8 @@ class Toronto3DDataset(PointCloudDataset):
         ###################
         # Prepare ply files
         ###################
-
-        self.prepare_Toronto3D_ply()
+        if infered_file is None and (command != "preprocess"):
+            self.prepare_Toronto3D_ply()
 
         ################
         # Load ply files
@@ -685,7 +681,7 @@ class Toronto3DDataset(PointCloudDataset):
         t0 = time.time()
 
         # Folder for the ply files
-        ply_path = join(self.path, self.train_path)
+        ply_path = join(self.path, self.train_files_path)
         if not exists(ply_path):
             os.mkdir(ply_path)
 
