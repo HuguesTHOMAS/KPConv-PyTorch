@@ -1,0 +1,12 @@
+ply
+format binary_little_endian 1.0
+element vertex 5
+property float32 x
+property float32 y
+property float32 z
+property uint8 red
+property uint8 green
+property uint8 blue
+end_header
+\º@×£–ÁÂu>ž§°\º@Há–Á®Ga>—¢°q=º@R¸–ÁÂu>¤°\º@R¸–Á…k>›¥°q=º@=
+—Á…k>š§±

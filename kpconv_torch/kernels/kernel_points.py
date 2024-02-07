@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from kpconv_torch.utils.config import BColors
-from kpconv_torch.utils.ply import read_ply, write_ply
+from kpconv_torch.io.ply import read_ply, write_ply
 
 
 def create_3D_rotations(axis, angle):
@@ -466,8 +466,7 @@ def load_kernels(radius, num_kpoints, dimension, fixed, lloyd=False):
         write_ply(kernel_file, kernel_points, ["x", "y", "z"])
 
     else:
-        data = read_ply(kernel_file)
-        kernel_points = np.vstack((data["x"], data["y"], data["z"])).T
+        kernel_points, _, _ = read_ply(kernel_file)
 
     # Random roations for the kernel
     # N.B. 4D random rotations not supported yet

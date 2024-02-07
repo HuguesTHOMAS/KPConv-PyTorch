@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
-from kpconv_torch.utils.ply import write_ply
+from kpconv_torch.io.ply import write_ply
 
 
 def get_test_save_path(infered_file, chosen_log):

@@ -14,7 +14,7 @@ from kpconv_torch.utils.metrics import (
     IoU_from_confusions,
     smooth_metrics,
 )
-from kpconv_torch.utils.ply import read_ply
+from kpconv_torch.io.ply import read_ply
 
 
 def listdir_str(path):

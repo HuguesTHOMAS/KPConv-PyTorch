@@ -65,3 +65,12 @@ The `test` command generates:
     - `probs`: probability that each point belongs to each class of the nomenclature.
 
 Original code from Hugues Thomas has two more modules, `visualize.py` and `plot_convergence.py`, which are not included in the CLI. Nevertheless, they are not maintained in the version of the library contained in this repository.
+
+### Accepted data formats
+
+The file on which the inference must be done, pointed behind the `-f` option, can have one of the following formats:
+- `.las` or its lossless compressed equivalent `.laz`;
+- `.xyz`;
+- `.ply`.
+
+Concerning `.las` format, the representation of colors is done on the basis of three 2-bytes fields. The documentation for the LAS 1.4 format (last one) is available [here](https://www.asprs.org/wp-content/uploads/2019/03/LAS_1_4_r14.pdf).
