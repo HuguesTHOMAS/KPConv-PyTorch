@@ -223,7 +223,7 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
     # Format list input to the right form
     field_list = (
         list(field_list)
-        if (type(field_list) == list or type(field_list) == tuple)
+        if (isinstance(field_list, list) or isinstance(field_list, tuple))
         else list((field_list,))  # noqa: C410
     )
     for i, field in enumerate(field_list):

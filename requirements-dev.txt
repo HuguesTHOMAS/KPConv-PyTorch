@@ -1,2 +1,14 @@
-pre-commit
 -r requirements.txt
+
+pre-commit>=3,<4
+black>=22,<23
+flake8>=6,<8
+flake8-bugbear>=23.12
+flake8-builtins>=2.1
+flake8-eradicate>=1
+flake8-isort>=6
+flake8-comprehensions>=3.10.1
+flake8-simplify>=0.19.3
+flake8-pie>=0.15.0
+pylint>=3,<4
+pytest>=7,<8

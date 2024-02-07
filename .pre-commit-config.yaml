@@ -23,19 +23,20 @@ repos:
     rev: 22.12.0
     hooks:
       - id: black
-        args: [--target-version=py38]
+        args: [--target-version=py38,--line-length=100]
 
   - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+    rev: 7.0.0
     hooks:
       - id: flake8
         additional_dependencies:
+          - flake8-builtins>=2.1.0
           - flake8-import-order==0.18.2
-          - flake8-bugbear==23.1.20
-          - flake8-comprehensions==3.10.1
-          - flake8-simplify==0.19.3
-          - flake8-builtins==2.1.0
-          - flake8-pie==0.15.0
+          - flake8-bugbear>=23.12
+          - flake8-comprehensions>=3.10.1
+          - flake8-isort>=6
+          - flake8-simplify>=0.19.3
+          - flake8-eradicate>=1
         args:
           - --per-file-ignores=kpconv_torch/utils/visualizer.py:B023
 
