@@ -21,9 +21,7 @@ def listdir_str(path):
     # This function ensures a steady behavior
     f_list = []
     for f in listdir(path):
-        with contextlib.suppress(
-            UnicodeDecodeError, AttributeError
-        ):  # clearer than try/except
+        with contextlib.suppress(UnicodeDecodeError, AttributeError):  # clearer than try/except
             f = f.decode()
         f_list.append(f)
 
@@ -133,9 +131,7 @@ def load_snap_clouds(path, dataset, only_last=False):
     cloud_epochs = cloud_epochs[epoch_order]
     cloud_folders = cloud_folders[epoch_order]
 
-    Confs = np.zeros(
-        (len(cloud_epochs), dataset.num_classes, dataset.num_classes), dtype=np.int32
-    )
+    Confs = np.zeros((len(cloud_epochs), dataset.num_classes, dataset.num_classes), dtype=np.int32)
     for c_i, cloud_folder in enumerate(cloud_folders):
         if only_last and c_i < len(cloud_epochs) - 1:
             continue
@@ -151,9 +147,9 @@ def load_snap_clouds(path, dataset, only_last=False):
                     data = read_ply(join(cloud_folder, f))
                     labels = data["class"]
                     preds = data["preds"]
-                    Confs[c_i] += fast_confusion(
-                        labels, preds, dataset.label_values
-                    ).astype(np.int32)
+                    Confs[c_i] += fast_confusion(labels, preds, dataset.label_values).astype(
+                        np.int32
+                    )
 
             np.savetxt(conf_file, Confs[c_i], "%12d")
 
@@ -190,9 +186,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     all_times = []
 
     for path in list_of_paths:
-        if ("val_IoUs.txt" in listdir_str(path)) or (
-            "val_confs.txt" in listdir_str(path)
-        ):
+        if ("val_IoUs.txt" in listdir_str(path)) or ("val_confs.txt" in listdir_str(path)):
             config = Config()
             config.load(path)
         else:
@@ -452,9 +446,7 @@ def compare_convergences_classif(list_of_paths, list_of_labels=None):
         # Get validation confusions
         file = join(path, "val_confs.txt")
         val_C1 = load_confusions(file, n_class)
-        val_PRE, val_REC, val_F1, val_IoU, val_ACC = smooth_metrics(
-            val_C1, smooth_n=smooth_n
-        )
+        val_PRE, val_REC, val_F1, val_IoU, val_ACC = smooth_metrics(val_C1, smooth_n=smooth_n)
 
         # Get vote confusions
         file = join(path, "vote_confs.txt")
@@ -547,11 +539,7 @@ def experiment_name_1():
 
     # Gather logs and sort by date
     logs = np.sort(
-        [
-            join(res_path, log_dir)
-            for log_dir in listdir_str(res_path)
-            if start <= log_dir <= end
-        ]
+        [join(res_path, log_dir) for log_dir in listdir_str(res_path) if start <= log_dir <= end]
     )
 
     # Give names to the logs (for plot legends)
@@ -580,11 +568,7 @@ def experiment_name_2():
 
     # Gather logs and sort by date
     logs = np.sort(
-        [
-            join(res_path, log_dir)
-            for log_dir in listdir_str(res_path)
-            if start <= log_dir <= end
-        ]
+        [join(res_path, log_dir) for log_dir in listdir_str(res_path) if start <= log_dir <= end]
     )
 
     # Optionally add a specific log at a specific place in the log list

@@ -90,9 +90,7 @@ def spherical_Lloyd(
         new_points = np.random.rand(num_cells, dimension) * 2 * radius0 - radius0
         kernel_points = np.vstack((kernel_points, new_points))
         d2 = np.sum(np.power(kernel_points, 2), axis=1)
-        kernel_points = kernel_points[
-            np.logical_and(d2 < radius0**2, (0.9 * radius0) ** 2 < d2), :
-        ]
+        kernel_points = kernel_points[np.logical_and(d2 < radius0**2, (0.9 * radius0) ** 2 < d2), :]
     kernel_points = kernel_points[:num_cells, :].reshape((num_cells, -1))
 
     # Optional fixing
@@ -186,11 +184,7 @@ def spherical_Lloyd(
             kernel_points[:3, :-1] *= 0
 
         if verbose:
-            print(
-                "iter {:5d} / max move = {:f}".format(
-                    idx, np.max(np.linalg.norm(moves, axis=1))
-                )
-            )
+            print(f"iter {idx:5d} / max move = {np.max(np.linalg.norm(moves, axis=1)):f}")
             if warning:
                 print(
                     "{:}WARNING: at least one point has no cell{:}".format(
@@ -302,14 +296,9 @@ def kernel_point_optimization_debug(
     #######################
 
     # Random kernel points
-    kernel_points = (
-        np.random.rand(num_kernels * num_points - 1, dimension) * diameter0 - radius0
-    )
+    kernel_points = np.random.rand(num_kernels * num_points - 1, dimension) * diameter0 - radius0
     while kernel_points.shape[0] < num_kernels * num_points:
-        new_points = (
-            np.random.rand(num_kernels * num_points - 1, dimension) * diameter0
-            - radius0
-        )
+        new_points = np.random.rand(num_kernels * num_points - 1, dimension) * diameter0 - radius0
         kernel_points = np.vstack((kernel_points, new_points))
         d2 = np.sum(np.power(kernel_points, 2), axis=1)
         kernel_points = kernel_points[d2 < 0.5 * radius0 * radius0, :]
@@ -372,13 +361,11 @@ def kernel_point_optimization_debug(
         if (
             (
                 fixed == "center"
-                and np.max(np.abs(old_gradient_norms[:, 1:] - gradients_norms[:, 1:]))
-                < thresh
+                and np.max(np.abs(old_gradient_norms[:, 1:] - gradients_norms[:, 1:])) < thresh
             )
             or (
                 fixed == "verticals"
-                and np.max(np.abs(old_gradient_norms[:, 3:] - gradients_norms[:, 3:]))
-                < thresh
+                and np.max(np.abs(old_gradient_norms[:, 3:] - gradients_norms[:, 3:])) < thresh
             )
             or (np.max(np.abs(old_gradient_norms - gradients_norms)) < thresh)
         ):
@@ -405,11 +392,7 @@ def kernel_point_optimization_debug(
         )
 
         if verbose:
-            print(
-                "step {:5d} / max grad = {:f}".format(
-                    step, np.max(gradients_norms[:, 3:])
-                )
-            )
+            print(f"step {step:5d} / max grad = {np.max(gradients_norms[:, 3:]):f}")
         if verbose > 1:
             plt.clf()
             plt.plot(kernel_points[0, :, 0], kernel_points[0, :, 1], ".")
@@ -501,24 +484,18 @@ def load_kernels(radius, num_kpoints, dimension, fixed, lloyd=False):
             phi = (np.random.rand() - 0.5) * np.pi
 
             # Create the first vector in carthesian coordinates
-            u = np.array(
-                [np.cos(theta) * np.cos(phi), np.sin(theta) * np.cos(phi), np.sin(phi)]
-            )
+            u = np.array([np.cos(theta) * np.cos(phi), np.sin(theta) * np.cos(phi), np.sin(phi)])
 
             # Choose a random rotation angle
             alpha = np.random.rand() * 2 * np.pi
 
             # Create the rotation matrix with this vector and angle
-            R = create_3D_rotations(np.reshape(u, (1, -1)), np.reshape(alpha, (1, -1)))[
-                0
-            ]
+            R = create_3D_rotations(np.reshape(u, (1, -1)), np.reshape(alpha, (1, -1)))[0]
 
             R = R.astype(np.float32)
 
     # Add a small noise
-    kernel_points = kernel_points + np.random.normal(
-        scale=0.01, size=kernel_points.shape
-    )
+    kernel_points = kernel_points + np.random.normal(scale=0.01, size=kernel_points.shape)
 
     # Scale kernels
     kernel_points = radius * kernel_points

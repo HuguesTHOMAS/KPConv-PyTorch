@@ -15,9 +15,7 @@ def test_write_ply(fixture_path, ply_array):
 
     values = np.random.randint(2, size=4, dtype=np.int8)
     example_filepath = fixture_path / "example.ply"
-    res = ply.write_ply(
-        str(example_filepath), [ply_array, values], ["x", "y", "z", "values"]
-    )
+    res = ply.write_ply(str(example_filepath), [ply_array, values], ["x", "y", "z", "values"])
     assert res and example_filepath.exists()
 
     read_data = ply.read_ply(str(example_filepath))

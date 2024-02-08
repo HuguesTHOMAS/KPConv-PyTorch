@@ -60,9 +60,7 @@ class SemanticKittiDataset(PointCloudDataset):
         self.frames = []
         for seq in self.sequences:
             velo_path = join(self.path, "sequences", seq, "velodyne")
-            frames = np.sort(
-                [vf[:-4] for vf in listdir(velo_path) if vf.endswith(".bin")]
-            )
+            frames = np.sort([vf[:-4] for vf in listdir(velo_path) if vf.endswith(".bin")])
             self.frames.append(frames)
 
         ###########################
@@ -86,9 +84,7 @@ class SemanticKittiDataset(PointCloudDataset):
             for k, v in learning_map.items():
                 self.learning_map[k] = v
 
-            self.learning_map_inv = np.zeros(
-                (max(learning_map_inv) + 1), dtype=np.int32
-            )
+            self.learning_map_inv = np.zeros((max(learning_map_inv) + 1), dtype=np.int32)
             for k, v in learning_map_inv.items():
                 self.learning_map_inv[k] = v
 
@@ -134,9 +130,7 @@ class SemanticKittiDataset(PointCloudDataset):
         self.batch_limit.share_memory_()
 
         # Initialize frame potentials
-        self.potentials = torch.from_numpy(
-            np.random.rand(self.all_inds.shape[0]) * 0.1 + 0.1
-        )
+        self.potentials = torch.from_numpy(np.random.rand(self.all_inds.shape[0]) * 0.1 + 0.1)
         self.potentials.share_memory_()
 
         # If true, the same amount of frames is picked per class
@@ -255,9 +249,7 @@ class SemanticKittiDataset(PointCloudDataset):
 
                 # Path of points and labels
                 seq_path = join(self.path, "sequences", self.sequences[s_ind])
-                velo_file = join(
-                    seq_path, "velodyne", self.frames[s_ind][f_ind - f_inc] + ".bin"
-                )
+                velo_file = join(seq_path, "velodyne", self.frames[s_ind][f_ind - f_inc] + ".bin")
                 if self.set == "test":
                     label_file = None
                 else:
@@ -292,17 +284,13 @@ class SemanticKittiDataset(PointCloudDataset):
                 # In case radius smaller than 50m, chose new center on a point of the wanted class or not
                 if self.in_R < 50.0 and f_inc == 0:
                     if self.balance_classes:
-                        wanted_ind = np.random.choice(
-                            np.where(sem_labels == wanted_label)[0]
-                        )
+                        wanted_ind = np.random.choice(np.where(sem_labels == wanted_label)[0])
                     else:
                         wanted_ind = np.random.choice(new_points.shape[0])
                     p0 = new_points[wanted_ind, :3]
 
                 # Eliminate points further than config.in_radius
-                mask = (
-                    np.sum(np.square(new_points[:, :3] - p0), axis=1) < self.in_R**2
-                )
+                mask = np.sum(np.square(new_points[:, :3] - p0), axis=1) < self.in_R**2
                 mask_inds = np.where(mask)[0].astype(np.int32)
 
                 # Shuffle points
@@ -317,9 +305,7 @@ class SemanticKittiDataset(PointCloudDataset):
                     # We have to project in the first frame coordinates
                     new_coords = new_points - pose0[:3, 3]
                     # new_coords = new_coords.dot(pose0[:3, :3])
-                    new_coords = np.sum(
-                        np.expand_dims(new_coords, 2) * pose0[:3, :3], axis=1
-                    )
+                    new_coords = np.sum(np.expand_dims(new_coords, 2) * pose0[:3, :3], axis=1)
                     new_coords = np.hstack((new_coords, points[rand_order, 3:]))
 
                 # Increment merge count
@@ -371,9 +357,7 @@ class SemanticKittiDataset(PointCloudDataset):
 
                 # Project predictions on the frame points
                 search_tree = KDTree(in_pts, leaf_size=50)
-                proj_inds = search_tree.query(
-                    o_pts[reproj_mask, :], return_distance=False
-                )
+                proj_inds = search_tree.query(o_pts[reproj_mask, :], return_distance=False)
                 proj_inds = np.squeeze(proj_inds).astype(np.int32)
             else:
                 proj_inds = np.zeros((0,))
@@ -441,9 +425,7 @@ class SemanticKittiDataset(PointCloudDataset):
             # Use all coordinates + reflectance
             stacked_features = np.hstack((stacked_features, features))
         else:
-            raise ValueError(
-                "Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)"
-            )
+            raise ValueError("Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)")
 
         t += [time.time()]
 
@@ -483,8 +465,7 @@ class SemanticKittiDataset(PointCloudDataset):
             N = 9
             mess = "Init ...... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -492,8 +473,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             mess = "Lock ...... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -501,8 +481,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             mess = "Init ...... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -510,8 +489,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             mess = "Load ...... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -519,8 +497,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             mess = "Subs ...... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -528,8 +505,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             mess = "Drop ...... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -537,8 +513,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             mess = "Reproj .... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -546,8 +521,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             mess = "Augment ... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -555,8 +529,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             mess = "Stack ..... {:5.1f}ms /"
             loop_times = [
-                1000 * (t[ti + N * i + 1] - t[ti + N * i])
-                for i in range(len(stack_lengths))
+                1000 * (t[ti + N * i + 1] - t[ti + N * i]) for i in range(len(stack_lengths))
             ]
             for dt in loop_times:
                 mess += f" {dt:5.1f}"
@@ -590,19 +563,13 @@ class SemanticKittiDataset(PointCloudDataset):
             seq_folder = join(self.path, "sequences", seq)
 
             # Read Calib
-            self.calibrations.append(
-                self.parse_calibration(join(seq_folder, "calib.txt"))
-            )
+            self.calibrations.append(self.parse_calibration(join(seq_folder, "calib.txt")))
 
             # Read times
-            self.times.append(
-                np.loadtxt(join(seq_folder, "times.txt"), dtype=np.float32)
-            )
+            self.times.append(np.loadtxt(join(seq_folder, "times.txt"), dtype=np.float32))
 
             # Read poses
-            poses_f64 = self.parse_poses(
-                join(seq_folder, "poses.txt"), self.calibrations[-1]
-            )
+            poses_f64 = self.parse_poses(join(seq_folder, "poses.txt"), self.calibrations[-1])
             self.poses.append([pose.astype(np.float32) for pose in poses_f64])
 
         ###################################
@@ -629,9 +596,7 @@ class SemanticKittiDataset(PointCloudDataset):
                 frame_mode = "single"
                 if self.config.n_frames > 1:
                     frame_mode = "multi"
-                seq_stat_file = join(
-                    self.path, "sequences", seq, f"stats_{frame_mode}.pkl"
-                )
+                seq_stat_file = join(self.path, "sequences", seq, f"stats_{frame_mode}.pkl")
 
                 # Check if inputs have already been computed
                 if exists(seq_stat_file):
@@ -645,9 +610,7 @@ class SemanticKittiDataset(PointCloudDataset):
                     print(f"Preparing seq {seq} class frames. (Long but one time only)")
 
                     # Class frames as a boolean mask
-                    seq_class_frames = np.zeros(
-                        (len(seq_frames), self.num_classes), dtype=np.bool
-                    )
+                    seq_class_frames = np.zeros((len(seq_frames), self.num_classes), dtype=np.bool)
 
                     # Proportion of each class
                     seq_proportions = np.zeros((self.num_classes,), dtype=np.int32)
@@ -663,9 +626,7 @@ class SemanticKittiDataset(PointCloudDataset):
 
                         # Read labels
                         frame_labels = np.fromfile(label_file, dtype=np.int32)
-                        sem_labels = (
-                            frame_labels & 0xFFFF
-                        )  # semantic label in lower half
+                        sem_labels = frame_labels & 0xFFFF  # semantic label in lower half
                         sem_labels = self.learning_map[sem_labels]
 
                         # Get present labels and there frequency
@@ -673,10 +634,7 @@ class SemanticKittiDataset(PointCloudDataset):
 
                         # Add this frame to the frame lists of all class present
                         frame_labels = np.array(
-                            [
-                                self.label_to_idx[unique_label]
-                                for unique_label in unique
-                            ],
+                            [self.label_to_idx[unique_label] for unique_label in unique],
                             dtype=np.int32,
                         )
                         seq_class_frames[f_ind, frame_labels] = True
@@ -698,9 +656,7 @@ class SemanticKittiDataset(PointCloudDataset):
                     self.class_frames.append(torch.zeros((0,), dtype=torch.int64))
                 else:
                     integer_inds = np.where(class_frames_bool[:, i])[0]
-                    self.class_frames.append(
-                        torch.from_numpy(integer_inds.astype(np.int64))
-                    )
+                    self.class_frames.append(torch.from_numpy(integer_inds.astype(np.int64)))
 
         # Add variables for validation
         if self.set == "validation":
@@ -813,30 +769,22 @@ class SemanticKittiSampler(Sampler):
                 if c not in self.dataset.ignored_labels:
 
                     # Get the potentials of the frames containing this class
-                    class_potentials = self.dataset.potentials[
-                        self.dataset.class_frames[i]
-                    ]
+                    class_potentials = self.dataset.potentials[self.dataset.class_frames[i]]
 
                     if class_potentials.shape[0] > 0:
 
                         # Get the indices to generate thanks to potentials
-                        used_classes = self.dataset.num_classes - len(
-                            self.dataset.ignored_labels
-                        )
+                        used_classes = self.dataset.num_classes - len(self.dataset.ignored_labels)
                         class_n = num_centers // used_classes + 1
                         if class_n < class_potentials.shape[0]:
-                            _, class_indices = torch.topk(
-                                class_potentials, class_n, largest=False
-                            )
+                            _, class_indices = torch.topk(class_potentials, class_n, largest=False)
                         else:
                             class_indices = torch.zeros((0,), dtype=torch.int64)
                             while class_indices.shape[0] < class_n:
-                                new_class_inds = torch.randperm(
-                                    class_potentials.shape[0]
-                                ).type(torch.int64)
-                                class_indices = torch.cat(
-                                    (class_indices, new_class_inds), dim=0
+                                new_class_inds = torch.randperm(class_potentials.shape[0]).type(
+                                    torch.int64
                                 )
+                                class_indices = torch.cat((class_indices, new_class_inds), dim=0)
                             class_indices = class_indices[:class_n]
                         class_indices = self.dataset.class_frames[i][class_indices]
 
@@ -857,9 +805,7 @@ class SemanticKittiSampler(Sampler):
                         error_message = "\nIt seems there is a problem with the class statistics "
                         error_message += "of your dataset, saved in the variable "
                         error_message += "dataset.class_frames.\nHere are the current statistics:\n"
-                        error_message += "{:>15s} {:>15s}\n".format(
-                            "Class", "# of frames"
-                        )
+                        error_message += "{:>15s} {:>15s}\n".format("Class", "# of frames")
                         for iii, _ in enumerate(self.dataset.label_values):
                             error_message += f"{self.dataset.label_names[iii]:>15s} "
                             error_message += "{len(self.dataset.class_frames[iii]):>15d}\n"
@@ -903,16 +849,14 @@ class SemanticKittiSampler(Sampler):
             else:
                 gen_indices = torch.randperm(self.dataset.potentials.shape[0])
                 while gen_indices.shape[0] < num_centers:
-                    new_gen_indices = torch.randperm(
-                        self.dataset.potentials.shape[0]
-                    ).type(torch.int32)
+                    new_gen_indices = torch.randperm(self.dataset.potentials.shape[0]).type(
+                        torch.int32
+                    )
                     gen_indices = torch.cat((gen_indices, new_gen_indices), dim=0)
                 gen_indices = gen_indices[:num_centers]
 
             # Update potentials (Change the order for the next epoch)
-            self.dataset.potentials[gen_indices] = torch.ceil(
-                self.dataset.potentials[gen_indices]
-            )
+            self.dataset.potentials[gen_indices] = torch.ceil(self.dataset.potentials[gen_indices])
             self.dataset.potentials[gen_indices] += torch.from_numpy(
                 np.random.rand(gen_indices.shape[0]) * 0.1 + 0.1
             )
@@ -929,9 +873,7 @@ class SemanticKittiSampler(Sampler):
         """
         return self.N
 
-    def calib_max_in(
-        self, config, dataloader, untouched_ratio=0.8, verbose=True, force_redo=False
-    ):
+    def calib_max_in(self, config, dataloader, untouched_ratio=0.8, verbose=True, force_redo=False):
         """
         Method performing batch and neighbors calibration.
             Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
@@ -944,9 +886,7 @@ class SemanticKittiSampler(Sampler):
         # Previously saved calibration
         ##############################
 
-        print(
-            "\nStarting Calibration of max_in_points value (use verbose=True for more details)"
-        )
+        print("\nStarting Calibration of max_in_points value (use verbose=True for more details)")
         t0 = time.time()
 
         redo = force_redo
@@ -967,7 +907,9 @@ class SemanticKittiSampler(Sampler):
             sampler_method = "balanced"
         else:
             sampler_method = "random"
-        key = f"{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:3f}"
+        key = (
+            f"{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:3f}"
+        )
         if not redo and key in max_in_lim_dict:
             self.dataset.max_in_p = max_in_lim_dict[key]
         else:
@@ -1025,9 +967,7 @@ class SemanticKittiSampler(Sampler):
                 if breaking:
                     break
 
-            self.dataset.max_in_p = int(
-                np.percentile(all_lengths, 100 * untouched_ratio)
-            )
+            self.dataset.max_in_p = int(np.percentile(all_lengths, 100 * untouched_ratio))
 
             if verbose:
 
@@ -1049,9 +989,7 @@ class SemanticKittiSampler(Sampler):
         print(f"Calibration done in {time.time() - t0:.1f}s\n")
         return
 
-    def calibration(
-        self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False
-    ):
+    def calibration(self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False):
         """
         Method performing batch and neighbors calibration.
             Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
@@ -1073,9 +1011,7 @@ class SemanticKittiSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(
-            self.dataset.config.get_test_save_path(), "batch_limits.pkl"
-        )
+        batch_lim_file = join(self.dataset.config.get_test_save_path(), "batch_limits.pkl")
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -1108,9 +1044,7 @@ class SemanticKittiSampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(
-            self.dataset.config.get_test_save_path(), "neighbors_limits.pkl"
-        )
+        neighb_lim_file = join(self.dataset.config.get_test_save_path(), "neighbors_limits.pkl")
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
@@ -1161,14 +1095,10 @@ class SemanticKittiSampler(Sampler):
             ############################
 
             # From config parameter, compute higher bound of neighbors number in a neighborhood
-            hist_n = int(
-                np.ceil(4 / 3 * np.pi * (self.dataset.config.deform_radius + 1) ** 3)
-            )
+            hist_n = int(np.ceil(4 / 3 * np.pi * (self.dataset.config.deform_radius + 1) ** 3))
 
             # Histogram of neighborhood sizes
-            neighb_hists = np.zeros(
-                (self.dataset.config.num_layers, hist_n), dtype=np.int32
-            )
+            neighb_hists = np.zeros((self.dataset.config.num_layers, hist_n), dtype=np.int32)
 
             ########################
             # Batch calib parameters
@@ -1252,18 +1182,14 @@ class SemanticKittiSampler(Sampler):
                     if verbose and (t - last_display) > 1.0:
                         last_display = t
                         message = "Step {:5d}  estim_b ={:5.2f} batch_limit ={:7d}"
-                        print(
-                            message.format(i, estim_b, int(self.dataset.batch_limit[0]))
-                        )
+                        print(message.format(i, estim_b, int(self.dataset.batch_limit[0])))
 
                 if breaking:
                     break
 
             # Use collected neighbor histogram to get neighbors limit
             cumsum = np.cumsum(neighb_hists.T, axis=0)
-            percentiles = np.sum(
-                cumsum < (untouched_ratio * cumsum[hist_n - 1, :]), axis=0
-            )
+            percentiles = np.sum(cumsum < (untouched_ratio * cumsum[hist_n - 1, :]), axis=0)
             self.dataset.neighborhood_limits = percentiles
 
             if verbose:
@@ -1345,25 +1271,15 @@ class SemanticKittiCustomBatch:
 
         # Extract input tensors from the list of numpy array
         ind = 1
-        self.points = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.points = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
-        self.neighbors = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.neighbors = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
-        self.pools = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.pools = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
-        self.upsamples = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.upsamples = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
-        self.lengths = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.lengths = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
         self.features = torch.from_numpy(input_list[ind])
         ind += 1
@@ -1682,9 +1598,7 @@ def debug_timing(dataset, loader):
                 last_display = t[-1]
                 message = "Step {:08d} -> (ms/batch) {:8.2f} {:8.2f} / batch = {:.2f} - {:.0f}"
                 print(
-                    message.format(
-                        batch_i, 1000 * mean_dt[0], 1000 * mean_dt[1], estim_b, estim_N
-                    )
+                    message.format(batch_i, 1000 * mean_dt[0], 1000 * mean_dt[1], estim_b, estim_N)
                 )
 
         print("************* Epoch ended *************")

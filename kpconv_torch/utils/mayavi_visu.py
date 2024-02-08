@@ -270,8 +270,7 @@ def show_input_batch(batch):
 
         if show_pools:
             p2 = (
-                all_points[l_i + 1][b_i][neighb_i : neighb_i + 1] * 1.5
-                + np.array([1.0, 1.0, 1.0])
+                all_points[l_i + 1][b_i][neighb_i : neighb_i + 1] * 1.5 + np.array([1.0, 1.0, 1.0])
             ) * 50.0
             p = np.vstack((p, p2))
             labels = np.hstack((labels, np.ones((1,), dtype=np.int32) * 3))
@@ -322,10 +321,8 @@ def show_input_batch(batch):
         """
 
         # New title
-        title_str = (
-            "<([) b_i={:d} (])>    <(,) l_i={:d} (.)>    <(N) n_i={:d} (M)>".format(
-                b_i, l_i, neighb_i
-            )
+        title_str = "<([) b_i={:d} (])>    <(,) l_i={:d} (.)>    <(N) n_i={:d} (M)>".format(
+            b_i, l_i, neighb_i
         )
         mlab.title(title_str, color=(0, 0, 0), size=0.3, height=0.90)
         if show_pools:

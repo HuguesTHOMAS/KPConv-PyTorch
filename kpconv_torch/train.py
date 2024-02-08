@@ -280,9 +280,7 @@ def main(args):
     if config.dataset == "ModelNet40":
         net = KPCNN(config)
     else:
-        net = KPFCNN(
-            config, training_dataset.label_values, training_dataset.ignored_labels
-        )
+        net = KPFCNN(config, training_dataset.label_values, training_dataset.ignored_labels)
 
     debug = False
     if debug:

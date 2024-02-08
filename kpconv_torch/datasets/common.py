@@ -27,9 +27,7 @@ def grid_subsampling(points, features=None, labels=None, sampleDl=0.1, verbose=0
             points, features=features, sampleDl=sampleDl, verbose=verbose
         )
     elif features is None:
-        return cpp_subsampling.subsample(
-            points, classes=labels, sampleDl=sampleDl, verbose=verbose
-        )
+        return cpp_subsampling.subsample(points, classes=labels, sampleDl=sampleDl, verbose=verbose)
     else:
         return cpp_subsampling.subsample(
             points,
@@ -73,9 +71,7 @@ def batch_grid_subsampling(
         phi = (np.random.rand(B) - 0.5) * np.pi
 
         # Create the first vector in carthesian coordinates
-        u = np.vstack(
-            [np.cos(theta) * np.cos(phi), np.sin(theta) * np.cos(phi), np.sin(phi)]
-        )
+        u = np.vstack([np.cos(theta) * np.cos(phi), np.sin(theta) * np.cos(phi), np.sin(phi)])
 
         # Choose a random rotation angle
         alpha = np.random.rand(B) * 2 * np.pi
@@ -183,9 +179,7 @@ def batch_neighbors(queries, supports, q_batches, s_batches, radius):
     :return: neighbors indices
     """
 
-    return cpp_neighbors.batch_query(
-        queries, supports, q_batches, s_batches, radius=radius
-    )
+    return cpp_neighbors.batch_query(queries, supports, q_batches, s_batches, radius=radius)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -298,9 +292,7 @@ class PointCloudDataset(Dataset):
                 alpha = np.random.rand() * 2 * np.pi
 
                 # Create the rotation matrix with this vector and angle
-                R = create_3D_rotations(
-                    np.reshape(u, (1, -1)), np.reshape(alpha, (1, -1))
-                )[0]
+                R = create_3D_rotations(np.reshape(u, (1, -1)), np.reshape(alpha, (1, -1)))[0]
 
         R = R.astype(np.float32)
 
@@ -326,8 +318,7 @@ class PointCloudDataset(Dataset):
         #######
 
         noise = (
-            np.random.randn(points.shape[0], points.shape[1])
-            * self.config.augment_noise
+            np.random.randn(points.shape[0], points.shape[1]) * self.config.augment_noise
         ).astype(np.float32)
 
         ##################
@@ -369,9 +360,7 @@ class PointCloudDataset(Dataset):
         else:
             return neighbors
 
-    def classification_inputs(
-        self, stacked_points, stacked_features, labels, stack_lengths
-    ):
+    def classification_inputs(self, stacked_points, stacked_features, labels, stack_lengths):
 
         # Starting radius of convolutions
         r_normal = self.config.first_subsampling_dl * self.config.conv_radius
@@ -394,10 +383,7 @@ class PointCloudDataset(Dataset):
 
             # Get all blocks of the layer
             if not (
-                "pool" in block
-                or "strided" in block
-                or "global" in block
-                or "upsample" in block
+                "pool" in block or "strided" in block or "global" in block or "upsample" in block
             ):
                 layer_blocks += [block]
                 continue
@@ -431,9 +417,7 @@ class PointCloudDataset(Dataset):
                 dl = 2 * r_normal / self.config.conv_radius
 
                 # Subsampled points
-                pool_p, pool_b = batch_grid_subsampling(
-                    stacked_points, stack_lengths, sampleDl=dl
-                )
+                pool_p, pool_b = batch_grid_subsampling(stacked_points, stack_lengths, sampleDl=dl)
 
                 # Radius of pooled neighbors
                 if "deformable" in block:
@@ -443,9 +427,7 @@ class PointCloudDataset(Dataset):
                     r = r_normal
 
                 # Subsample indices
-                pool_i = batch_neighbors(
-                    pool_p, stacked_points, pool_b, stack_lengths, r
-                )
+                pool_i = batch_neighbors(pool_p, stacked_points, pool_b, stack_lengths, r)
 
             else:
                 # No pooling in the end of this layer, no pooling indices required
@@ -488,9 +470,7 @@ class PointCloudDataset(Dataset):
 
         return li
 
-    def segmentation_inputs(
-        self, stacked_points, stacked_features, labels, stack_lengths
-    ):
+    def segmentation_inputs(self, stacked_points, stacked_features, labels, stack_lengths):
 
         # Starting radius of convolutions
         r_normal = self.config.first_subsampling_dl * self.config.conv_radius
@@ -514,10 +494,7 @@ class PointCloudDataset(Dataset):
 
             # Get all blocks of the layer
             if not (
-                "pool" in block
-                or "strided" in block
-                or "global" in block
-                or "upsample" in block
+                "pool" in block or "strided" in block or "global" in block or "upsample" in block
             ):
                 layer_blocks += [block]
                 continue
@@ -551,9 +528,7 @@ class PointCloudDataset(Dataset):
                 dl = 2 * r_normal / self.config.conv_radius
 
                 # Subsampled points
-                pool_p, pool_b = batch_grid_subsampling(
-                    stacked_points, stack_lengths, sampleDl=dl
-                )
+                pool_p, pool_b = batch_grid_subsampling(stacked_points, stack_lengths, sampleDl=dl)
 
                 # Radius of pooled neighbors
                 if "deformable" in block:
@@ -563,14 +538,10 @@ class PointCloudDataset(Dataset):
                     r = r_normal
 
                 # Subsample indices
-                pool_i = batch_neighbors(
-                    pool_p, stacked_points, pool_b, stack_lengths, r
-                )
+                pool_i = batch_neighbors(pool_p, stacked_points, pool_b, stack_lengths, r)
 
                 # Upsample indices (with the radius of the next layer to keep wanted density)
-                up_i = batch_neighbors(
-                    stacked_points, pool_p, stack_lengths, pool_b, 2 * r
-                )
+                up_i = batch_neighbors(stacked_points, pool_p, stack_lengths, pool_b, 2 * r)
 
             else:
                 # No pooling in the end of this layer, no pooling indices required
@@ -610,13 +581,7 @@ class PointCloudDataset(Dataset):
         ###############
 
         # list of network inputs
-        li = (
-            input_points
-            + input_neighbors
-            + input_pools
-            + input_upsamples
-            + input_stack_lengths
-        )
+        li = input_points + input_neighbors + input_pools + input_upsamples + input_stack_lengths
         li += [stacked_features, labels]
 
         return li

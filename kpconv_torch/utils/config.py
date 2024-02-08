@@ -182,14 +182,7 @@ class Config:
 
         # Number of layers
         self.num_layers = (
-            len(
-                [
-                    block
-                    for block in self.architecture
-                    if "pool" in block or "strided" in block
-                ]
-            )
-            + 1
+            len([block for block in self.architecture if "pool" in block or "strided" in block]) + 1
         )
 
         ###################
@@ -205,10 +198,7 @@ class Config:
 
             # Get all blocks of the layer
             if not (
-                "pool" in block
-                or "strided" in block
-                or "global" in block
-                or "upsample" in block
+                "pool" in block or "strided" in block or "global" in block or "upsample" in block
             ):
                 layer_blocks += [block]
                 continue
@@ -251,8 +241,7 @@ class Config:
 
                 elif line_info[0] == "lr_decay_epochs":
                     self.lr_decays = {
-                        int(b.split(":")[0]): float(b.split(":")[1])
-                        for b in line_info[2:]
+                        int(b.split(":")[0]): float(b.split(":")[1]) for b in line_info[2:]
                     }
 
                 elif line_info[0] == "architecture":
@@ -358,16 +347,10 @@ class Config:
             text_file.write(f"augment_rotation = {self.augment_rotation}\n")
             text_file.write(f"augment_noise = {self.augment_noise:f}\n")
             text_file.write(f"augment_occlusion = {self.augment_occlusion}\n")
-            text_file.write(
-                "augment_occlusion_ratio = {:.6f}\n".format(
-                    self.augment_occlusion_ratio
-                )
-            )
+            text_file.write(f"augment_occlusion_ratio = {self.augment_occlusion_ratio:.6f}\n")
             text_file.write(f"augment_occlusion_num = {self.augment_occlusion_num:d}\n")
             text_file.write(
-                "augment_scale_anisotropic = {:d}\n".format(
-                    int(self.augment_scale_anisotropic)
-                )
+                f"augment_scale_anisotropic = {int(self.augment_scale_anisotropic):d}\n"
             )
             text_file.write(f"augment_scale_min = {self.augment_scale_min:.6f}\n")
             text_file.write(f"augment_scale_max = {self.augment_scale_max:.6f}\n")

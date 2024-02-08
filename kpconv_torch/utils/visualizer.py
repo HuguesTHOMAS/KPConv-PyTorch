@@ -65,9 +65,7 @@ class ModelVisualizer:
         # First choose the visualized deformations
         ##########################################
 
-        print(
-            "\nList of the deformable convolution available (chosen one highlighted in green)"
-        )
+        print("\nList of the deformable convolution available (chosen one highlighted in green)")
         fmt_str = "  {:}{:2d} > KPConv(r={:.3f}, Din={:d}, Dout={:d}){:}"
         deform_convs = []
         for m in net.modules():
@@ -119,12 +117,8 @@ class ModelVisualizer:
 
                 # Forward pass
                 net(batch, config)
-                original_KP = (
-                    deform_convs[deform_idx].kernel_points.cpu().detach().numpy()
-                )
-                stacked_deformed_KP = (
-                    deform_convs[deform_idx].deformed_KP.cpu().detach().numpy()
-                )
+                original_KP = deform_convs[deform_idx].kernel_points.cpu().detach().numpy()
+                stacked_deformed_KP = deform_convs[deform_idx].deformed_KP.cpu().detach().numpy()
                 count += batch.lengths[0].shape[0]
 
                 if "cuda" in self.device.type:
@@ -146,9 +140,7 @@ class ModelVisualizer:
                 lookuptrees = []
                 i0 = 0
                 for length in batch.lengths[0]:
-                    in_points.append(
-                        batch.points[0][i0 : i0 + length].cpu().detach().numpy()
-                    )
+                    in_points.append(batch.points[0][i0 : i0 + length].cpu().detach().numpy())
                     if batch.features.shape[1] == 4:
                         in_colors.append(
                             batch.features[i0 : i0 + length, 1:].cpu().detach().numpy()
@@ -159,9 +151,7 @@ class ModelVisualizer:
 
                 i0 = 0
                 for length in batch.lengths[layer]:
-                    points.append(
-                        batch.points[layer][i0 : i0 + length].cpu().detach().numpy()
-                    )
+                    points.append(batch.points[layer][i0 : i0 + length].cpu().detach().numpy())
                     deformed_KP.append(stacked_deformed_KP[i0 : i0 + length])
                     lookuptrees.append(KDTree(points[-1]))
                     i0 += length
@@ -171,9 +161,7 @@ class ModelVisualizer:
                 ###########################
 
                 # Create figure for features
-                fig1 = mlab.figure(
-                    "Deformations", bgcolor=(1.0, 1.0, 1.0), size=(1280, 920)
-                )
+                fig1 = mlab.figure("Deformations", bgcolor=(1.0, 1.0, 1.0), size=(1280, 920))
                 fig1.scene.parallel_projection = False
 
                 # Indices
@@ -190,9 +178,9 @@ class ModelVisualizer:
                     """Picker callback: this get called when on pick events."""
                     global plots, aim_point
 
-                    if "in_points" in plots and plots[
-                        "in_points"
-                    ].actor.actor._vtk_obj in [o._vtk_obj for o in picker.actors]:
+                    if "in_points" in plots and plots["in_points"].actor.actor._vtk_obj in [
+                        o._vtk_obj for o in picker.actors
+                    ]:
                         point_rez = (
                             plots["in_points"]
                             .glyph.glyph_source.glyph_source.output.points.to_array()
@@ -283,9 +271,7 @@ class ModelVisualizer:
                                 scale_mode="none",
                                 figure=fig1,
                             )
-                            plots[
-                                "in_points"
-                            ].module_manager.scalar_lut_manager.lut.table = colors
+                            plots["in_points"].module_manager.scalar_lut_manager.lut.table = colors
 
                         else:
 
@@ -301,9 +287,9 @@ class ModelVisualizer:
 
                     # Get KP locations
                     rescaled_aim_point = aim_point * config.in_radius / 1.5
-                    point_i = lookuptrees[obj_i].query(
-                        rescaled_aim_point, return_distance=False
-                    )[0][0]
+                    point_i = lookuptrees[obj_i].query(rescaled_aim_point, return_distance=False)[
+                        0
+                    ][0]
                     if offsets:
                         KP = points[obj_i][point_i] + deformed_KP[obj_i][point_i]
                         scals = np.ones_like(KP[:, 0])
@@ -342,14 +328,8 @@ class ModelVisualizer:
                         plots["title"] = mlab.title(
                             str(obj_i), color=(0, 0, 0), size=0.3, height=0.01
                         )
-                        text = (
-                            "<--- (press g for previous)"
-                            + 50 * " "
-                            + "(press h for next) --->"
-                        )
-                        plots["text"] = mlab.text(
-                            0.01, 0.01, text, color=(0, 0, 0), width=0.98
-                        )
+                        text = "<--- (press g for previous)" + 50 * " " + "(press h for next) --->"
+                        plots["text"] = mlab.text(0.01, 0.01, text, color=(0, 0, 0), width=0.98)
                         plots["orient"] = mlab.orientation_axes()
 
                     # Set the saved view
