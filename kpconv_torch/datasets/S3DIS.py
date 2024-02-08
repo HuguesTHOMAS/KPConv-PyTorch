@@ -15,7 +15,6 @@ from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply
 from kpconv_torch.utils.tester import get_test_save_path
-from kpconv_torch.utils.trainer import get_train_save_path
 
 
 class S3DISDataset(PointCloudDataset):
@@ -29,18 +28,23 @@ class S3DISDataset(PointCloudDataset):
         chosen_log=None,
         infered_file=None,
         output_dir=None,
-        split="training",
         use_potentials=True,
         load_data=True,
+        split="training",
     ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
-
-        self.train_save_path = get_train_save_path(output_dir, chosen_log)
-        self.test_save_path = get_test_save_path(infered_file, chosen_log)
-
-        PointCloudDataset.__init__(self, "S3DIS")
+        super().__init__(
+            self,
+            config=config,
+            datapath=datapath,
+            dataset="S3DIS",
+            chosen_log=chosen_log,
+            infered_file=infered_file,
+            output_dir=output_dir,
+            split=split,
+        )
 
         ############
         # Parameters
@@ -76,25 +80,14 @@ class S3DISDataset(PointCloudDataset):
         config.num_classes = self.num_classes - len(self.ignored_labels)
         config.dataset_task = self.dataset_task
 
-        # Parameters from config
-        self.config = config
-
-        # Training or test set
-        if split not in ["training", "validation", "test", "ERF", "all"]:
-            raise ValueError("Unknown set for S3DIS data: ", split)
-        self.set = split
-
         # Using potential or random epoch generation
         self.use_potentials = use_potentials
 
-        # Dataset folder
-        self.path = datapath
-
         # Path of the training files
-        self.train_path = join(self.path, "original_ply")
-        if not exists(self.train_path):
+        self.train_files_path = join(self.path, "original_ply")
+        if not exists(self.train_files_path):
             print("The ply folder does not exist, create it.")
-            makedirs(self.train_path)
+            makedirs(self.train_files_path)
 
         # Create path for files
         self.tree_path = join(
@@ -117,7 +110,7 @@ class S3DISDataset(PointCloudDataset):
         self.files = [
             cloud_name
             if self.set == "test" and infered_file is not None
-            else join(self.train_path, cloud_name + ".ply")
+            else join(self.train_files_path, cloud_name + ".ply")
             for i, cloud_name in enumerate(self.cloud_names)
         ]
 

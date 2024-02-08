@@ -4,8 +4,9 @@ from torch.utils.data import Dataset
 import cpp_wrappers.cpp_neighbors.radius_neighbors as cpp_neighbors
 import cpp_wrappers.cpp_subsampling.grid_subsampling as cpp_subsampling
 from kpconv_torch.kernels.kernel_points import create_3D_rotations
-from kpconv_torch.utils.config import Config
 from kpconv_torch.utils.mayavi_visu import show_ModelNet_examples
+from kpconv_torch.utils.tester import get_test_save_path
+from kpconv_torch.utils.trainer import get_train_save_path
 
 
 def grid_subsampling(points, features=None, labels=None, sampleDl=0.1, verbose=0):
@@ -196,21 +197,45 @@ def batch_neighbors(queries, supports, q_batches, s_batches, radius):
 class PointCloudDataset(Dataset):
     """Parent class for Point Cloud Datasets."""
 
-    def __init__(self, name):
+    def __init__(
+        self,
+        config,
+        datapath,
+        dataset,
+        chosen_log=None,
+        infered_file=None,
+        output_dir=None,
+        split="training",
+    ):
         """
         Initialize parameters of the dataset here.
         """
+        # Name of the dataset
+        self.name = dataset
 
-        self.name = name
-        self.path = ""
         self.label_to_names = {}
         self.num_classes = 0
         self.label_values = np.zeros((0,), dtype=np.int32)
         self.label_names = []
         self.label_to_idx = {}
         self.name_to_label = {}
-        self.config = Config()
         self.neighborhood_limits = []
+
+        # Parameters from config
+        self.config = config
+
+        # Dataset folder
+        self.path = datapath
+
+        # Training or test set
+        self.set = split
+
+        # Training or test set
+        if split not in ["training", "validation", "test", "ERF", "all"]:
+            raise ValueError("Unknown set for the dataset: ", split)
+
+        self.train_save_path = get_train_save_path(output_dir, chosen_log)
+        self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         return
 
