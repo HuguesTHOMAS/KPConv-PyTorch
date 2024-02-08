@@ -145,7 +145,7 @@ def load_snap_clouds(path, dataset, only_last=False):
             for f in listdir_str(cloud_folder):
                 if f.endswith(".ply") and not f.endswith("sub.ply"):
                     data = read_ply(join(cloud_folder, f))
-                    labels = data["class"]
+                    labels = data["classification"]
                     preds = data["preds"]
                     Confs[c_i] += fast_confusion(labels, preds, dataset.label_values).astype(
                         np.int32

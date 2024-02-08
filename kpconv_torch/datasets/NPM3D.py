@@ -704,12 +704,12 @@ class NPM3DDataset(PointCloudDataset):
                 write_ply(join(ply_path, cloud_name + ".ply"), cloud_points, field_names)
 
             else:
-                labels = original_ply["class"]
+                labels = original_ply["classification"]
                 labels = labels.astype(np.int32)
                 labels = labels.reshape(len(labels), 1)
 
                 # Save as ply
-                field_names = ["x", "y", "z", "class"]
+                field_names = ["x", "y", "z", "classification"]
                 write_ply(
                     join(ply_path, cloud_name + ".ply"),
                     [cloud_points, labels],
@@ -752,7 +752,7 @@ class NPM3DDataset(PointCloudDataset):
                 # read ply with data
                 data = read_ply(sub_ply_file)
                 # sub_colors = np.vstack((data['red'], data['green'], data['blue'])).T
-                sub_labels = data["class"]
+                sub_labels = data["classification"]
 
                 # Read pkl with search tree
                 with open(KDTree_file, "rb") as f:
@@ -770,7 +770,7 @@ class NPM3DDataset(PointCloudDataset):
                 if self.set == "test":
                     labels = np.zeros((data.shape[0],), dtype=np.int32)
                 else:
-                    labels = data["class"]
+                    labels = data["classification"]
 
                 # Subsample cloud
                 sub_points, sub_labels = grid_subsampling(points, labels=labels, sampleDl=dl)
@@ -789,7 +789,7 @@ class NPM3DDataset(PointCloudDataset):
                     pickle.dump(search_tree, f)
 
                 # Save ply
-                write_ply(sub_ply_file, [sub_points, sub_labels], ["x", "y", "z", "class"])
+                write_ply(sub_ply_file, [sub_points, sub_labels], ["x", "y", "z", "classification"])
 
             # Fill data containers
             self.input_trees += [search_tree]
@@ -879,7 +879,7 @@ class NPM3DDataset(PointCloudDataset):
                     if self.set == "test":
                         labels = np.zeros((data.shape[0],), dtype=np.int32)
                     else:
-                        labels = data["class"]
+                        labels = data["classification"]
 
                     # Compute projection inds
                     idxs = self.input_trees[i].query(points, return_distance=False)

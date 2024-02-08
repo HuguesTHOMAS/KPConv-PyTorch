@@ -667,7 +667,7 @@ class S3DISDataset(PointCloudDataset):
             write_ply(
                 cloud_file,
                 (cloud_points, cloud_colors, cloud_classes),
-                ["x", "y", "z", "red", "green", "blue", "class"],
+                ["x", "y", "z", "red", "green", "blue", "classification"],
             )
 
         print(f"Done in {time.time() - t0:.1f}s")
@@ -730,7 +730,7 @@ class S3DISDataset(PointCloudDataset):
             write_ply(
                 sub_ply_file,
                 [sub_points, sub_colors, sub_labels],
-                ["x", "y", "z", "red", "green", "blue", "class"],
+                ["x", "y", "z", "red", "green", "blue", "classification"],
             )
 
         # Fill data containers
@@ -873,7 +873,7 @@ class S3DISDataset(PointCloudDataset):
             data = read_ply(filename)
             points = np.vstack((data["x"], data["y"], data["z"])).T
             colors = np.vstack((data["red"], data["green"], data["blue"])).T
-            labels = data["class"]
+            labels = data["classification"]
         elif file_extension == "xyz":
             data = np.loadtxt(filename, delimiter=" ")
             points = data[:, :3].astype(np.float32)
