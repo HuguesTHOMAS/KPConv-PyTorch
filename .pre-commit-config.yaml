@@ -20,10 +20,10 @@ repos:
       - id: autoflake
 
   - repo: https://github.com/ambv/black
-    rev: 22.12.0
+    rev: 24.1.1
     hooks:
       - id: black
-        args: [--target-version=py38,--line-length=100]
+        args: [--line-length=100]
 
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
