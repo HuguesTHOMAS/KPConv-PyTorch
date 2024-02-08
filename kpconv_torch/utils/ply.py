@@ -80,9 +80,7 @@ def parse_mesh_header(plyfile, ext):
             if current_element == "vertex":
                 line = line.split()
                 vertex_properties.append((line[2].decode(), ext + ply_dtypes[line[1]]))
-            elif current_element == "vertex" and not line.startswith(
-                "property list uchar int"
-            ):
+            elif current_element == "vertex" and not line.startswith("property list uchar int"):
                 raise ValueError("Unsupported faces property : " + line)
 
     return num_points, num_faces, vertex_properties

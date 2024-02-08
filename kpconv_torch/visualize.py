@@ -33,11 +33,7 @@ def model_choice(chosen_log):
 
         # List all training logs
         logs = np.sort(
-            [
-                os.path.join("results", f)
-                for f in os.listdir("results")
-                if f.startswith("Log")
-            ]
+            [os.path.join("results", f) for f in os.listdir("results") if f.startswith("Log")]
         )
 
         # Find the last log of asked dataset
@@ -160,9 +156,7 @@ def main(args):
     elif config.dataset_task in ["cloud_segmentation", "slam_segmentation"]:
         net = KPFCNN(config, test_dataset.label_values, test_dataset.ignored_labels)
     else:
-        raise ValueError(
-            "Unsupported dataset_task for deformation visu: " + config.dataset_task
-        )
+        raise ValueError("Unsupported dataset_task for deformation visu: " + config.dataset_task)
 
     # Define a visualizer class
     visualizer = ModelVisualizer(net, config, chkp_path=chosen_chkp, on_gpu=False)

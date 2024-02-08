@@ -222,9 +222,7 @@ class KPConv(nn.Module):
             self.radius, self.K, dimension=self.p_dim, fixed=self.fixed_kernel_points
         )
 
-        return Parameter(
-            torch.tensor(K_points_numpy, dtype=torch.float32), requires_grad=False
-        )
+        return Parameter(torch.tensor(K_points_numpy, dtype=torch.float32), requires_grad=False)
 
     def forward(self, q_pts, s_pts, neighb_inds, x):
 
@@ -235,9 +233,7 @@ class KPConv(nn.Module):
         if self.deformable:
 
             # Get offsets with a KPConv that only takes part of the features
-            self.offset_features = (
-                self.offset_conv(q_pts, s_pts, neighb_inds, x) + self.offset_bias
-            )
+            self.offset_features = self.offset_conv(q_pts, s_pts, neighb_inds, x) + self.offset_bias
 
             if self.modulated:
 
@@ -246,9 +242,7 @@ class KPConv(nn.Module):
                 unscaled_offsets = unscaled_offsets.view(-1, self.K, self.p_dim)
 
                 # Get modulations
-                modulations = 2 * torch.sigmoid(
-                    self.offset_features[:, self.p_dim * self.K :]
-                )
+                modulations = 2 * torch.sigmoid(self.offset_features[:, self.p_dim * self.K :])
 
             else:
 
@@ -299,17 +293,13 @@ class KPConv(nn.Module):
             self.min_d2, _ = torch.min(sq_distances, dim=1)
 
             # Boolean of the neighbors in range of a kernel point [n_points, n_neighbors]
-            in_range = torch.any(sq_distances < self.KP_extent**2, dim=2).type(
-                torch.int32
-            )
+            in_range = torch.any(sq_distances < self.KP_extent**2, dim=2).type(torch.int32)
 
             # New value of max neighbors
             new_max_neighb = torch.max(torch.sum(in_range, dim=1))
 
             # For each row of neighbors, indices of the ones that are in range [n_points, new_max_neighb]
-            neighb_row_bool, neighb_row_inds = torch.topk(
-                in_range, new_max_neighb.item(), dim=1
-            )
+            neighb_row_bool, neighb_row_inds = torch.topk(in_range, new_max_neighb.item(), dim=1)
 
             # Gather new neighbor indices [n_points, new_max_neighb]
             new_neighb_inds = neighb_inds.gather(1, neighb_row_inds, sparse_grad=False)
@@ -321,9 +311,7 @@ class KPConv(nn.Module):
 
             # New shadow neighbors have to point to the last shadow point
             new_neighb_inds *= neighb_row_bool
-            new_neighb_inds -= (neighb_row_bool.type(torch.int64) - 1) * int(
-                s_pts.shape[0] - 1
-            )
+            new_neighb_inds -= (neighb_row_bool.type(torch.int64) - 1) * int(s_pts.shape[0] - 1)
         else:
             new_neighb_inds = neighb_inds
 
@@ -335,9 +323,7 @@ class KPConv(nn.Module):
 
         elif self.KP_influence == "linear":
             # Influence decrease linearly with the distance, and get to zero when d = KP_extent.
-            all_weights = torch.clamp(
-                1 - torch.sqrt(sq_distances) / self.KP_extent, min=0.0
-            )
+            all_weights = torch.clamp(1 - torch.sqrt(sq_distances) / self.KP_extent, min=0.0)
             all_weights = torch.transpose(all_weights, 1, 2)
 
         elif self.KP_influence == "gaussian":
@@ -351,9 +337,7 @@ class KPConv(nn.Module):
         # In case of closest mode, only the closest KP can influence each point
         if self.aggregation_mode == "closest":
             neighbors_1nn = torch.argmin(sq_distances, dim=2)
-            all_weights *= torch.transpose(
-                nn.functional.one_hot(neighbors_1nn, self.K), 1, 2
-            )
+            all_weights *= torch.transpose(nn.functional.one_hot(neighbors_1nn, self.K), 1, 2)
 
         elif self.aggregation_mode != "sum":
             raise ValueError("Unknown convolution mode. Should be 'closest' or 'sum'")
@@ -394,9 +378,7 @@ class KPConv(nn.Module):
 def block_decider(block_name, radius, in_dim, out_dim, layer_ind, config):
 
     if block_name == "unary":
-        return UnaryBlock(
-            in_dim, out_dim, config.use_batch_norm, config.batch_norm_momentum
-        )
+        return UnaryBlock(in_dim, out_dim, config.use_batch_norm, config.batch_norm_momentum)
 
     elif block_name in [
         "simple",
@@ -420,9 +402,7 @@ def block_decider(block_name, radius, in_dim, out_dim, layer_ind, config):
         "resnetb_equivariant_strided",
         "resnetb_invariant_strided",
     ]:
-        return ResnetBottleneckBlock(
-            block_name, in_dim, out_dim, radius, layer_ind, config
-        )
+        return ResnetBottleneckBlock(block_name, in_dim, out_dim, radius, layer_ind, config)
 
     elif block_name == "max_pool" or block_name == "max_pool_wide":
         return MaxPoolBlock(layer_ind)
@@ -434,9 +414,7 @@ def block_decider(block_name, radius, in_dim, out_dim, layer_ind, config):
         return NearestUpsampleBlock(layer_ind)
 
     else:
-        raise ValueError(
-            "Unknown block name in the architecture definition : " + block_name
-        )
+        raise ValueError("Unknown block name in the architecture definition : " + block_name)
 
 
 class BatchNormBlock(nn.Module):
@@ -455,9 +433,7 @@ class BatchNormBlock(nn.Module):
             self.batch_norm = nn.BatchNorm1d(in_dim, momentum=bn_momentum)
             # self.batch_norm = nn.InstanceNorm1d(in_dim, momentum=bn_momentum)
         else:
-            self.bias = Parameter(
-                torch.zeros(in_dim, dtype=torch.float32), requires_grad=True
-            )
+            self.bias = Parameter(torch.zeros(in_dim, dtype=torch.float32), requires_grad=True)
         return
 
     def reset_parameters(self):
@@ -593,9 +569,7 @@ class ResnetBottleneckBlock(nn.Module):
 
         # First downscaling mlp
         if in_dim != out_dim // 4:
-            self.unary1 = UnaryBlock(
-                in_dim, out_dim // 4, self.use_bn, self.bn_momentum
-            )
+            self.unary1 = UnaryBlock(in_dim, out_dim // 4, self.use_bn, self.bn_momentum)
         else:
             self.unary1 = nn.Identity()
 
@@ -613,14 +587,10 @@ class ResnetBottleneckBlock(nn.Module):
             deformable="deform" in block_name,
             modulated=config.modulated,
         )
-        self.batch_norm_conv = BatchNormBlock(
-            out_dim // 4, self.use_bn, self.bn_momentum
-        )
+        self.batch_norm_conv = BatchNormBlock(out_dim // 4, self.use_bn, self.bn_momentum)
 
         # Second upscaling mlp
-        self.unary2 = UnaryBlock(
-            out_dim // 4, out_dim, self.use_bn, self.bn_momentum, no_relu=True
-        )
+        self.unary2 = UnaryBlock(out_dim // 4, out_dim, self.use_bn, self.bn_momentum, no_relu=True)
 
         # Shortcut optional mpl
         if in_dim != out_dim:

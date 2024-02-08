@@ -41,11 +41,7 @@ def model_choice(chosen_log):
 
         # List all training logs
         logs = np.sort(
-            [
-                os.path.join("results", f)
-                for f in os.listdir("results")
-                if f.startswith("Log")
-            ]
+            [os.path.join("results", f) for f in os.listdir("results") if f.startswith("Log")]
         )
 
         # Find the last log of asked dataset

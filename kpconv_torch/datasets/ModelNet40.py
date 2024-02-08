@@ -104,18 +104,13 @@ class ModelNet40Dataset(PointCloudDataset):
         # Number of models and models used per epoch
         if self.set == "training":
             self.num_models = 9843
-            if (
-                config.epoch_steps
-                and config.epoch_steps * config.batch_num < self.num_models
-            ):
+            if config.epoch_steps and config.epoch_steps * config.batch_num < self.num_models:
                 self.epoch_n = config.epoch_steps * config.batch_num
             else:
                 self.epoch_n = self.num_models
         else:
             self.num_models = 2468
-            self.epoch_n = min(
-                self.num_models, config.validation_size * config.batch_num
-            )
+            self.epoch_n = min(self.num_models, config.validation_size * config.batch_num)
 
         #############
         # Load models
@@ -194,9 +189,7 @@ class ModelNet40Dataset(PointCloudDataset):
         elif self.config.in_features_dim == 4:
             stacked_features = np.hstack((stacked_features, stacked_normals))
         else:
-            raise ValueError(
-                "Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)"
-            )
+            raise ValueError("Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)")
 
         #######################
         # Create network inputs
@@ -226,12 +219,8 @@ class ModelNet40Dataset(PointCloudDataset):
         else:
             split = "test"
 
-        print(
-            f"\nLoading {split} points subsampled at {self.config.first_subsampling_dl:3f}"
-        )
-        filename = join(
-            self.path, f"{split}_{self.config.first_subsampling_dl:3f}_record.pkl"
-        )
+        print(f"\nLoading {split} points subsampled at {self.config.first_subsampling_dl:3f}")
+        filename = join(self.path, f"{split}_{self.config.first_subsampling_dl:3f}_record.pkl")
 
         if exists(filename):
             with open(filename, "rb") as file:
@@ -242,9 +231,7 @@ class ModelNet40Dataset(PointCloudDataset):
 
             # Collect training file names
             if self.set == "training":
-                names = np.loadtxt(
-                    join(self.path, "modelnet40_train.txt"), dtype=np.str
-                )
+                names = np.loadtxt(join(self.path, "modelnet40_train.txt"), dtype=np.str)
             else:
                 names = np.loadtxt(join(self.path, "modelnet40_test.txt"), dtype=np.str)
 
@@ -362,16 +349,12 @@ class ModelNet40Sampler(Sampler):
                 for label_value in self.dataset.label_values:
 
                     # Get the potentials of the objects of this class
-                    label_inds = np.where(
-                        np.equal(self.dataset.input_labels, label_value)
-                    )[0]
+                    label_inds = np.where(np.equal(self.dataset.input_labels, label_value))[0]
                     class_potentials = self.potentials[label_inds]
 
                     # Get the indices to generate thanks to potentials
                     if pick_n < class_potentials.shape[0]:
-                        pick_indices = np.argpartition(class_potentials, pick_n)[
-                            :pick_n
-                        ]
+                        pick_indices = np.argpartition(class_potentials, pick_n)[:pick_n]
                     else:
                         pick_indices = np.random.permutation(class_potentials.shape[0])
                     class_indices = label_inds[pick_indices]
@@ -384,34 +367,28 @@ class ModelNet40Sampler(Sampler):
 
                 # Get indices with the minimum potential
                 if self.dataset.epoch_n < self.potentials.shape[0]:
-                    gen_indices = np.argpartition(
-                        self.potentials, self.dataset.epoch_n
-                    )[: self.dataset.epoch_n]
+                    gen_indices = np.argpartition(self.potentials, self.dataset.epoch_n)[
+                        : self.dataset.epoch_n
+                    ]
                 else:
                     gen_indices = np.random.permutation(self.potentials.shape[0])
                 gen_indices = np.random.permutation(gen_indices)
 
             # Update potentials (Change the order for the next epoch)
             self.potentials[gen_indices] = np.ceil(self.potentials[gen_indices])
-            self.potentials[gen_indices] += (
-                np.random.rand(gen_indices.shape[0]) * 0.1 + 0.1
-            )
+            self.potentials[gen_indices] += np.random.rand(gen_indices.shape[0]) * 0.1 + 0.1
 
         else:
             if self.balance_labels:
                 pick_n = self.dataset.epoch_n // self.dataset.num_classes + 1
                 gen_indices = []
                 for label_value in self.dataset.label_values:
-                    label_inds = np.where(
-                        np.equal(self.dataset.input_labels, label_value)
-                    )[0]
+                    label_inds = np.where(np.equal(self.dataset.input_labels, label_value))[0]
                     rand_inds = np.random.choice(label_inds, size=pick_n, replace=True)
                     gen_indices += [rand_inds]
                 gen_indices = np.random.permutation(np.hstack(gen_indices))
             else:
-                gen_indices = np.random.permutation(self.dataset.num_models)[
-                    : self.dataset.epoch_n
-                ]
+                gen_indices = np.random.permutation(self.dataset.num_models)[: self.dataset.epoch_n]
 
         ################
         # Generator loop
@@ -553,14 +530,10 @@ class ModelNet40Sampler(Sampler):
             ############################
 
             # From config parameter, compute higher bound of neighbors number in a neighborhood
-            hist_n = int(
-                np.ceil(4 / 3 * np.pi * (self.dataset.config.conv_radius + 1) ** 3)
-            )
+            hist_n = int(np.ceil(4 / 3 * np.pi * (self.dataset.config.conv_radius + 1) ** 3))
 
             # Histogram of neighborhood sizes
-            neighb_hists = np.zeros(
-                (self.dataset.config.num_layers, hist_n), dtype=np.int32
-            )
+            neighb_hists = np.zeros((self.dataset.config.num_layers, hist_n), dtype=np.int32)
 
             ########################
             # Batch calib parameters
@@ -640,9 +613,7 @@ class ModelNet40Sampler(Sampler):
 
             # Use collected neighbor histogram to get neighbors limit
             cumsum = np.cumsum(neighb_hists.T, axis=0)
-            percentiles = np.sum(
-                cumsum < (untouched_ratio * cumsum[hist_n - 1, :]), axis=0
-            )
+            percentiles = np.sum(cumsum < (untouched_ratio * cumsum[hist_n - 1, :]), axis=0)
             self.dataset.neighborhood_limits = percentiles
 
             if verbose:
@@ -711,21 +682,13 @@ class ModelNet40CustomBatch:
 
         # Extract input tensors from the list of numpy array
         ind = 0
-        self.points = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.points = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
-        self.neighbors = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.neighbors = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
-        self.pools = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.pools = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
-        self.lengths = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
-        ]
+        self.lengths = [torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]]
         ind += L
         self.features = torch.from_numpy(input_list[ind])
         ind += 1
@@ -1023,11 +986,7 @@ def debug_timing(dataset, sampler, loader):
             if (t[-1] - last_display) > -1.0:
                 last_display = t[-1]
                 message = "Step {:08d} -> (ms/batch) {:8.2f} {:8.2f} / batch = {:.2f}"
-                print(
-                    message.format(
-                        batch_i, 1000 * mean_dt[0], 1000 * mean_dt[1], estim_b
-                    )
-                )
+                print(message.format(batch_i, 1000 * mean_dt[0], 1000 * mean_dt[1], estim_b))
 
         print("************* Epoch ended *************")
 

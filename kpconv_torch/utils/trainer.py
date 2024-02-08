@@ -16,9 +16,7 @@ def get_train_save_path(output_dir, chosen_log):
     elif chosen_log is not None:
         train_path = chosen_log
     elif output_dir is not None:
-        train_path = join(
-            output_dir, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime())
-        )
+        train_path = join(output_dir, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime()))
     if train_path is not None and not exists(train_path):
         makedirs(train_path)
     return train_path
@@ -80,9 +78,7 @@ class ModelTrainer:
 
         # Path of the result folder
         if config.saving:
-            config.save_parameters(
-                get_train_save_path(args.output_dir, args.chosen_log)
-            )
+            config.save_parameters(get_train_save_path(args.output_dir, args.chosen_log))
 
         return
 
@@ -101,18 +97,14 @@ class ModelTrainer:
         if config.saving:
             # Training log file
             with open(
-                get_train_save_path(args.output_dir, args.chosen_log)
-                + "/"
-                + "training.txt",
+                get_train_save_path(args.output_dir, args.chosen_log) + "/" + "training.txt",
                 "w",
             ) as file:
                 file.write("epochs steps out_loss offset_loss train_accuracy time\n")
 
             # Killing file (simply delete this file when you want to stop the training)
             PID_file = (
-                get_train_save_path(args.output_dir, args.chosen_log)
-                + "/"
-                + "running_PID.txt"
+                get_train_save_path(args.output_dir, args.chosen_log) + "/" + "running_PID.txt"
             )
             if not exists(PID_file):
                 with open(PID_file, "w") as file:
@@ -120,9 +112,7 @@ class ModelTrainer:
 
             # Checkpoints directory
             checkpoint_directory = (
-                get_train_save_path(args.output_dir, args.chosen_log)
-                + "/"
-                + "checkpoints"
+                get_train_save_path(args.output_dir, args.chosen_log) + "/" + "checkpoints"
             )
             if not exists(checkpoint_directory):
                 makedirs(checkpoint_directory)
@@ -176,9 +166,7 @@ class ModelTrainer:
 
                 if config.grad_clip_norm > 0:
                     # torch.nn.utils.clip_grad_norm_(net.parameters(), config.grad_clip_norm)
-                    torch.nn.utils.clip_grad_value_(
-                        net.parameters(), config.grad_clip_norm
-                    )
+                    torch.nn.utils.clip_grad_value_(net.parameters(), config.grad_clip_norm)
                 self.optimizer.step()
 
                 torch.cuda.empty_cache()
@@ -195,7 +183,9 @@ class ModelTrainer:
                 # Console display (only one per second)
                 if (t[-1] - last_display) > 1.0:
                     last_display = t[-1]
-                    message = "e{:03d}-i{:04d} => L={:.3f} acc={:3.0f}% / t(ms): {:5.1f} {:5.1f} {:5.1f})"
+                    message = (
+                        "e{:03d}-i{:04d} => L={:.3f} acc={:3.0f}% / t(ms): {:5.1f} {:5.1f} {:5.1f})"
+                    )
                     print(
                         message.format(
                             self.epoch,
@@ -262,9 +252,7 @@ class ModelTrainer:
 
                 # Save checkpoints occasionally
                 if (self.epoch + 1) % config.checkpoint_gap == 0:
-                    checkpoint_path = join(
-                        checkpoint_directory, f"chkp_{self.epoch + 1:04d}.tar"
-                    )
+                    checkpoint_path = join(checkpoint_directory, f"chkp_{self.epoch + 1:04d}.tar")
                     torch.save(save_dict, checkpoint_path)
 
             # Validation
@@ -369,9 +357,7 @@ class ModelTrainer:
         # Voting validation
         ###################
 
-        self.val_probs[obj_inds] = (
-            val_smooth * self.val_probs[obj_inds] + (1 - val_smooth) * probs
-        )
+        self.val_probs[obj_inds] = val_smooth * self.val_probs[obj_inds] + (1 - val_smooth) * probs
 
         ############
         # Confusions
@@ -395,11 +381,7 @@ class ModelTrainer:
             conf_list = [C1, C2]
             file_list = ["val_confs.txt", "vote_confs.txt"]
             for conf, conf_file in zip(conf_list, file_list):
-                test_file = (
-                    get_train_save_path(args.output_dir, args.chosen_log)
-                    + "/"
-                    + conf_file
-                )
+                test_file = get_train_save_path(args.output_dir, args.chosen_log) + "/" + conf_file
                 if exists(test_file):
                     with open(test_file, "a") as text_file:
                         for line in conf:
@@ -514,8 +496,7 @@ class ModelTrainer:
 
                 # Update current probs in whole cloud
                 self.validation_probs[c_i][inds] = (
-                    val_smooth * self.validation_probs[c_i][inds]
-                    + (1 - val_smooth) * probs
+                    val_smooth * self.validation_probs[c_i][inds] + (1 - val_smooth) * probs
                 )
 
                 # Stack all prediction for this epoch
@@ -554,9 +535,9 @@ class ModelTrainer:
             preds = val_loader.dataset.label_values[np.argmax(probs, axis=1)]
 
             # Confusions
-            Confs[i, :, :] = fast_confusion(
-                truth, preds, val_loader.dataset.label_values
-            ).astype(np.int32)
+            Confs[i, :, :] = fast_confusion(truth, preds, val_loader.dataset.label_values).astype(
+                np.int32
+            )
 
         t3 = time.time()
 
@@ -564,9 +545,7 @@ class ModelTrainer:
         C = np.sum(Confs, axis=0).astype(np.float32)
 
         # Remove ignored labels from confusions
-        for l_ind, label_value in reversed(
-            list(enumerate(val_loader.dataset.label_values))
-        ):
+        for l_ind, label_value in reversed(list(enumerate(val_loader.dataset.label_values))):
             if label_value in val_loader.dataset.ignored_labels:
                 C = np.delete(C, l_ind, axis=0)
                 C = np.delete(C, l_ind, axis=1)
@@ -585,11 +564,7 @@ class ModelTrainer:
         if config.saving:
 
             # Name of saving file
-            test_file = (
-                get_train_save_path(args.output_dir, args.chosen_log)
-                + "/"
-                + "val_IoUs.txt"
-            )
+            test_file = get_train_save_path(args.output_dir, args.chosen_log) + "/" + "val_IoUs.txt"
 
             # Line to write:
             line = ""
@@ -608,17 +583,13 @@ class ModelTrainer:
             # Save potentials
             if val_loader.dataset.use_potentials:
                 pot_path = (
-                    get_train_save_path(args.output_dir, args.chosen_log)
-                    + "/"
-                    + "potentials"
+                    get_train_save_path(args.output_dir, args.chosen_log) + "/" + "potentials"
                 )
                 if not exists(pot_path):
                     makedirs(pot_path)
                 files = val_loader.dataset.files
                 for i, file_path in enumerate(files):
-                    pot_points = np.array(
-                        val_loader.dataset.pot_trees[i].data, copy=False
-                    )
+                    pot_points = np.array(val_loader.dataset.pot_trees[i].data, copy=False)
                     cloud_name = file_path.split("/")[-1]
                     pot_name = join(pot_path, cloud_name)
                     pots = val_loader.dataset.potentials[i].numpy().astype(np.float32)
@@ -671,9 +642,7 @@ class ModelTrainer:
 
                 # Save file
                 labels = val_loader.dataset.validation_labels[i].astype(np.int32)
-                write_ply(
-                    val_name, [points, preds, labels], ["x", "y", "z", "preds", "class"]
-                )
+                write_ply(val_name, [points, preds, labels], ["x", "y", "z", "preds", "class"])
 
         # Display timings
         t7 = time.time()
@@ -710,14 +679,8 @@ class ModelTrainer:
         softmax = torch.nn.Softmax(1)
 
         # Create folder for validation predictions
-        if not exists(
-            get_train_save_path(args.output_dir, args.chosen_log) + "/" + "val_preds"
-        ):
-            makedirs(
-                get_train_save_path(args.output_dir, args.chosen_log)
-                + "/"
-                + "val_preds"
-            )
+        if not exists(get_train_save_path(args.output_dir, args.chosen_log) + "/" + "val_preds"):
+            makedirs(get_train_save_path(args.output_dir, args.chosen_log) + "/" + "val_preds")
 
         # initiate the dataset validation containers
         val_loader.dataset.val_points = []
@@ -866,9 +829,9 @@ class ModelTrainer:
         for i, (preds, truth) in enumerate(zip(predictions, targets)):
 
             # Confusions
-            Confs[i, :, :] = fast_confusion(
-                truth, preds, val_loader.dataset.label_values
-            ).astype(np.int32)
+            Confs[i, :, :] = fast_confusion(truth, preds, val_loader.dataset.label_values).astype(
+                np.int32
+            )
 
         t3 = time.time()
 
@@ -880,14 +843,10 @@ class ModelTrainer:
         C = np.sum(Confs, axis=0).astype(np.float32)
 
         # Balance with real validation proportions
-        C *= np.expand_dims(
-            val_loader.dataset.class_proportions / (np.sum(C, axis=1) + 1e-6), 1
-        )
+        C *= np.expand_dims(val_loader.dataset.class_proportions / (np.sum(C, axis=1) + 1e-6), 1)
 
         # Remove ignored labels from confusions
-        for l_ind, label_value in reversed(
-            list(enumerate(val_loader.dataset.label_values))
-        ):
+        for l_ind, label_value in reversed(list(enumerate(val_loader.dataset.label_values))):
             if label_value in val_loader.dataset.ignored_labels:
                 C = np.delete(C, l_ind, axis=0)
                 C = np.delete(C, l_ind, axis=1)
@@ -902,11 +861,7 @@ class ModelTrainer:
         t4 = time.time()
 
         # Sum all validation confusions
-        C_tot = [
-            np.sum(seq_C, axis=0)
-            for seq_C in val_loader.dataset.val_confs
-            if len(seq_C) > 0
-        ]
+        C_tot = [np.sum(seq_C, axis=0) for seq_C in val_loader.dataset.val_confs if len(seq_C) > 0]
         C_tot = np.sum(np.stack(C_tot, axis=0), axis=0)
 
         if debug:
@@ -918,9 +873,7 @@ class ModelTrainer:
             print(s)
 
         # Remove ignored labels from confusions
-        for l_ind, label_value in reversed(
-            list(enumerate(val_loader.dataset.label_values))
-        ):
+        for l_ind, label_value in reversed(list(enumerate(val_loader.dataset.label_values))):
             if label_value in val_loader.dataset.ignored_labels:
                 C_tot = np.delete(C_tot, l_ind, axis=0)
                 C_tot = np.delete(C_tot, l_ind, axis=1)
@@ -938,11 +891,7 @@ class ModelTrainer:
             for IoUs_to_save, IoU_file in zip(IoU_list, file_list):
 
                 # Name of saving file
-                test_file = (
-                    get_train_save_path(args.output_dir, args.chosen_log)
-                    + "/"
-                    + IoU_file
-                )
+                test_file = get_train_save_path(args.output_dir, args.chosen_log) + "/" + IoU_file
 
                 # Line to write:
                 line = ""

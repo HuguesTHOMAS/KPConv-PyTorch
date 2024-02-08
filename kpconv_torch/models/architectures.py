@@ -31,12 +31,8 @@ def p2p_fitting_regularizer(net):
 
             # Point should not be close to each other
             for i in range(net.K):
-                other_KP = torch.cat(
-                    [KP_locs[:, :i, :], KP_locs[:, i + 1 :, :]], dim=1
-                ).detach()
-                distances = torch.sqrt(
-                    torch.sum((other_KP - KP_locs[:, i : i + 1, :]) ** 2, dim=2)
-                )
+                other_KP = torch.cat([KP_locs[:, :i, :], KP_locs[:, i + 1 :, :]], dim=1).detach()
+                distances = torch.sqrt(torch.sum((other_KP - KP_locs[:, i : i + 1, :]) ** 2, dim=2))
                 rep_loss = torch.sum(
                     torch.clamp_max(distances - net.repulse_extent, max=0.0) ** 2, dim=1
                 )
@@ -72,18 +68,14 @@ class KPCNN(nn.Module):
 
             # Check equivariance
             if ("equivariant" in block) and (out_dim % 3 != 0):
-                raise ValueError(
-                    "Equivariant block but features dimension is not a factor of 3"
-                )
+                raise ValueError("Equivariant block but features dimension is not a factor of 3")
 
             # Detect upsampling block to stop
             if "upsample" in block:
                 break
 
             # Apply the good block function defining tf ops
-            self.block_ops.append(
-                block_decider(block, r, in_dim, out_dim, layer, config)
-            )
+            self.block_ops.append(block_decider(block, r, in_dim, out_dim, layer, config))
 
             # Update dimension of input from output
             if "simple" in block:
@@ -201,14 +193,10 @@ class KPFCNN(nn.Module):
 
             # Check equivariance
             if ("equivariant" in block) and (out_dim % 3 != 0):
-                raise ValueError(
-                    "Equivariant block but features dimension is not a factor of 3"
-                )
+                raise ValueError("Equivariant block but features dimension is not a factor of 3")
 
             # Detect change to next layer for skip connection
-            if np.any(
-                [tmp in block for tmp in ["pool", "strided", "upsample", "global"]]
-            ):
+            if np.any([tmp in block for tmp in ["pool", "strided", "upsample", "global"]]):
                 self.encoder_skips.append(block_i)
                 self.encoder_skip_dims.append(in_dim)
 
@@ -217,9 +205,7 @@ class KPFCNN(nn.Module):
                 break
 
             # Apply the good block function defining tf ops
-            self.encoder_blocks.append(
-                block_decider(block, r, in_dim, out_dim, layer, config)
-            )
+            self.encoder_blocks.append(block_decider(block, r, in_dim, out_dim, layer, config))
 
             # Update dimension of input from output
             if "simple" in block:
@@ -258,9 +244,7 @@ class KPFCNN(nn.Module):
                 self.decoder_concats.append(block_i)
 
             # Apply the good block function defining tf ops
-            self.decoder_blocks.append(
-                block_decider(block, r, in_dim, out_dim, layer, config)
-            )
+            self.decoder_blocks.append(block_decider(block, r, in_dim, out_dim, layer, config))
 
             # Update dimension of input from output
             in_dim = out_dim
@@ -273,9 +257,7 @@ class KPFCNN(nn.Module):
                 out_dim = out_dim // 2
 
         self.head_mlp = UnaryBlock(out_dim, config.first_features_dim, False, 0)
-        self.head_softmax = UnaryBlock(
-            config.first_features_dim, self.C, False, 0, no_relu=True
-        )
+        self.head_softmax = UnaryBlock(config.first_features_dim, self.C, False, 0, no_relu=True)
 
         ################
         # Network Losses

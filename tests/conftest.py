@@ -11,6 +11,4 @@ def fixture_path():
 
 @pytest.fixture
 def ply_array():
-    yield np.array(
-        [[0, 10, 200], [2, 30, 400], [7, 10, 600], [5, 60, 200]], dtype=np.float64
-    )
+    yield np.array([[0, 10, 200], [2, 30, 400], [7, 10, 600], [5, 60, 200]], dtype=np.float64)
