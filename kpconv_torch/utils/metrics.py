@@ -47,12 +47,6 @@ def fast_confusion(true, pred, label_values=None):
     # Get the number of classes
     num_classes = len(label_values)
 
-    # print(num_classes)
-    # print(label_values)
-    # print(np.max(true))
-    # print(np.max(pred))
-    # print(np.max(true * num_classes + pred))
-
     # Start confusion computations
     if label_values[0] == 0 and label_values[-1] == num_classes - 1:
 
@@ -60,10 +54,8 @@ def fast_confusion(true, pred, label_values=None):
         vec_conf = np.bincount(true * num_classes + pred)
 
         # Add possible missing values due to classes not being in pred or true
-        # print(vec_conf.shape)
         if vec_conf.shape[0] < num_classes**2:
             vec_conf = np.pad(vec_conf, (0, num_classes**2 - vec_conf.shape[0]), "constant")
-        # print(vec_conf.shape)
 
         # Reshape confusion in a matrix
         return vec_conf.reshape((num_classes, num_classes))
@@ -94,12 +86,14 @@ def fast_confusion(true, pred, label_values=None):
 
 
 def metrics(confusions, ignore_unclassified=False):
-    """
-    Computes different metrics from confusion matrices.
-    :param confusions: ([..., n_c, n_c] np.int32). Can be any dimension, the confusion matrices should be described by
-    the last axes. n_c = number of classes
-    :param ignore_unclassified: (bool). True if the the first class should be ignored in the results
+    """Computes different metrics from confusion matrices.
+
+    :param confusions: ([..., nb_classes, nb_classes] np.int32). Can be any dimension, the
+    confusion matrices should be described by the last axes.
+    :param ignore_unclassified: (bool). True if the the first class should be ignored in the
+    results
     :return: ([..., n_c] np.float32) precision, recall, F1 score, IoU score
+
     """
 
     # If the first class (often "unclassified") should be ignored, erase it from the confusion.
@@ -107,14 +101,16 @@ def metrics(confusions, ignore_unclassified=False):
         confusions[..., 0, :] = 0
         confusions[..., :, 0] = 0
 
-    # Compute TP, FP, FN. This assume that the second to last axis counts the truths (like the first axis of a
-    # confusion matrix), and that the last axis counts the predictions (like the second axis of a confusion matrix)
+    # Compute TP, FP, FN. This assume that the second to last axis counts the truths (like the
+    # first axis of a confusion matrix), and that the last axis counts the predictions (like the
+    # second axis of a confusion matrix)
     TP = np.diagonal(confusions, axis1=-2, axis2=-1)
     TP_plus_FP = np.sum(confusions, axis=-1)
     TP_plus_FN = np.sum(confusions, axis=-2)
 
-    # Compute precision and recall. This assume that the second to last axis counts the truths (like the first axis of
-    # a confusion matrix), and that the last axis counts the predictions (like the second axis of a confusion matrix)
+    # Compute precision and recall. This assume that the second to last axis counts the truths
+    # (like the first axis of a confusion matrix), and that the last axis counts the predictions
+    # (like the second axis of a confusion matrix)
     PRE = TP / (TP_plus_FN + 1e-6)
     REC = TP / (TP_plus_FP + 1e-6)
 
@@ -131,13 +127,15 @@ def metrics(confusions, ignore_unclassified=False):
 
 
 def smooth_metrics(confusions, smooth_n=0, ignore_unclassified=False):
-    """
-    Computes different metrics from confusion matrices. Smoothed over a number of epochs.
-    :param confusions: ([..., n_c, n_c] np.int32). Can be any dimension, the confusion matrices should be described by
-    the last axes. n_c = number of classes
+    """Computes different metrics from confusion matrices. Smoothed over a number of epochs.
+
+    :param confusions: ([..., nb_classes, nb_classes] np.int32). Can be any dimension, the
+    confusion matrices should be described by the last axes.
     :param smooth_n: (int). smooth extent
-    :param ignore_unclassified: (bool). True if the the first class should be ignored in the results
+    :param ignore_unclassified: (bool). True if the the first class should be ignored in the
+    results
     :return: ([..., n_c] np.float32) precision, recall, F1 score, IoU score
+
     """
 
     # If the first class (often "unclassified") should be ignored, erase it from the confusion.
@@ -153,14 +151,16 @@ def smooth_metrics(confusions, smooth_n=0, ignore_unclassified=False):
             i1 = min(epoch + smooth_n + 1, confusions.shape[-3])
             smoothed_confusions[..., epoch, :, :] = np.sum(confusions[..., i0:i1, :, :], axis=-3)
 
-    # Compute TP, FP, FN. This assume that the second to last axis counts the truths (like the first axis of a
-    # confusion matrix), and that the last axis counts the predictions (like the second axis of a confusion matrix)
+    # Compute TP, FP, FN. This assume that the second to last axis counts the truths (like the
+    # first axis of a confusion matrix), and that the last axis counts the predictions (like the
+    # second axis of a confusion matrix)
     TP = np.diagonal(smoothed_confusions, axis1=-2, axis2=-1)
     TP_plus_FP = np.sum(smoothed_confusions, axis=-2)
     TP_plus_FN = np.sum(smoothed_confusions, axis=-1)
 
-    # Compute precision and recall. This assume that the second to last axis counts the truths (like the first axis of
-    # a confusion matrix), and that the last axis counts the predictions (like the second axis of a confusion matrix)
+    # Compute precision and recall. This assume that the second to last axis counts the truths
+    # (like the first axis of a confusion matrix), and that the last axis counts the predictions
+    # (like the second axis of a confusion matrix)
     PRE = TP / (TP_plus_FN + 1e-6)
     REC = TP / (TP_plus_FP + 1e-6)
 
@@ -177,16 +177,19 @@ def smooth_metrics(confusions, smooth_n=0, ignore_unclassified=False):
 
 
 def IoU_from_confusions(confusions):
-    """
-    Computes IoU from confusion matrices.
-    :param confusions: ([..., n_c, n_c] np.int32). Can be any dimension, the confusion matrices should be described by
-    the last axes. n_c = number of classes
-    :param ignore_unclassified: (bool). True if the the first class should be ignored in the results
+    """Computes IoU from confusion matrices.
+
+    :param confusions: ([..., nb_classes, nb_classes] np.int32). Can be any dimension, the
+    confusion matrices should be described by the last axes.
+    :param ignore_unclassified: (bool). True if the the first class should be ignored in the
+    results
     :return: ([..., n_c] np.float32) IoU score
+
     """
 
-    # Compute TP, FP, FN. This assume that the second to last axis counts the truths (like the first axis of a
-    # confusion matrix), and that the last axis counts the predictions (like the second axis of a confusion matrix)
+    # Compute TP, FP, FN. This assume that the second to last axis counts the truths (like the
+    # first axis of a confusion matrix), and that the last axis counts the predictions (like the
+    # second axis of a confusion matrix)
     TP = np.diagonal(confusions, axis1=-2, axis2=-1)
     TP_plus_FN = np.sum(confusions, axis=-1)
     TP_plus_FP = np.sum(confusions, axis=-2)

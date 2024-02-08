@@ -165,7 +165,6 @@ class ModelTrainer:
                 loss.backward()
 
                 if config.grad_clip_norm > 0:
-                    # torch.nn.utils.clip_grad_norm_(net.parameters(), config.grad_clip_norm)
                     torch.nn.utils.clip_grad_value_(net.parameters(), config.grad_clip_norm)
                 self.optimizer.step()
 
@@ -375,7 +374,7 @@ class ModelTrainer:
             validation_labels,
         )
 
-        # Saving (optionnal)
+        # Saving
         if config.saving:
             print("Save confusions")
             conf_list = [C1, C2]
@@ -426,9 +425,6 @@ class ModelTrainer:
 
         # Number of classes predicted by the model
         nc_model = config.num_classes
-
-        # print(nc_tot)
-        # print(nc_model)
 
         # Initiate global prediction over validation clouds
         if not hasattr(self, "validation_probs"):
@@ -560,7 +556,7 @@ class ModelTrainer:
 
         t5 = time.time()
 
-        # Saving (optionnal)
+        # Saving
         if config.saving:
 
             # Name of saving file
@@ -883,7 +879,7 @@ class ModelTrainer:
 
         t5 = time.time()
 
-        # Saving (optionnal)
+        # Saving
         if config.saving:
 
             IoU_list = [IoUs, val_IoUs]

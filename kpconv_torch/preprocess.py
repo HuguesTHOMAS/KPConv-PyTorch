@@ -25,11 +25,8 @@ def main(args):
     # ############################
     # # Initialize the environment
     # ############################
-    # # Set which gpu is going to be used
-    # GPU_ID = "0"
-
-    # # Set GPU visible device
-    # os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
+    # Option: set which gpu is going to be used and set the GPU visible device
+    # By modifying the CUDA_VISIBLE_DEVICES environment variable
 
     # Initialize configuration class
     if args.dataset == "ModelNet40":
@@ -47,11 +44,6 @@ def main(args):
     # Change model parameters for test
     ##################################
     # Change parameters for the test here. For example, you can stop augmenting the input data.
-
-    # config.augment_noise = 0.0001
-    # config.augment_symmetries = False
-    # config.batch_num = 3
-    # config.in_radius = 4
     config.validation_size = 200
     config.input_threads = 10
 

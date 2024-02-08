@@ -58,19 +58,22 @@ def spherical_Lloyd(
     momentum=0.9,
     verbose=0,
 ):
-    """
-    Creation of kernel point via Lloyd algorithm. We use an approximation of the algorithm, and compute the Voronoi
-    cell centers with discretization  of space. The exact formula is not trivial with part of the sphere as sides.
+    """Creation of kernel point via Lloyd algorithm. We use an approximation of the algorithm, and
+    compute the Voronoi cell centers with discretization of space. The exact formula is not trivial
+    with part of the sphere as sides.
+
     :param radius: Radius of the kernels
     :param num_cells: Number of cell (kernel points) in the Voronoi diagram.
     :param dimension: dimension of the space
     :param fixed: fix position of certain kernel points ('none', 'center' or 'verticals')
-    :param approximation: Approximation method for Lloyd's algorithm ('discretization', 'monte-carlo')
+    :param approximation: Approximation method for Lloyd's algorithm ('discretization',
+    'monte-carlo')
     :param approx_n: Number of point used for approximation.
     :param max_iter: Maximum nu;ber of iteration for the algorithm.
     :param momentum: Momentum of the low pass filter smoothing kernel point positions
     :param verbose: display option
     :return: points [num_kernels, num_points, dimension]
+
     """
 
     #######################

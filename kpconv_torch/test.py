@@ -103,11 +103,6 @@ def main(args):
     # Change model parameters for test
     ##################################
     # Change parameters for the test here. For example, you can stop augmenting the input data.
-
-    # config.augment_noise = 0.0001
-    # config.augment_symmetries = False
-    # config.batch_num = 3
-    # config.in_radius = 4
     config.validation_size = 200
     config.input_threads = 10
 

@@ -19,7 +19,8 @@ def p2p_fitting_regularizer(net):
             # Get the distance to closest input point and normalize to be independant from layers
             KP_min_d2 = m.min_d2 / (m.KP_extent**2)
 
-            # Loss will be the square distance to closest input point. We use L1 because dist is already squared
+            # Loss will be the square distance to closest input point.
+            # We use L1 because dist is already squared
             fitting_loss += net.l1(KP_min_d2, torch.zeros_like(KP_min_d2))
 
             ################
