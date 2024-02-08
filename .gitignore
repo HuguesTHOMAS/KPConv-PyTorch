@@ -6,6 +6,7 @@
 /docker_scripts
 /kernels/dispositions
 core
+/kpconv_torch.egg-info
 
 # VSCode related
 *.code-workspace
