@@ -52,4 +52,4 @@ jobs:
 
       - name: Check code with black
         run: |
-          black .
+          black --check --line-length=100 $(git ls-files '*.py')
