@@ -1,7 +1,7 @@
 -r requirements.txt
 
 pre-commit>=3,<4
-black>=22,<23
+black>=24,<25
 flake8>=6,<8
 flake8-bugbear>=23.12
 flake8-builtins>=2.1
