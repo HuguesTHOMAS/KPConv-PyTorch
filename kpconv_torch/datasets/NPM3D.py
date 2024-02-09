@@ -36,7 +36,6 @@ class NPM3DDataset(PointCloudDataset):
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
         super().__init__(
-            self,
             config=config,
             datapath=datapath,
             dataset="NPM3D",
