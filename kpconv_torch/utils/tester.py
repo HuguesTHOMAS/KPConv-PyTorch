@@ -46,7 +46,7 @@ class ModelTester:
 
         return
 
-    def classification_test(self, net, test_loader, config, num_votes=100, debug=False):
+    def classification_test(self, net, test_loader, config, test_path, num_votes=100, debug=False):
 
         ############
         # Initialize
@@ -146,7 +146,9 @@ class ModelTester:
 
         return
 
-    def cloud_segmentation_test(self, net, test_loader, config, num_votes=100, debug=False):
+    def cloud_segmentation_test(
+        self, net, test_loader, config, test_path, num_votes=100, debug=False
+    ):
         """
         Test method for cloud segmentation models
         """
@@ -174,7 +176,6 @@ class ModelTester:
 
         # Test saving path
         if config.saving:
-            test_path = get_test_save_path()
             if not exists(test_path):
                 makedirs(test_path)
             if not exists(join(test_path, "predictions")):
@@ -484,7 +485,9 @@ class ModelTester:
 
         return
 
-    def slam_segmentation_test(self, net, test_loader, config, num_votes=100, debug=True):
+    def slam_segmentation_test(
+        self, net, test_loader, config, test_path, num_votes=100, debug=True
+    ):
         """
         Test method for slam segmentation models
         """
@@ -503,10 +506,8 @@ class ModelTester:
         nc_model = net.C
 
         # Test saving path
-        test_path = None
         report_path = None
         if config.saving:
-            test_path = get_test_save_path()
             if not exists(test_path):
                 makedirs(test_path)
             report_path = join(test_path, "reports")

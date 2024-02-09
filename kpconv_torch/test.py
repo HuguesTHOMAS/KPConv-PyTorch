@@ -26,7 +26,7 @@ from kpconv_torch.datasets.Toronto3D import (
 )
 from kpconv_torch.models.architectures import KPCNN, KPFCNN
 from kpconv_torch.utils.config import Config
-from kpconv_torch.utils.tester import ModelTester
+from kpconv_torch.utils.tester import ModelTester, get_test_save_path
 
 
 def model_choice(chosen_log):
@@ -219,12 +219,13 @@ def main(args):
     print("\nStart test")
     print("**********\n")
 
+    output_path = get_test_save_path(args.filename, chosen_log)
     # Testing
     if config.dataset_task == "classification":
-        tester.classification_test(net, test_loader, config)
+        tester.classification_test(net, test_loader, config, output_path)
     elif config.dataset_task == "cloud_segmentation":
-        tester.cloud_segmentation_test(net, test_loader, config)
+        tester.cloud_segmentation_test(net, test_loader, config, output_path)
     elif config.dataset_task == "slam_segmentation":
-        tester.slam_segmentation_test(net, test_loader, config)
+        tester.slam_segmentation_test(net, test_loader, config, output_path)
     else:
         raise ValueError("Unsupported dataset_task for testing: " + config.dataset_task)
