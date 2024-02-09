@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import time
 
@@ -63,6 +64,10 @@ def model_choice(chosen_log):
 
 
 def main(args):
+    test(args.datapath, args.filename, args.chosen_log, args.dataset)
+
+
+def test(datapath: Path, filename: str, chosen_log: Path, dataset: str) -> None:
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = -1
 
@@ -70,7 +75,7 @@ def main(args):
     on_val = True
 
     # Deal with 'last_XXXXXX' choices
-    chosen_log = str(model_choice(args.chosen_log))
+    chosen_log = str(model_choice(chosen_log))
 
     ############################
     # Initialize the environment
@@ -97,7 +102,7 @@ def main(args):
 
     # Initialize configuration class
     config = Config()
-    config.load(args.chosen_log)
+    config.load(chosen_log)
 
     ##################################
     # Change model parameters for test
@@ -119,61 +124,45 @@ def main(args):
     if config.dataset == "ModelNet40":
         test_dataset = ModelNet40Dataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
-            infered_file=args.filename,
+            datapath=datapath,
+            chosen_log=chosen_log,
+            infered_file=filename,
             train=False,
         )
-        test_sampler = ModelNet40Sampler(
-            test_dataset,
-            args.chosen_log,
-            args.filename,
-        )
+        test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
         test_dataset = S3DISDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
-            infered_file=args.filename,
-            split="validation" if args.filename is None else "test",
+            datapath=datapath,
+            chosen_log=chosen_log,
+            infered_file=filename,
+            split="validation" if filename is None else "test",
             use_potentials=True,
         )
-        test_sampler = S3DISSampler(
-            test_dataset,
-            args.chosen_log,
-            args.filename,
-        )
+        test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
     elif config.dataset == "Toronto3D":
         test_dataset = Toronto3DDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
-            infered_file=args.filename,
+            datapath=datapath,
+            chosen_log=chosen_log,
+            infered_file=filename,
             split="test",
             use_potentials=True,
         )
-        test_sampler = Toronto3DSampler(
-            test_dataset,
-            args.chosen_log,
-            args.filename,
-        )
+        test_sampler = Toronto3DSampler(test_dataset)
         collate_fn = Toronto3DCollate
     elif config.dataset == "SemanticKitti":
         test_dataset = SemanticKittiDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
-            infered_file=args.filename,
+            datapath=datapath,
+            chosen_log=chosen_log,
+            infered_file=filename,
             split=split,
             balance_classes=False,
         )
-        test_sampler = SemanticKittiSampler(
-            test_dataset,
-            args.chosen_log,
-            args.filename,
-        )
+        test_sampler = SemanticKittiSampler(test_dataset)
         collate_fn = SemanticKittiCollate
     else:
         raise ValueError("Unsupported dataset : " + config.dataset)
@@ -204,19 +193,19 @@ def main(args):
         raise ValueError("Unsupported dataset_task for testing: " + config.dataset_task)
 
     # Define a visualizer class
-    tester = ModelTester(net, chkp_path=chosen_chkp)
+    output_path = get_test_save_path(filename, chosen_log)
+    tester = ModelTester(net, chkp_path=chosen_chkp, test_path=output_path)
     print(f"Done in {time.time() - t1:.1f}s\n")
 
     print("\nStart test")
     print("**********\n")
 
-    output_path = get_test_save_path(args.filename, chosen_log)
     # Testing
     if config.dataset_task == "classification":
-        tester.classification_test(net, test_loader, config, output_path)
+        tester.classification_test(net, test_loader, config)
     elif config.dataset_task == "cloud_segmentation":
-        tester.cloud_segmentation_test(net, test_loader, config, output_path)
+        tester.cloud_segmentation_test(net, test_loader, config)
     elif config.dataset_task == "slam_segmentation":
-        tester.slam_segmentation_test(net, test_loader, config, output_path)
+        tester.slam_segmentation_test(net, test_loader, config)
     else:
         raise ValueError("Unsupported dataset_task for testing: " + config.dataset_task)

@@ -14,7 +14,6 @@ from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.utils.ply import read_ply, write_ply
-from kpconv_torch.utils.tester import get_test_save_path
 
 
 class S3DISDataset(PointCloudDataset):
@@ -889,13 +888,13 @@ class S3DISDataset(PointCloudDataset):
 class S3DISSampler(Sampler):
     """Sampler for S3DIS"""
 
-    def __init__(self, dataset: S3DISDataset, chosen_log, infered_file):
+    def __init__(self, dataset: S3DISDataset):
         Sampler.__init__(self, dataset)
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
-
-        self.test_save_path = get_test_save_path(infered_file, chosen_log)
+        self.calibration_path = join(self.dataset.path, "calibration")
+        makedirs(self.calibration_path, exist_ok=True)
 
         # Number of step per epoch
         if dataset.set == "training":
@@ -1102,7 +1101,7 @@ class S3DISSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.test_save_path, "batch_limits.pkl")
+        batch_lim_file = join(self.calibration_path, "batch_limits.pkl")
         if exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
@@ -1135,7 +1134,7 @@ class S3DISSampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.test_save_path, "neighbors_limits.pkl")
+        neighb_lim_file = join(self.calibration_path, "neighbors_limits.pkl")
         if exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)

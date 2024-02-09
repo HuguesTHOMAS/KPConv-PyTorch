@@ -1,6 +1,7 @@
 import contextlib
 from os import listdir, remove
 from os.path import exists, isfile, join
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -571,6 +572,10 @@ def experiment_name_2():
 
 
 def main(args):
+    plot(args.datapath)
+
+
+def plot(datapath: Path) -> None:
     ######################################################
     # Choose a list of log to plot together for comparison
     ######################################################
@@ -608,7 +613,7 @@ def main(args):
         if config.dataset.startswith("S3DIS"):
             dataset = S3DISDataset(
                 config=config,
-                datapath=args.datapath,
+                datapath=datapath,
                 load_data=False,
             )
             compare_convergences_segment(dataset, logs, logs_names)
