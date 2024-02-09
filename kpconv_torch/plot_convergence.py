@@ -607,7 +607,6 @@ def main(args):
     elif config.dataset_task == "cloud_segmentation":
         if config.dataset.startswith("S3DIS"):
             dataset = S3DISDataset(
-                command=args.command,
                 config=config,
                 datapath=args.datapath,
                 load_data=False,

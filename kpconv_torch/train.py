@@ -89,7 +89,6 @@ def main(args):
     # Initialize datasets and samplers
     if config.dataset == "ModelNet40":
         training_dataset = ModelNet40Dataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -97,7 +96,6 @@ def main(args):
             train=True,
         )
         test_dataset = ModelNet40Dataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -119,7 +117,6 @@ def main(args):
         collate_fn = ModelNet40Collate
     elif config.dataset == "NPM3D":
         training_dataset = NPM3DDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -128,7 +125,6 @@ def main(args):
             use_potentials=True,
         )
         test_dataset = NPM3DDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -149,7 +145,6 @@ def main(args):
         collate_fn = NPM3DCollate
     elif config.dataset == "S3DIS":
         training_dataset = S3DISDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -158,7 +153,6 @@ def main(args):
             use_potentials=True,
         )
         test_dataset = S3DISDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -179,7 +173,6 @@ def main(args):
         collate_fn = S3DISCollate
     elif config.dataset == "SemanticKitti":
         training_dataset = SemanticKittiDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -188,7 +181,6 @@ def main(args):
             balance_classes=True,
         )
         test_dataset = SemanticKittiDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -209,7 +201,6 @@ def main(args):
         collate_fn = SemanticKittiCollate
     elif config.dataset == "Toronto3D":
         training_dataset = Toronto3DDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -218,7 +209,6 @@ def main(args):
             use_potentials=True,
         )
         test_dataset = Toronto3DDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,

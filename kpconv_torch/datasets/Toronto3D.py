@@ -22,7 +22,6 @@ class Toronto3DDataset(PointCloudDataset):
 
     def __init__(
         self,
-        command,
         config,
         datapath,
         chosen_log=None,
@@ -111,7 +110,7 @@ class Toronto3DDataset(PointCloudDataset):
         ###################
         # Prepare ply files
         ###################
-        if infered_file is None and (command != "preprocess"):
+        if infered_file is None:
             self.prepare_Toronto3D_ply()
 
         ################
