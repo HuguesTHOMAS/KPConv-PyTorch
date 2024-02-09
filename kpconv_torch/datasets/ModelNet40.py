@@ -17,7 +17,6 @@ class ModelNet40Dataset(PointCloudDataset):
 
     def __init__(
         self,
-        command,
         config,
         datapath,
         chosen_log=None,

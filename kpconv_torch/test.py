@@ -118,7 +118,6 @@ def main(args):
     # Initiate dataset
     if config.dataset == "ModelNet40":
         test_dataset = ModelNet40Dataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -133,7 +132,6 @@ def main(args):
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
         test_dataset = S3DISDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -149,7 +147,6 @@ def main(args):
         collate_fn = S3DISCollate
     elif config.dataset == "Toronto3D":
         test_dataset = Toronto3DDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
@@ -165,7 +162,6 @@ def main(args):
         collate_fn = Toronto3DCollate
     elif config.dataset == "SemanticKitti":
         test_dataset = SemanticKittiDataset(
-            command=args.command,
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,

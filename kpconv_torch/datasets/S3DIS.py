@@ -22,7 +22,6 @@ class S3DISDataset(PointCloudDataset):
 
     def __init__(
         self,
-        command,
         config,
         datapath,
         chosen_log=None,
@@ -124,7 +123,7 @@ class S3DISDataset(PointCloudDataset):
         ###################
         # Prepare ply files
         ###################
-        if infered_file is None and (command != "preprocess"):
+        if infered_file is None:
             self.prepare_S3DIS_ply()
 
         # Stop data is not needed
