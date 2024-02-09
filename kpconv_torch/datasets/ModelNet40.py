@@ -30,7 +30,6 @@ class ModelNet40Dataset(PointCloudDataset):
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
         super().__init__(
-            self,
             config=config,
             datapath=datapath,
             dataset="ModelNet40",

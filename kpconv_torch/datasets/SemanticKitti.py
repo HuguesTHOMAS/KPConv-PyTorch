@@ -29,7 +29,6 @@ class SemanticKittiDataset(PointCloudDataset):
         split="training",
     ):
         super().__init__(
-            self,
             config=config,
             datapath=datapath,
             dataset="SemanticKitti",
