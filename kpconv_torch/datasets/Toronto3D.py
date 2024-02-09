@@ -26,7 +26,6 @@ class Toronto3DDataset(PointCloudDataset):
         datapath,
         chosen_log=None,
         infered_file=None,
-        output_dir=None,
         use_potentials=True,
         load_data=True,
         split="training",
@@ -40,7 +39,6 @@ class Toronto3DDataset(PointCloudDataset):
             dataset="Toronto3D",
             chosen_log=chosen_log,
             infered_file=infered_file,
-            output_dir=output_dir,
             split=split,
         )
 

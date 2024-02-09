@@ -24,7 +24,6 @@ class SemanticKittiDataset(PointCloudDataset):
         datapath,
         chosen_log=None,
         infered_file=None,
-        output_dir=None,
         balance_classes=True,
         split="training",
     ):
@@ -34,7 +33,6 @@ class SemanticKittiDataset(PointCloudDataset):
             dataset="SemanticKitti",
             chosen_log=chosen_log,
             infered_file=infered_file,
-            output_dir=output_dir,
             split=split,
         )
 

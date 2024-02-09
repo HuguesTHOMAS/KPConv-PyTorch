@@ -92,14 +92,12 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             train=True,
         )
         test_dataset = ModelNet40Dataset(
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             train=False,
         )
         training_sampler = ModelNet40Sampler(
@@ -120,7 +118,6 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             split="training",
             use_potentials=True,
         )
@@ -128,7 +125,6 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             split="validation",
             use_potentials=True,
         )
@@ -148,7 +144,6 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             split="training",
             use_potentials=True,
         )
@@ -156,7 +151,6 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             split="validation",
             use_potentials=True,
         )
@@ -176,7 +170,6 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             split="training",
             balance_classes=True,
         )
@@ -184,7 +177,6 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             split="validation",
             balance_classes=False,
         )
@@ -204,7 +196,6 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             split="training",
             use_potentials=True,
         )
@@ -212,7 +203,6 @@ def main(args):
             config=config,
             datapath=args.datapath,
             chosen_log=args.chosen_log,
-            output_dir=args.output_dir,
             split="validation",
             use_potentials=True,
         )

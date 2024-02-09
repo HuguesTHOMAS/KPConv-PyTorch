@@ -6,7 +6,6 @@ import cpp_wrappers.cpp_subsampling.grid_subsampling as cpp_subsampling
 from kpconv_torch.kernels.kernel_points import create_3D_rotations
 from kpconv_torch.utils.mayavi_visu import show_ModelNet_examples
 from kpconv_torch.utils.tester import get_test_save_path
-from kpconv_torch.utils.trainer import get_train_save_path
 
 
 def grid_subsampling(points, features=None, labels=None, sampleDl=0.1, verbose=0):
@@ -198,7 +197,6 @@ class PointCloudDataset(Dataset):
         dataset,
         chosen_log=None,
         infered_file=None,
-        output_dir=None,
         split="training",
     ):
         """
@@ -228,7 +226,6 @@ class PointCloudDataset(Dataset):
         if split not in ["training", "validation", "test", "ERF", "all"]:
             raise ValueError("Unknown set for the dataset: ", split)
 
-        self.train_save_path = get_train_save_path(output_dir, chosen_log)
         self.test_save_path = get_test_save_path(infered_file, chosen_log)
 
         return
