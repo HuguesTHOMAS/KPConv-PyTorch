@@ -39,6 +39,9 @@ The `train` command generates :
     - When the predictions are bad, the intersection tends to be empty and the ratio tends to 0.
 - a `checkpoints` folder, containing `.tar` files, corresponding to the different epochs;
 - a `potentials` folder, containing an `Area_5.ply` file, with validation data inside.
+- two files in a `calibration` sub-folder, which is located in the folder pointed by the `-d` option, containing the data used to train the model:
+    - `batch_limits.pkl`: ;
+    - `neighbors_limits.pkl`: ;
 
 
 ## Test
@@ -53,7 +56,7 @@ The `test` command corresponds to the application of the model on an unlabeled d
 - `-f` or `--filename`: file on which to predict semantic labels, using the trained model (optional).
 
 The `test` command generates:
-- two files, in the folder pointed by the `-d` option, containing the data used to train the model:
+- two files in a `calibration` sub-folder, which is located in the folder pointed by the `-d` option, containing the data used to train the model:
     - `batch_limits.pkl`: ;
     - `neighbors_limits.pkl`: ;
 - three folders, in the folder pointed by the `-l` option, containing the trained model:
