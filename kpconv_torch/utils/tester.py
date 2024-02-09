@@ -11,7 +11,7 @@ from kpconv_torch.utils.ply import write_ply
 
 
 def get_test_save_path(infered_file, chosen_log):
-    if infered_file is None and chosen_log is None:
+    if chosen_log is None:
         test_path = None
     elif infered_file is not None:
         test_path = Path(infered_file).parent / "test" / Path(chosen_log).name

@@ -26,7 +26,6 @@ class S3DISDataset(PointCloudDataset):
         datapath,
         chosen_log=None,
         infered_file=None,
-        output_dir=None,
         use_potentials=True,
         load_data=True,
         split="training",
@@ -40,7 +39,6 @@ class S3DISDataset(PointCloudDataset):
             dataset="S3DIS",
             chosen_log=chosen_log,
             infered_file=infered_file,
-            output_dir=output_dir,
             split=split,
         )
 
@@ -594,7 +592,7 @@ class S3DISDataset(PointCloudDataset):
 
         for cloud_name in self.cloud_names:
             # Pass if the cloud has already been computed
-            cloud_file = join(self.train_save_path, cloud_name + ".ply")
+            cloud_file = join(self.train_files_path, cloud_name + ".ply")
             if exists(cloud_file):
                 print(f"{cloud_file} does already exist.")
                 continue

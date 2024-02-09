@@ -21,7 +21,6 @@ class ModelNet40Dataset(PointCloudDataset):
         datapath,
         chosen_log=None,
         infered_file=None,
-        output_dir=None,
         orient_correction=True,
         split="training",
     ):
@@ -34,7 +33,6 @@ class ModelNet40Dataset(PointCloudDataset):
             dataset="ModelNet40",
             chosen_log=chosen_log,
             infered_file=infered_file,
-            output_dir=output_dir,
             split=split,
         )
 
