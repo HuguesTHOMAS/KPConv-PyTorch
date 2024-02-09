@@ -66,7 +66,10 @@ def kpconv_parser(subparser, reference_func, command, command_description):
             "--chosen-log",
             required=True,
             type=valid_dir,
-            help="If mentioned with the test command, the test will use this folder for the inference procedure.",
+            help=(
+                "If mentioned with the test command, "
+                "the test will use this folder for the inference procedure."
+            ),
         )
         # '.../Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
         # 'last_XXX': Automatically retrieve the last trained model on dataset XXX
@@ -77,14 +80,21 @@ def kpconv_parser(subparser, reference_func, command, command_description):
             "-l",
             "--chosen-log",
             type=valid_dir,
-            help="If mentioned with the train command,the training starts from an already trained model, contained in the mentioned folder.",
+            help=(
+                "If mentioned with the train command, "
+                "the training starts from an already trained model, "
+                "contained in the mentioned folder."
+            ),
         )
 
         group.add_argument(
             "-o",
             "--output-dir",
             type=valid_dir,
-            help="If mentioned, starts training from the begining. Otherwise, the -l option must be mentioned.",
+            help=(
+                "If mentioned, starts training from the begining. "
+                "Otherwise, the -l option must be mentioned."
+            ),
         )
 
     parser.add_argument(

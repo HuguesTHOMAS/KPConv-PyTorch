@@ -217,7 +217,8 @@ class KPConv(nn.Module):
         :return: the tensor of kernel points
         """
 
-        # Create one kernel disposition (as numpy array). Choose the KP distance to center thanks to the KP extent
+        # Create one kernel disposition (as numpy array).
+        # Choose the KP distance to center thanks to the KP extent
         K_points_numpy = load_kernels(
             self.radius, self.K, dimension=self.p_dim, fixed=self.fixed_kernel_points
         )
@@ -419,19 +420,20 @@ def block_decider(block_name, radius, in_dim, out_dim, layer_ind, config):
 
 class BatchNormBlock(nn.Module):
     def __init__(self, in_dim, use_bn, bn_momentum):
-        """
-        Initialize a batch normalization block. If network does not use batch normalization, replace with biases.
+        """Initialize a batch normalization block. If network does not use batch normalization, replace
+        with biases.
+
         :param in_dim: dimension input features
         :param use_bn: boolean indicating if we use Batch Norm
         :param bn_momentum: Batch norm momentum
+
         """
         super().__init__()
         self.bn_momentum = bn_momentum
         self.use_bn = use_bn
         self.in_dim = in_dim
         if self.use_bn:
-            self.batch_norm = nn.BatchNorm1d(in_dim, momentum=bn_momentum)
-            # self.batch_norm = nn.InstanceNorm1d(in_dim, momentum=bn_momentum)
+            self.batch_norm = nn.BatchNorm1d(in_dim, momentum=bn_momentum)  # or nn.InstanceNorm1d
         else:
             self.bias = Parameter(torch.zeros(in_dim, dtype=torch.float32), requires_grad=True)
         return
@@ -451,13 +453,18 @@ class BatchNormBlock(nn.Module):
             return x + self.bias
 
     def __repr__(self):
-        return f"BatchNormBlock(in_feat: {self.in_dim:d}, momentum: {self.bn_momentum:3f}, only_bias: {str(not self.use_bn)})"
+        return (
+            "BatchNormBlock("
+            f"in_feat: {self.in_dim:d}, "
+            f"momentum: {self.bn_momentum:3f}, "
+            f"only_bias: {str(not self.use_bn)})"
+        )
 
 
 class UnaryBlock(nn.Module):
     def __init__(self, in_dim, out_dim, use_bn, bn_momentum, no_relu=False):
-        """
-        Initialize a standard unary block with its ReLU and BatchNorm.
+        """Initialize a standard unary block with its ReLU and BatchNorm.
+
         :param in_dim: dimension input features
         :param out_dim: dimension input features
         :param use_bn: boolean indicating if we use Batch Norm
@@ -484,13 +491,19 @@ class UnaryBlock(nn.Module):
         return x
 
     def __repr__(self):
-        return f"UnaryBlock(in_feat: {self.in_dim:d}, out_feat: {self.out_dim:d}, BN: {str(self.use_bn)}, ReLU: {str(not self.no_relu)})"
+        return (
+            "UnaryBlock("
+            f"in_feat: {self.in_dim:d}, "
+            f"out_feat: {self.out_dim:d}, "
+            f"BN: {str(self.use_bn)}, "
+            f"ReLU: {str(not self.no_relu)})"
+        )
 
 
 class SimpleBlock(nn.Module):
     def __init__(self, block_name, in_dim, out_dim, radius, layer_ind, config):
-        """
-        Initialize a simple convolution block with its ReLU and BatchNorm.
+        """Initialize a simple convolution block with its ReLU and BatchNorm.
+
         :param in_dim: dimension input features
         :param out_dim: dimension input features
         :param radius: current radius of convolution

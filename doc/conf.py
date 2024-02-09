@@ -74,10 +74,6 @@ pygments_style = "sphinx"
 html_favicon = "_static/img/oslandia_logo.svg"
 html_logo = "_static/img/oslandia_logo.svg"
 html_theme = "furo"
-# html_theme_options = {
-#     "source_edit_link": f"{__about__.__uri_repository__}"
-#     + "/-/edit/main/docs/{filename}",
-# }
 
 # -- EXTENSIONS --------------------------------------------------------
 

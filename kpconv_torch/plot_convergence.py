@@ -243,7 +243,6 @@ def compare_trainings(list_of_paths, list_of_labels=None):
         # Customize the graph
         ax = fig.gca()
         ax.grid(linestyle="-.", which="both")
-        # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
     # Plots loss
     # **********
@@ -264,7 +263,6 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     # Customize the graph
     ax = fig.gca()
     ax.grid(linestyle="-.", which="both")
-    # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
     # Plot Times
     # **********
@@ -277,7 +275,6 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     # Set names for axes
     plt.xlabel("epochs")
     plt.ylabel("time")
-    # plt.yscale('log')
 
     # Display legends and title
     plt.legend(loc=0)
@@ -285,7 +282,6 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     # Customize the graph
     ax = fig.gca()
     ax.grid(linestyle="-.", which="both")
-    # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
     # Show all
     plt.show()
@@ -373,16 +369,12 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
     plt.xlabel("epochs")
     plt.ylabel("IoU")
 
-    # Set limits for y axis
-    # plt.ylim(0.55, 0.95)
-
     # Display legends and title
     plt.legend(loc=4)
 
     # Customize the graph
     ax = fig.gca()
     ax.grid(linestyle="-.", which="both")
-    # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
     displayed_classes = [0, 1, 2, 3, 4, 5, 6, 7]
     displayed_classes = []
@@ -401,16 +393,12 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
             plt.xlabel("epochs")
             plt.ylabel("IoU")
 
-            # Set limits for y axis
-            # plt.ylim(0.8, 1)
-
             # Display legends and title
             plt.legend(loc=4)
 
             # Customize the graph
             ax = fig.gca()
             ax.grid(linestyle="-.", which="both")
-            # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
     # Show all
     plt.show()
@@ -508,29 +496,26 @@ def compare_convergences_classif(list_of_paths, list_of_labels=None):
         plt.xlabel("epochs")
         plt.ylabel(fig_name + " Accuracy")
 
-        # Set limits for y axis
-        # plt.ylim(0.55, 0.95)
-
         # Display legends and title
         plt.legend(loc=4)
 
         # Customize the graph
         ax = fig.gca()
         ax.grid(linestyle="-.", which="both")
-        # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
     # Show all
     plt.show()
 
 
 def experiment_name_1():
+    """In this function you choose the results you want to plot together, to compare them as an
+    experiment. Just return the list of log paths (like 'results/Log_2020-04-04_10-04-42' for
+    example), and the associated names of these logs. Below an example of how to automatically
+    gather all logs between two dates, and name them.
+
     """
-    In this function you choose the results you want to plot together, to compare them as an experiment.
-    Just return the list of log paths (like 'results/Log_2020-04-04_10-04-42' for example), and the associated names
-    of these logs.
-    Below an example of how to automatically gather all logs between two dates, and name them.
-    """
-    # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
+    # Using the dates of the logs, you can easily gather consecutive ones.
+    # All logs should be of the same dataset.
     start = "Log_2020-04-22_11-52-58"
     end = "Log_2023-07-29_12-40-27"
 
@@ -552,14 +537,15 @@ def experiment_name_1():
 
 
 def experiment_name_2():
-    """
-    In this function you choose the results you want to plot together, to compare them as an experiment.
-    Just return the list of log paths (like 'results/Log_2020-04-04_10-04-42' for example), and the associated names
-    of these logs.
-    Below an example of how to automatically gather all logs between two dates, and name them.
+    """In this function you choose the results you want to plot together, to compare them as an
+    experiment. Just return the list of log paths (like 'results/Log_2020-04-04_10-04-42' for
+    example), and the associated names of these logs. Below an example of how to automatically
+    gather all logs between two dates, and name them.
+
     """
 
-    # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
+    # Using the dates of the logs, you can easily gather consecutive ones.
+    # All logs should be of the same dataset.
     start = "Log_2020-04-22_11-52-58"
     end = "Log_2020-05-22_11-52-58"
 

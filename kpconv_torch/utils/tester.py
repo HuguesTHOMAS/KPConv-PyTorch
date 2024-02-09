@@ -296,7 +296,6 @@ class ModelTester:
                     test_epoch, new_min, last_min
                 )
             )
-            # print([np.mean(pots) for pots in test_loader.dataset.potentials])
 
             # Save predicted cloud
             if last_min + 1 < new_min:
@@ -358,11 +357,6 @@ class ModelTester:
                     t1 = time.time()
                     proj_probs = []
                     for file_idx, _ in enumerate(test_loader.dataset.files):
-
-                        # print(i, file_path, test_loader.dataset.test_proj[i].shape, self.test_probs[i].shape)
-
-                        # print(test_loader.dataset.test_proj[i].dtype, np.max(test_loader.dataset.test_proj[i]))
-                        # print(test_loader.dataset.test_proj[i][:5])
 
                         # Reproject probs on the evaluations points
                         probs = self.test_probs[file_idx][
@@ -643,8 +637,7 @@ class ModelTester:
                             frame_points = np.fromfile(velo_file, dtype=np.float32)
                             frame_points = frame_points.reshape((-1, 4))
                             predpath = join(test_path, pred_folder, filename[:-4] + ".ply")
-                            # pots = test_loader.dataset.f_potentials[s_ind][f_ind]
-                            pots = np.zeros((0,))
+                            pots = np.zeros((0,))  # test_loader.dataset.f_potentials[s_ind][f_ind]
                             if pots.shape[0] > 0:
                                 write_ply(
                                     predpath,
@@ -711,8 +704,7 @@ class ModelTester:
                             frame_points = np.fromfile(velo_file, dtype=np.float32)
                             frame_points = frame_points.reshape((-1, 4))
                             predpath = join(test_path, pred_folder, filename[:-4] + ".ply")
-                            # pots = test_loader.dataset.f_potentials[s_ind][f_ind]
-                            pots = np.zeros((0,))
+                            pots = np.zeros((0,))  # test_loader.dataset.f_potentials[s_ind][f_ind]
                             if pots.shape[0] > 0:
                                 write_ply(
                                     predpath,
@@ -736,7 +728,10 @@ class ModelTester:
                 # Display
                 if (t[-1] - last_display) > 1.0:
                     last_display = t[-1]
-                    message = "e{:03d}-i{:04d} => {:.1f}% (timings : {:4.2f} {:4.2f} {:4.2f}) / pots {:d} => {:.1f}%"
+                    message = (
+                        "e{:03d}-i{:04d} => {:.1f}% "
+                        "(timings : {:4.2f} {:4.2f} {:4.2f}) / pots {:d} => {:.1f}%"
+                    )
                     min_pot = int(torch.floor(torch.min(test_loader.dataset.potentials)))
                     pot_num = (
                         torch.sum(test_loader.dataset.potentials > min_pot + 0.5)

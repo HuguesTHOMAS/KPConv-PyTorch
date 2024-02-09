@@ -326,7 +326,6 @@ class PointCloudDataset(Dataset):
         ##################
 
         # Do not use np.dot because it is multi-threaded
-        # augmented_points = np.dot(points, R) * scale + noise
         augmented_points = np.sum(np.expand_dims(points, 2) * R, axis=1) * scale + noise
 
         if normals is None:
@@ -349,9 +348,9 @@ class PointCloudDataset(Dataset):
             return augmented_points, augmented_normals, scale, R
 
     def big_neighborhood_filter(self, neighbors, layer):
-        """
-        Filter neighborhoods with max number of neighbors. Limit is set to keep XX% of the neighborhoods untouched.
-        Limit is computed at initialization
+        """Filter neighborhoods with max number of neighbors. Limit is set to keep XX% of the
+        neighborhoods untouched. Limit is computed at initialization.
+
         """
 
         # crop neighbors matrix

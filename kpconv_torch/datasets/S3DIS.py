@@ -960,9 +960,11 @@ class S3DISSampler(Sampler):
                                 )
                             )
                         warnings.warn(
-                            f"When choosing random epoch indices (use_potentials=False), \
-                                       class {label:d}: {self.dataset.label_names[label_ind]} only had {N_inds:d} available points, while we \
-                                       needed {random_pick_n:d}. Repeating indices in the same epoch"
+                            f"When choosing random epoch indices (use_potentials=False), "
+                            f"class {label:d}: {self.dataset.label_names[label_ind]} only had "
+                            f"{N_inds:d} available points, while we needed {random_pick_n:d}. "
+                            "Repeating indices in the same epoch",
+                            stacklevel=2,
                         )
 
                     elif N_inds < 50 * random_pick_n:

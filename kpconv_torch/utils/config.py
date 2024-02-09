@@ -93,11 +93,13 @@ class Config:
     # Kernel point influence radius
     KP_extent = 1.0
 
-    # Influence function when d < KP_extent. ('constant', 'linear', 'gaussian') When d > KP_extent, always zero
+    # Influence function when d < KP_extent. ('constant', 'linear', 'gaussian')
+    # When d > KP_extent, always zero
     KP_influence = "linear"
 
     # Aggregation function of KPConv in ('closest', 'sum')
-    # Decide if you sum all kernel point influences, or if you only take the influence of the closest KP
+    # Decide if you sum all kernel point influences,
+    # or if you only take the influence of the closest KP
     aggregation_mode = "sum"
 
     # Fixed points in the kernel : 'none', 'center' or 'verticals'
@@ -152,8 +154,8 @@ class Config:
     class_w = []
 
     # Deformable offset loss
-    # 'point2point' fitting geometry by penalizing distance from deform point to input points
-    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
+    # Fitting geometry by penalizing distance from deform point to input points ('point2point')
+    # or to input point triplet ('point2plane', not implemented)
     deform_fitting_mode = "point2point"
     deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
     deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
