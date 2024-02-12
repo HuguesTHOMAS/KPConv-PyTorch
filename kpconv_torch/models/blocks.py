@@ -9,8 +9,8 @@ from kpconv_torch.kernels.kernel_points import load_kernels
 
 
 def gather(x, idx, method=2):
-    """
-    implementation of a custom gather operation for faster backwards.
+    """Implementation of a custom gather operation for faster backwards.
+
     :param x: input with shape [N, D_1, ... D_d]
     :param idx: indexing with shape [n_1, ..., n_m]
     :param method: Choice of the method
@@ -43,8 +43,8 @@ def gather(x, idx, method=2):
 
 
 def radius_gaussian(sq_r, sig, eps=1e-9):
-    """
-    Compute a radius gaussian (gaussian of distance)
+    """Compute a radius gaussian (gaussian of distance).
+
     :param sq_r: input radiuses [dn, ..., d1, d0]
     :param sig: extents of gaussians [d1, d0] or [d0] or float
     :return: gaussian of sq_r [dn, ..., d1, d0]
@@ -53,11 +53,13 @@ def radius_gaussian(sq_r, sig, eps=1e-9):
 
 
 def closest_pool(x, inds):
-    """
-    Pools features from the closest neighbors. WARNING: this function assumes the neighbors are ordered.
+    """Pools features from the closest neighbors. WARNING: this function assumes the neighbors are
+    ordered.
+
     :param x: [n1, d] features matrix
     :param inds: [n2, max_num] Only the first column is used for pooling
     :return: [n2, d] pooled features matrix
+
     """
 
     # Add a last row with minimum features for shadow pools
@@ -68,8 +70,8 @@ def closest_pool(x, inds):
 
 
 def max_pool(x, inds):
-    """
-    Pools features with the maximum values.
+    """Pools features with the maximum values.
+
     :param x: [n1, d] features matrix
     :param inds: [n2, max_num] pooling indices
     :return: [n2, d] pooled features matrix
@@ -131,19 +133,24 @@ class KPConv(nn.Module):
         deformable=False,
         modulated=False,
     ):
-        """
-        Initialize parameters for KPConvDeformable.
+        """Initialize parameters for KPConvDeformable.
+
         :param kernel_size: Number of kernel points.
         :param p_dim: dimension of the point space.
         :param in_channels: dimension of input features.
         :param out_channels: dimension of output features.
         :param KP_extent: influence radius of each kernel point.
-        :param radius: radius used for kernel point init. Even for deformable, use the config.conv_radius
-        :param fixed_kernel_points: fix position of certain kernel points ('none', 'center' or 'verticals').
-        :param KP_influence: influence function of the kernel points ('constant', 'linear', 'gaussian').
-        :param aggregation_mode: choose to sum influences, or only keep the closest ('closest', 'sum').
+        :param radius: radius used for kernel point init. Even for deformable, use the
+        config.conv_radius
+        :param fixed_kernel_points: fix position of certain kernel points ('none', 'center' or
+        'verticals').
+        :param KP_influence: influence function of the kernel points ('constant', 'linear',
+        'gaussian').
+        :param aggregation_mode: choose to sum influences, or only keep the closest ('closest',
+        'sum').
         :param deformable: choose deformable or not
         :param modulated: choose if kernel weights are modulated in addition to deformed
+
         """
         super().__init__()
 
@@ -160,7 +167,8 @@ class KPConv(nn.Module):
         self.deformable = deformable
         self.modulated = modulated
 
-        # Running variable containing deformed KP distance to input points. (used in regularization loss)
+        # Running variable containing deformed KP distance to input points. (used in regularization
+        # loss)
         self.min_d2 = None
         self.deformed_KP = None
         self.offset_features = None
@@ -299,7 +307,8 @@ class KPConv(nn.Module):
             # New value of max neighbors
             new_max_neighb = torch.max(torch.sum(in_range, dim=1))
 
-            # For each row of neighbors, indices of the ones that are in range [n_points, new_max_neighb]
+            # For each row of neighbors, indices of the ones that are in range [n_points,
+            # new_max_neighb]
             neighb_row_bool, neighb_row_inds = torch.topk(in_range, new_max_neighb.item(), dim=1)
 
             # Gather new neighbor indices [n_points, new_max_neighb]
@@ -420,8 +429,9 @@ def block_decider(block_name, radius, in_dim, out_dim, layer_ind, config):
 
 class BatchNormBlock(nn.Module):
     def __init__(self, in_dim, use_bn, bn_momentum):
-        """Initialize a batch normalization block. If network does not use batch normalization, replace
-        with biases.
+        """Initialize a batch normalization block.
+
+        If network does not use batch normalization, replace with biases.
 
         :param in_dim: dimension input features
         :param use_bn: boolean indicating if we use Batch Norm

@@ -25,7 +25,9 @@ extra_requirements = {
 setup(
     name="kpconv_torch",
     version=find_version(),
-    description="An implementation of KPConv algorithm with PyTorch (initial credit to Hugues Thomas)",
+    description=(
+        "An implementation of KPConv algorithm with PyTorch (initial credit to Hugues Thomas)"
+    ),
     long_description=readme,
     author="Raphaël Delhome",
     author_email="raphael.delhome@oslandia.com",

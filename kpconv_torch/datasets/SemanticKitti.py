@@ -169,9 +169,9 @@ class SemanticKittiDataset(PointCloudDataset):
         return len(self.frames)
 
     def __getitem__(self, batch_i):
-        """
-        The main thread gives a list of indices to load a batch. Each worker is going to work in parallel to load a
-        different list of indices.
+        """The main thread gives a list of indices to load a batch. Each worker is going to work in
+        parallel to load a different list of indices.
+
         """
 
         t = [time.time()]
@@ -235,7 +235,8 @@ class SemanticKittiDataset(PointCloudDataset):
                 # Current frame pose
                 pose = self.poses[s_ind][f_ind - f_inc]
 
-                # Select frame only if center has moved far away (more than X meter). Negative value to ignore
+                # Select frame only if center has moved far away (more than X meter).
+                # Negative value to ignore.
                 X = -1.0
                 if X > 0:
                     diff = p_origin.dot(pose.T)[:, :3] - p_origin.dot(pose0.T)[:, :3]
@@ -268,16 +269,15 @@ class SemanticKittiDataset(PointCloudDataset):
 
                 # Apply pose (without np.dot to avoid multi-threading)
                 hpoints = np.hstack((points[:, :3], np.ones_like(points[:, :1])))
-                # new_points = hpoints.dot(pose.T)
                 new_points = np.sum(np.expand_dims(hpoints, 2) * pose.T, axis=1)
-                # new_points[:, 3:] = points[:, 3:]
 
                 # In case of validation, keep the original points in memory
                 if self.set in ["validation", "test"] and f_inc == 0:
                     o_pts = new_points[:, :3].astype(np.float32)
                     o_labels = sem_labels.astype(np.int32)
 
-                # In case radius smaller than 50m, chose new center on a point of the wanted class or not
+                # In case radius smaller than 50m, chose new center on a point of the wanted class
+                # or not
                 if self.in_R < 50.0 and f_inc == 0:
                     if self.balance_classes:
                         wanted_ind = np.random.choice(np.where(sem_labels == wanted_label)[0])
@@ -300,7 +300,6 @@ class SemanticKittiDataset(PointCloudDataset):
                 else:
                     # We have to project in the first frame coordinates
                     new_coords = new_points - pose0[:3, 3]
-                    # new_coords = new_coords.dot(pose0[:3, :3])
                     new_coords = np.sum(np.expand_dims(new_coords, 2) * pose0[:3, :3], axis=1)
                     new_coords = np.hstack((new_coords, points[rand_order, 3:]))
 
@@ -743,9 +742,9 @@ class SemanticKittiSampler(Sampler):
         return
 
     def __iter__(self):
-        """
-        Yield next batch indices here. In this dataset, this is a dummy sampler that yield the index of batch element
-        (input sphere) in epoch instead of the list of point indices
+        """Yield next batch indices here. In this dataset, this is a dummy sampler that yield the
+        index of batch element (input sphere) in epoch instead of the list of point indices.
+
         """
 
         if self.dataset.balance_classes:
@@ -819,10 +818,6 @@ class SemanticKittiSampler(Sampler):
             gen_indices = gen_indices[rand_order]
             gen_classes = gen_classes[rand_order]
 
-            # Update potentials (Change the order for the next epoch)
-            # self.dataset.potentials[gen_indices] = torch.ceil(self.dataset.potentials[gen_indices])
-            # self.dataset.potentials[gen_indices] += torch.from_numpy(np.random.rand(gen_indices.shape[0]) * 0.1 + 0.1)
-
             # Update epoch inds
             self.dataset.epoch_inds += gen_indices
             self.dataset.epoch_labels += gen_classes.type(torch.int32)
@@ -870,12 +865,15 @@ class SemanticKittiSampler(Sampler):
         return self.N
 
     def calib_max_in(self, config, dataloader, untouched_ratio=0.8, verbose=True, force_redo=False):
-        """
-        Method performing batch and neighbors calibration.
-            Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
-                               average batch size (number of stacked pointclouds) is the one asked.
-        Neighbors calibration: Set the "neighborhood_limits" (the maximum number of neighbors allowed in convolutions)
-                               so that 90% of the neighborhoods remain untouched. There is a limit for each layer.
+        """Method performing batch and neighbors calibration.
+
+        Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch)
+        so that the average batch size (number of stacked pointclouds) is the one asked.
+
+        Neighbors calibration: Set the "neighborhood_limits" (the maximum number of neighbors
+        allowed in convolutions) so that 90% of the neighborhoods remain untouched. There is a
+        limit for each layer.
+
         """
 
         ##############################
@@ -986,12 +984,15 @@ class SemanticKittiSampler(Sampler):
         return
 
     def calibration(self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False):
-        """
-        Method performing batch and neighbors calibration.
-            Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
-                               average batch size (number of stacked pointclouds) is the one asked.
-        Neighbors calibration: Set the "neighborhood_limits" (the maximum number of neighbors allowed in convolutions)
-                               so that 90% of the neighborhoods remain untouched. There is a limit for each layer.
+        """Method performing batch and neighbors calibration.
+
+        Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch)
+        so that the average batch size (number of stacked pointclouds) is the one asked.
+
+        Neighbors calibration: Set the "neighborhood_limits" (the maximum number of neighbors
+        allowed in convolutions) so that 90% of the neighborhoods remain untouched. There is a
+        limit for each layer.
+
         """
 
         ##############################
@@ -1019,7 +1020,11 @@ class SemanticKittiSampler(Sampler):
             sampler_method = "balanced"
         else:
             sampler_method = "random"
-        key = "{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:f}_{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
+        key = (
+            "{sampler_method}_{self.dataset.in_R:3f}_"
+            "{self.dataset.config.first_subsampling_dl:f}_"
+            "{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
+        )
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -1126,8 +1131,6 @@ class SemanticKittiSampler(Sampler):
             # Perform calibration
             #####################
 
-            # self.dataset.batch_limit[0] = self.dataset.max_in_p * (self.dataset.batch_num - 1)
-
             for _ in range(10):
                 for batch in dataloader:
 
@@ -1229,11 +1232,14 @@ class SemanticKittiSampler(Sampler):
             )
             if cropped_n > 0.3 * all_n:
                 print("\nTry a higher max_in_points value\n")
-                # raise ValueError('Value of max_in_points too low')
             print("\n**************************************************\n")
 
             # Save batch_limit dictionary
-            key = f"{sampler_method}_{self.dataset.in_R:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
+            key = (
+                f"{sampler_method}_{self.dataset.in_R:3f}_"
+                "{self.dataset.config.first_subsampling_dl:3f}_"
+                "{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
+            )
             batch_lim_dict[key] = float(self.dataset.batch_limit[0])
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1345,9 +1351,10 @@ class SemanticKittiCustomBatch:
         return self.unstack_elements("pools", layer)
 
     def unstack_elements(self, element_name, layer=None, to_numpy=True):
-        """
-        Return a list of the stacked elements in the batch at a certain layer. If no layer is given, then return all
-        layers
+        """Return a list of the stacked elements in the batch at a certain layer.
+
+        If no layer is given, then return all layers.
+
         """
 
         if element_name == "points":
@@ -1411,7 +1418,8 @@ class SemanticKittiConfig(Config):
     # Dataset name
     dataset = "SemanticKitti"
 
-    # Number of classes in the dataset (This value is overwritten by dataset class when Initializating dataset).
+    # Number of classes in the dataset (This value is overwritten by dataset class when
+    # Initializating dataset).
     num_classes = None
 
     # Type of task performed on this dataset (also overwritten)
@@ -1473,10 +1481,12 @@ class SemanticKittiConfig(Config):
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
 
-    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can spread out
+    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can
+    # spread out
     deform_radius = 6.0
 
-    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
+    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the
+    # standard value)
     KP_extent = 1.2
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
@@ -1496,9 +1506,8 @@ class SemanticKittiConfig(Config):
     use_batch_norm = True
     batch_norm_momentum = 0.02
 
-    # Deformable offset loss
-    # 'point2point' fitting geometry by penalizing distance from deform point to input points
-    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
+    # Deformable offset loss : fitting geometry by penalizing distance from deform point to input
+    # points ('point2point'), or to input point triplet ('point2plane', not implemented)
     deform_fitting_mode = "point2point"
     deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
     deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
@@ -1537,8 +1546,7 @@ class SemanticKittiConfig(Config):
 
     # Choose weights for class (used in segmentation loss). Empty list for no weights
     # class proportion for R=10.0 and dl=0.08 (first is unlabeled)
-    # 19.1 48.9 0.5  1.1  5.6  3.6  0.7  0.6  0.9 193.2 17.7 127.4 6.7 132.3 68.4 283.8 7.0 78.5 3.3 0.8
-    #
+    # 19.1 48.9 0.5 1.1 5.6 3.6 0.7 0.6 0.9 193.2 17.7 127.4 6.7 132.3 68.4 283.8 7.0 78.5 3.3 0.8
     #
 
     # sqrt(Inverse of proportion * 100)
@@ -1572,7 +1580,6 @@ def debug_timing(dataset, loader):
     for _ in range(10):
 
         for batch_i, batch in enumerate(loader):
-            # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # New time
             t = t[-1:]
@@ -1618,7 +1625,6 @@ def debug_class_w(dataset, loader):
 
     for _ in range(10):
         for batch in loader:
-            # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # count labels
             new_counts = np.bincount(batch.labels)

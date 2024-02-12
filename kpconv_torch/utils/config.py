@@ -87,7 +87,8 @@ class Config:
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
 
-    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can spread out
+    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can
+    # spread out
     deform_radius = 5.0
 
     # Kernel point influence radius

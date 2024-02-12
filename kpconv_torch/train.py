@@ -212,11 +212,6 @@ def train(datapath: Path, chosen_log: Path, output_dir: Path, dataset: str) -> N
     training_sampler.calibration(training_loader, verbose=True)
     test_sampler.calibration(test_loader, verbose=True)
 
-    # Optional debug functions
-    # debug_timing(training_dataset, training_loader)
-    # debug_timing(test_dataset, test_loader)
-    # debug_upsampling(training_dataset, training_loader)
-
     print("\nModel Preparation")
     print("*****************")
 
