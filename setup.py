@@ -1,4 +1,6 @@
-from setuptools import find_packages, setup
+from setuptools import Extension, find_packages, setup
+
+import numpy as np
 
 
 def find_version():
@@ -22,6 +24,26 @@ extra_requirements = {
     ]
 }
 
+subsampling_module = Extension(
+    name="grid_subsampling",
+    sources=[
+        "cpp_wrappers/cpp_utils/cloud/cloud.cpp",
+        "cpp_wrappers/cpp_subsampling/grid_subsampling/grid_subsampling.cpp",
+        "cpp_wrappers/cpp_subsampling/wrapper.cpp",
+    ],
+    extra_compile_args=["-std=c++11", "-D_GLIBCXX_USE_CXX11_ABI=0"],
+)
+
+neighboring_module = Extension(
+    name="radius_neighbors",
+    sources=[
+        "cpp_wrappers/cpp_utils/cloud/cloud.cpp",
+        "cpp_wrappers/cpp_neighbors/neighbors/neighbors.cpp",
+        "cpp_wrappers/cpp_neighbors/wrapper.cpp",
+    ],
+    extra_compile_args=["-std=c++11", "-D_GLIBCXX_USE_CXX11_ABI=0"],
+)
+
 setup(
     name="kpconv_torch",
     version=find_version(),
@@ -44,4 +66,6 @@ setup(
     python_requires=">=3",
     extras_require=extra_requirements,
     packages=find_packages(),
+    ext_modules=[subsampling_module, neighboring_module],
+    include_dirs=np.get_include(),
 )
