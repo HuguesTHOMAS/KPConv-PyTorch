@@ -1,7 +1,7 @@
 [flake8]
 max-line-length = 100
 max-complexity = 15
-ignore = E203,E501,W503,C901
+ignore = E203,W503,C901
 per-file-ignores=kpconv_torch/utils/visualizer.py:B023
 select = C,E,F,W,B,B950
 exclude =
