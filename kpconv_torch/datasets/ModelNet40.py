@@ -130,9 +130,9 @@ class ModelNet40Dataset(PointCloudDataset):
         return self.num_models
 
     def __getitem__(self, idx_list):
-        """
-        The main thread gives a list of indices to load a batch. Each worker is going to work in parallel to load a
-        different list of indices.
+        """The main thread gives a list of indices to load a batch. Each worker is going to work in
+        parallel to load a different list of indices.
+
         """
 
         ###################
@@ -167,8 +167,6 @@ class ModelNet40Dataset(PointCloudDataset):
         ###################
         # Concatenate batch
         ###################
-
-        # show_ModelNet_examples(tp_list, cloud_normals=tn_list)
 
         stacked_points = np.concatenate(tp_list, axis=0)
         stacked_normals = np.concatenate(tn_list, axis=0)
@@ -421,12 +419,15 @@ class ModelNet40Sampler(Sampler):
         return None
 
     def calibration(self, dataloader, untouched_ratio=0.9, verbose=False):
-        """
-        Method performing batch and neighbors calibration.
-            Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
-                               average batch size (number of stacked pointclouds) is the one asked.
-        Neighbors calibration: Set the "neighborhood_limits" (the maximum number of neighbors allowed in convolutions)
-                               so that 90% of the neighborhoods remain untouched. There is a limit for each layer.
+        """Method performing batch and neighbors calibration.
+
+        Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch)
+        so that the average batch size (number of stacked pointclouds) is the one asked.
+
+        Neighbors calibration: Set the "neighborhood_limits" (the maximum number of neighbors
+        allowed in convolutions) so that 90% of the neighborhoods remain untouched. There is a
+        limit for each layer.
+
         """
 
         ##############################
@@ -740,9 +741,10 @@ class ModelNet40CustomBatch:
         return self.unstack_elements("pools", layer)
 
     def unstack_elements(self, element_name, layer=None, to_numpy=True):
-        """
-        Return a list of the stacked elements in the batch at a certain layer. If no layer is given, then return all
-        layers
+        """Return a list of the stacked elements in the batch at a certain layer.
+
+        If no layer is given, then return all layers.
+
         """
 
         if element_name == "points":
@@ -806,7 +808,8 @@ class ModelNet40Config(Config):
     # Dataset name
     dataset = "ModelNet40"
 
-    # Number of classes in the dataset (This value is overwritten by dataset class when Initializating dataset).
+    # Number of classes in the dataset (This value is overwritten by dataset class when
+    # Initializating dataset).
     num_classes = None
 
     # Type of task performed on this dataset (also overwritten)
@@ -851,10 +854,12 @@ class ModelNet40Config(Config):
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
 
-    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can spread out
+    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can
+    # spread out
     deform_radius = 6.0
 
-    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
+    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the
+    # standard value)
     KP_extent = 1.2
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
@@ -873,9 +878,8 @@ class ModelNet40Config(Config):
     use_batch_norm = True
     batch_norm_momentum = 0.05
 
-    # Deformable offset loss
-    # 'point2point' fitting geometry by penalizing distance from deform point to input points
-    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
+    # Deformable offset loss : fitting geometry by penalizing distance from deform point to input
+    # points ('point2point'), or to input point triplet ('point2plane', not implemented)
     deform_fitting_mode = "point2point"
     deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
     deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
@@ -916,9 +920,11 @@ class ModelNet40Config(Config):
     augment_color = 1.0
 
     # The way we balance segmentation loss
-    #   > 'none': Each point in the whole batch has the same contribution.
-    #   > 'class': Each class has the same contribution (points are weighted according to class balance)
-    #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
+    # - 'none': Each point in the whole batch has the same contribution.
+    # - 'class': Each class has the same contribution (points are weighted according to class
+    #   balance)
+    # - 'batch': Each cloud in the batch has the same contribution (points are weighted according
+    #   cloud sizes)
     segloss_balance = "none"
 
     # Do we need to save convergence
@@ -960,7 +966,6 @@ def debug_timing(dataset, sampler, loader):
     for _ in range(10):
 
         for batch_i, batch in enumerate(loader):
-            # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # New time
             t = t[-1:]
@@ -1050,7 +1055,6 @@ def debug_batch_and_neighbors_calib(dataset, sampler, loader):
     for _ in range(10):
 
         for batch_i, _ in enumerate(loader):
-            # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # New time
             t = t[-1:]
@@ -1091,7 +1095,8 @@ class ModelNet40WorkerInitDebug:
         # Get associated dataset
         dataset = worker_info.dataset  # the dataset copy in this worker process
 
-        # In windows, each worker has its own copy of the dataset. In Linux, this is shared in memory
+        # In windows, each worker has its own copy of the dataset. In Linux, this is shared in
+        # memory
         print(dataset.input_labels.__array_interface__["data"])
         print(worker_info.dataset.input_labels.__array_interface__["data"])
         print(self.dataset.input_labels.__array_interface__["data"])

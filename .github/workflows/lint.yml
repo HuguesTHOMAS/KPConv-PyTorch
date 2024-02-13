@@ -46,12 +46,12 @@ jobs:
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax alerts
-          # ignore C901, B950 and E800 in addition to the code ignored in .flake8 (TODO: fix)
-          flake8 $(git ls-files '*.py') --show-source --count --statistics --ignore=E203,E501,W503,C901,B950,E800
+          # ignore C901 in addition to the code ignored in .flake8 (TODO: fix)
+          flake8 $(git ls-files '*.py') --show-source --count --statistics --ignore=E203,W503,C901
 
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide.
-          # Run only on C901, B950 and E800 to visualize the fixes that should still be done
-          flake8 $(git ls-files '*.py') --count --exit-zero --statistics --max-line-length=127 --select=C901,B950,E800
+          # Run only on C901 to visualize the fixes that should still be done
+          flake8 $(git ls-files '*.py') --count --exit-zero --statistics --max-line-length=127 --select=C901
 
       - name: Check code with black
         run: |

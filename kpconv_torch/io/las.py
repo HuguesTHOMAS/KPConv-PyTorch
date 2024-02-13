@@ -11,14 +11,16 @@ def read_las_laz(filepath):
     filepath: path to a 3D points file with .laz or .las format
 
     Colors are original encoded on 2 bytes
-    (cf. https://www.asprs.org/a/society/committees/standards/asprs_las_spec_v13.pdf), that is on a uint16.
-    They are converted (divided by 256) when the las or the laz file is read by this function.
+    (cf. https://www.asprs.org/a/society/committees/standards/asprs_las_spec_v13.pdf), that is on a
+    uint16. They are converted (divided by 256) when the las or the laz file is read by this
+    function.
 
     Returns
     -------
     points: 2D np.array with type float32
     colors: 2D np.array with type uint8
     labels: 1D np.array with type int32
+
     """
     data = laspy.read(filepath)
     points = np.vstack([data.x, data.y, data.z]).transpose().astype(np.float32)
@@ -62,7 +64,8 @@ def write_las(filepath, points, colors=None, labels=None):
         las.z = points[:, 2]
     else:
         raise TypeError(
-            f"Error while writing file {filepath}: points should be a float32 array, not {colors.dtype}"
+            f"Error while writing file {filepath}: "
+            f"points should be a float32 array, not {colors.dtype}"
         )
     if colors.dtype == np.dtype(np.uint8):
         las.red = colors[:, 0] * 256

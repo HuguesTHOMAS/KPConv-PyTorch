@@ -217,9 +217,9 @@ class Toronto3DDataset(PointCloudDataset):
         return len(self.cloud_names)
 
     def __getitem__(self, batch_i):
-        """
-        The main thread gives a list of indices to load a batch. Each worker is going to work in parallel to load a
-        different list of indices.
+        """The main thread gives a list of indices to load a batch. Each worker is going to work in
+        parallel to load a different list of indices.
+
         """
 
         if self.use_potentials:
@@ -381,11 +381,6 @@ class Toronto3DDataset(PointCloudDataset):
             # In case batch is full, stop
             if batch_n > int(self.batch_limit):
                 break
-
-            # Randomly drop some points (act as an augmentation process and a safety for GPU memory consumption)
-            # if n > int(self.batch_limit):
-            #    input_inds = np.random.choice(input_inds, size=int(self.batch_limit) - 1, replace=False)
-            #    n = input_inds.shape[0]
 
         ###################
         # Concatenate batch
@@ -595,11 +590,6 @@ class Toronto3DDataset(PointCloudDataset):
             if batch_n > int(self.batch_limit):
                 break
 
-            # Randomly drop some points (act as an augmentation process and a safety for GPU memory consumption)
-            # if n > int(self.batch_limit):
-            #    input_inds = np.random.choice(input_inds, size=int(self.batch_limit) - 1, replace=False)
-            #    n = input_inds.shape[0]
-
         ###################
         # Concatenate batch
         ###################
@@ -757,8 +747,6 @@ class Toronto3DDataset(PointCloudDataset):
 
                 # Get chosen neighborhoods
                 search_tree = KDTree(sub_points, leaf_size=10)
-                # search_tree = nnfln.KDTree(n_neighbors=1, metric='L2', leaf_size=10)
-                # search_tree.fit(sub_points)
 
                 # Save KDTree
                 with open(KDTree_file, "wb") as f:
@@ -867,7 +855,6 @@ class Toronto3DDataset(PointCloudDataset):
 
                     # Compute projection inds
                     idxs = self.input_trees[i].query(points, return_distance=False)
-                    # dists, idxs = self.input_trees[i_cloud].kneighbors(points)
                     proj_inds = np.squeeze(idxs).astype(np.int32)
 
                     # Save
@@ -911,9 +898,9 @@ class Toronto3DSampler(Sampler):
         return
 
     def __iter__(self):
-        """
-        Yield next batch indices here. In this dataset, this is a dummy sampler that yield the index of batch element
-        (input sphere) in epoch instead of the list of point indices
+        """Yield next batch indices here. In this dataset, this is a dummy sampler that yield
+        the index of batch element (input sphere) in epoch instead of the list of point indices.
+
         """
 
         if not self.dataset.use_potentials:
@@ -1003,11 +990,11 @@ class Toronto3DSampler(Sampler):
         return self.N
 
     def fast_calib(self):
-        """
-        This method calibrates the batch sizes while ensuring the potentials are well initialized. Indeed on a dataset
-        like Semantic3D, before potential have been updated over the dataset, there are chances that all the dense area
-        are picked in the begining and in the end, we will have very large batch of small point clouds
-        :return:
+        """This method calibrates the batch sizes while ensuring the potentials are well
+        initialized. Indeed on a dataset like Semantic3D, before potential have been updated over
+        the dataset, there are chances that all the dense area are picked in the begining and in
+        the end, we will have very large batch of small point clouds :return:
+
         """
 
         # Estimated average batch size and target value
@@ -1086,12 +1073,15 @@ class Toronto3DSampler(Sampler):
                 break
 
     def calibration(self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False):
-        """
-        Method performing batch and neighbors calibration.
-            Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
-                               average batch size (number of stacked pointclouds) is the one asked.
-        Neighbors calibration: Set the "neighborhood_limits" (the maximum number of neighbors allowed in convolutions)
-                               so that 90% of the neighborhoods remain untouched. There is a limit for each layer.
+        """Method performing batch and neighbors calibration.
+
+        Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch)
+        so that the average batch size (number of stacked pointclouds) is the one asked.
+
+        Neighbors calibration: Set the "neighborhood_limits" (the maximum number of neighbors
+        allowed in convolutions) so that 90% of the neighborhoods remain untouched. There is a
+        limit for each layer.
+
         """
 
         ##############################
@@ -1119,7 +1109,10 @@ class Toronto3DSampler(Sampler):
             sampler_method = "potentials"
         else:
             sampler_method = "random"
-        key = f"{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
+        key = (
+            f"{sampler_method}_{self.dataset.config.in_radius:3f}_"
+            "{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
+        )
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -1208,7 +1201,7 @@ class Toronto3DSampler(Sampler):
             expected_N = 100000
 
             # Calibration parameters. Higher means faster but can also become unstable
-            # Reduce Kp and Kd if your GP Uis small as the total number of points per batch will be smaller
+            # Reduce Kp/Kd if small GPU: the total number of points per batch will be smaller
             low_pass_T = 100
             Kp = expected_N / 200
             Ki = 0.001 * Kp
@@ -1310,7 +1303,8 @@ class Toronto3DSampler(Sampler):
                 import matplotlib.pyplot as plt
 
                 print(
-                    "ERROR: It seems that the calibration have not reached convergence. Here are some plot to understand why:"
+                    "ERROR: It seems that the calibration have not reached convergence. "
+                    "Here are some plot to understand why:"
                 )
                 print("If you notice unstability, reduce the expected_N value")
                 print("If convergece is too slow, increase the expected_N value")
@@ -1366,7 +1360,10 @@ class Toronto3DSampler(Sampler):
                 sampler_method = "potentials"
             else:
                 sampler_method = "random"
-            key = f"{sampler_method}_{self.dataset.config.in_radius:3f}_{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
+            key = (
+                f"{sampler_method}_{self.dataset.config.in_radius:3f}_"
+                "{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
+            )
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
@@ -1476,9 +1473,10 @@ class Toronto3DCustomBatch:
         return self.unstack_elements("pools", layer)
 
     def unstack_elements(self, element_name, layer=None, to_numpy=True):
-        """
-        Return a list of the stacked elements in the batch at a certain layer. If no layer is given, then return all
-        layers
+        """Return a list of the stacked elements in the batch at a certain layer.
+
+        If no layer is given, then return all layers.
+
         """
 
         if element_name == "points":
@@ -1542,7 +1540,8 @@ class Toronto3DConfig(Config):
     # Dataset name
     dataset = "Toronto3D"
 
-    # Number of classes in the dataset (This value is overwritten by dataset class when Initializating dataset).
+    # Number of classes in the dataset (This value is overwritten by dataset class when
+    # Initializating dataset).
     num_classes = None
 
     # Type of task performed on this dataset (also overwritten)
@@ -1597,10 +1596,12 @@ class Toronto3DConfig(Config):
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
 
-    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can spread out
+    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can
+    # spread out
     deform_radius = 5.0
 
-    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
+    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the
+    # standard value)
     KP_extent = 1.0
 
     # Behavior of convolutions in ('constant', 'linear', 'gaussian')
@@ -1620,9 +1621,8 @@ class Toronto3DConfig(Config):
     use_batch_norm = True
     batch_norm_momentum = 0.02
 
-    # Deformable offset loss
-    # 'point2point' fitting geometry by penalizing distance from deform point to input points
-    # 'point2plane' fitting geometry by penalizing distance from deform point to input point triplet (not implemented)
+    # Deformable offset loss : fitting geometry by penalizing distance from deform point to input
+    # points ('point2point'), or to input point triplet ('point2plane', not implemented)
     deform_fitting_mode = "point2point"
     deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
     deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
@@ -1663,9 +1663,11 @@ class Toronto3DConfig(Config):
     augment_color = 0.8
 
     # The way we balance segmentation loss
-    #   > 'none': Each point in the whole batch has the same contribution.
-    #   > 'class': Each class has the same contribution (points are weighted according to class balance)
-    #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
+    # - 'none': Each point in the whole batch has the same contribution.
+    # - 'class': Each class has the same contribution (points are weighted according to class
+    #   balance)
+    # - 'batch': Each cloud in the batch has the same contribution (points are weighted according
+    #   cloud sizes)
     segloss_balance = "none"
 
     # Do we need to save convergence
@@ -1724,7 +1726,6 @@ def debug_timing(dataset, loader):
     for _ in range(10):
 
         for batch_i, batch in enumerate(loader):
-            # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # New time
             t = t[-1:]
@@ -1817,7 +1818,6 @@ def debug_batch_and_neighbors_calib(dataset, loader):
     for _ in range(10):
 
         for batch_i, _ in enumerate(loader):
-            # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
             # New time
             t = t[-1:]

@@ -64,7 +64,8 @@ def visualize(datapath: Path, chosen_log: Path) -> None:
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
 
-    # Eventually you can choose which feature is visualized (index of the deform convolution in the network)
+    # Eventually you can choose which feature is visualized (index of the deform convolution in the
+    # network)
     deform_idx = 0
 
     # Deal with 'last_XXX' choices
