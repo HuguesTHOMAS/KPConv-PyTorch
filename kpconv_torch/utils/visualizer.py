@@ -9,7 +9,7 @@ import torch
 
 from kpconv_torch.models.blocks import KPConv
 from kpconv_torch.utils.config import BColors
-from kpconv_torch.utils.ply import write_ply
+from kpconv_torch.io.ply import write_ply
 
 
 class ModelVisualizer:

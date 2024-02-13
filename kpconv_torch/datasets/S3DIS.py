@@ -1,6 +1,8 @@
 from multiprocessing import Lock
 from os import listdir, makedirs
 from os.path import exists, isdir, join
+from pathlib import Path
+
 import pickle
 import time
 import warnings
@@ -13,7 +15,10 @@ from torch.utils.data import get_worker_info, Sampler
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
-from kpconv_torch.utils.ply import read_ply, write_ply
+from kpconv_torch.io.las import read_las_laz
+from kpconv_torch.io.ply import read_ply, write_ply
+from kpconv_torch.io.xyz import read_xyz
+
 
 
 class S3DISDataset(PointCloudDataset):
@@ -131,7 +136,7 @@ class S3DISDataset(PointCloudDataset):
         # Load ply files
         ################
         if 0 < self.config.first_subsampling_dl <= 0.01:
-            raise ValueError("subsampling_parameter too low (should be over 1 cm")
+            raise ValueError("subsampling_parameter too low (should be over 1 cm)")
 
         for cloud_name, file_path in zip(self.cloud_names, self.files):
             cur_kdtree = self.load_kdtree(cloud_name, file_path)
@@ -161,8 +166,9 @@ class S3DISDataset(PointCloudDataset):
 
     def __getitem__(self, batch_i):
         """
-        The main thread gives a list of indices to load a batch. Each worker is going to work in parallel to load a
-        different list of indices.
+        The main thread gives a list of indices to load a batch.
+        Each worker is going to work in parallel to load a different
+        list of indices.
         """
 
         if self.use_potentials:
@@ -278,7 +284,7 @@ class S3DISDataset(PointCloudDataset):
             if n < 2:
                 failed_attempts += 1
                 if failed_attempts > 100 * self.config.batch_num:
-                    raise ValueError("It seems this dataset only containes empty input spheres")
+                    raise ValueError("It seems this dataset only contains empty input spheres")
                 t += [time.time()]
                 t += [time.time()]
                 continue
@@ -497,7 +503,7 @@ class S3DISDataset(PointCloudDataset):
             if n < 2:
                 failed_attempts += 1
                 if failed_attempts > 100 * self.config.batch_num:
-                    raise ValueError("It seems this dataset only containes empty input spheres")
+                    raise ValueError("It seems this dataset only contains empty input spheres")
                 continue
 
             # Collect labels and colors
@@ -669,7 +675,6 @@ class S3DISDataset(PointCloudDataset):
         return
 
     def load_kdtree(self, cloud_name, file_path):
-
         # Restart timer
         t0 = time.time()
 
@@ -677,13 +682,14 @@ class S3DISDataset(PointCloudDataset):
         KDTree_file = join(self.tree_path, f"{cloud_name}_KDTree.pkl")
         sub_ply_file = join(self.tree_path, f"{cloud_name}.ply")
 
-        print("kdtree file:", KDTree_file)
-        print("sub ply file:", sub_ply_file)
-        print("file path:", file_path)
+        print("KDTree file:", KDTree_file)
+        print("Sub PLY file:", sub_ply_file)
+        print("File path:", file_path)
         # Check if inputs have already been computed
         if exists(KDTree_file):
             print(
-                f"\nFound KDTree for cloud {cloud_name}, subsampled at {self.config.first_subsampling_dl:3f}"
+                f"\nFound KDTree for cloud {cloud_name}, \
+                    subsampled at {self.config.first_subsampling_dl:3f}"
             )
 
             # read ply with data
@@ -695,7 +701,8 @@ class S3DISDataset(PointCloudDataset):
 
         else:
             print(
-                f"\nPreparing KDTree for cloud {cloud_name}, subsampled at {self.config.first_subsampling_dl:3f}"
+                f"\nPreparing KDTree for cloud {cloud_name}, \
+                    subsampled at {self.config.first_subsampling_dl:3f}"
             )
 
             points, colors, labels = self.read_input(file_path)
@@ -857,23 +864,18 @@ class S3DISDataset(PointCloudDataset):
         points, _, _ = self.read_input(file_path)
         return points
 
-    def read_input(self, filename):
+    def read_input(self, filepath):
         """Read all the input files that belong to the dataset
 
-        Ply files are read by training and testing commands.
+        PLY files are read by training and testing commands.
         """
-        file_extension = filename.split(".")[-1]
-        if file_extension == "ply":
-            # Read ply file
-            data = read_ply(filename)
-            points = np.vstack((data["x"], data["y"], data["z"])).T
-            colors = np.vstack((data["red"], data["green"], data["blue"])).T
-            labels = data["classification"]
-        elif file_extension == "xyz":
-            data = np.loadtxt(filename, delimiter=" ")
-            points = data[:, :3].astype(np.float32)
-            colors = data[:, 3:].astype(np.uint8)
-            labels = np.zeros(shape=(data.shape[0],)).astype(np.int32)
+        file_extension = Path(filepath).suffix
+        if file_extension == ".ply":
+            points, colors, labels = read_ply(filepath)
+        elif file_extension == ".xyz":
+            points, colors, labels = read_xyz(filepath)
+        elif file_extension == ".las" or file_extension == ".laz":
+            points, colors, labels = read_las_laz(filepath)
         else:
             raise OSError(f"Unsupported input file extension ({file_extension}).")
         return points, colors, labels
@@ -1713,7 +1715,6 @@ def debug_timing(dataset, loader):
     estim_N = 0
 
     for _ in range(10):
-
         for batch_i, batch in enumerate(loader):
             # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 
@@ -1749,7 +1750,6 @@ def debug_timing(dataset, loader):
 def debug_show_clouds(dataset, loader):
 
     for _ in range(10):
-
         pass
 
         L = dataset.config.num_layers
@@ -1806,7 +1806,6 @@ def debug_batch_and_neighbors_calib(dataset, loader):
     mean_dt = np.zeros(2)
 
     for _ in range(10):
-
         for batch_i, _ in enumerate(loader):
             # print(batch_i, tuple(points.shape),  tuple(normals.shape), labels, indices, in_sizes)
 

@@ -13,7 +13,7 @@ from torch.utils.data import get_worker_info, Sampler
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
 from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
-from kpconv_torch.utils.ply import read_ply, write_ply
+from kpconv_torch.io.ply import read_ply, write_ply
 
 
 class NPM3DDataset(PointCloudDataset):
@@ -348,7 +348,7 @@ class NPM3DDataset(PointCloudDataset):
             if n < 2:
                 failed_attempts += 1
                 if failed_attempts > 100 * self.config.batch_num:
-                    raise ValueError("It seems this dataset only containes empty input spheres")
+                    raise ValueError("It seems this dataset only contains empty input spheres")
                 t += [time.time()]
                 t += [time.time()]
                 continue
@@ -566,7 +566,7 @@ class NPM3DDataset(PointCloudDataset):
             if n < 2:
                 failed_attempts += 1
                 if failed_attempts > 100 * self.config.batch_num:
-                    raise ValueError("It seems this dataset only containes empty input spheres")
+                    raise ValueError("It seems this dataset only contains empty input spheres")
                 continue
 
             # Collect labels and colors

@@ -5,3 +5,4 @@ pyyaml
 torch
 matplotlib
 mayavi
+laspy[lazrs,laszip]
