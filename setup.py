@@ -14,16 +14,6 @@ def find_version():
 with open("README.md", "rb") as f:
     readme = f.read().decode("utf-8")
 
-extra_requirements = {
-    "dev": [
-        "importlib-metadata<5.0",
-        "pytest==5.3.0",
-        "black==22.3.0",
-        "flake8==3.8.3",
-        "pre-commit==2.9.2",
-    ]
-}
-
 subsampling_module = Extension(
     name="grid_subsampling",
     sources=[
@@ -64,7 +54,6 @@ setup(
         "Programming Language :: Python :: 3.10",
     ],
     python_requires=">=3",
-    extras_require=extra_requirements,
     packages=find_packages(),
     ext_modules=[subsampling_module, neighboring_module],
     include_dirs=np.get_include(),
