@@ -1,8 +1,8 @@
 import numpy as np
 from torch.utils.data import Dataset
 
-import cpp_wrappers.cpp_neighbors.radius_neighbors as cpp_neighbors
-import cpp_wrappers.cpp_subsampling.grid_subsampling as cpp_subsampling
+import radius_neighbors as cpp_neighbors
+import grid_subsampling as cpp_subsampling
 from kpconv_torch.kernels.kernel_points import create_3D_rotations
 from kpconv_torch.utils.mayavi_visu import show_ModelNet_examples
 from kpconv_torch.utils.tester import get_test_save_path
