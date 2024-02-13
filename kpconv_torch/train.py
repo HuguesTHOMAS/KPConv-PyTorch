@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import signal
 import sys
@@ -41,6 +42,10 @@ from kpconv_torch.utils.trainer import get_train_save_path, ModelTrainer
 
 
 def main(args):
+    train(args.datapath, args.chosen_log, args.output_dir, args.dataset)
+
+
+def train(datapath: Path, chosen_log: Path, output_dir: Path, dataset: str) -> None:
     ############################
     # Initialize the environment
     ############################
@@ -59,26 +64,28 @@ def main(args):
     print("****************")
 
     # Initialize configuration class
-    if args.dataset == "ModelNet40":
+    if dataset == "ModelNet40":
         config = ModelNet40Config()
-    if args.dataset == "NPM3D":
+    if dataset == "NPM3D":
         config = NPM3DConfig()
-    if args.dataset == "S3DIS":
+    if dataset == "S3DIS":
         config = S3DISConfig()
-    if args.dataset == "SemanticKitti":
+    if dataset == "SemanticKitti":
         config = SemanticKittiConfig()
-    elif args.dataset == "Toronto3D":
+    elif dataset == "Toronto3D":
         config = Toronto3DConfig()
 
-    config.set_output_dir(args.output_dir)
-    config.set_chosen_log(args.chosen_log)
+    config.set_output_dir(output_dir)
+    config.set_chosen_log(chosen_log)
 
-    if args.chosen_log:
-        config.load(get_train_save_path(args.output_dir, args.chosen_log))
-        if config.dataset != args.dataset:
+    train_save_path = get_train_save_path(output_dir, chosen_log)
+
+    if chosen_log:
+        config.load(train_save_path)
+        if config.dataset != dataset:
             raise ValueError(
                 f"Config dataset ({config.dataset}) "
-                f"does not match provided dataset ({args.dataset})."
+                f"does not match provided dataset ({dataset})."
             )
         config.chosen_log = None
 
@@ -90,132 +97,90 @@ def main(args):
     if config.dataset == "ModelNet40":
         training_dataset = ModelNet40Dataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             train=True,
         )
         test_dataset = ModelNet40Dataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             train=False,
         )
-        training_sampler = ModelNet40Sampler(
-            training_dataset,
-            args.chosen_log,
-            args.filename,
-            balance_labels=True,
-        )
-        test_sampler = ModelNet40Sampler(
-            test_dataset,
-            args.chosen_log,
-            args.filename,
-            balance_labels=True,
-        )
+        training_sampler = ModelNet40Sampler(training_dataset, balance_labels=True)
+        test_sampler = ModelNet40Sampler(test_dataset, balance_labels=True)
         collate_fn = ModelNet40Collate
     elif config.dataset == "NPM3D":
         training_dataset = NPM3DDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             split="training",
             use_potentials=True,
         )
         test_dataset = NPM3DDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             split="validation",
             use_potentials=True,
         )
-        training_sampler = NPM3DSampler(
-            training_dataset,
-            args.chosen_log,
-            args.filename,
-        )
-        test_sampler = NPM3DSampler(
-            test_dataset,
-            args.chosen_log,
-            args.filename,
-        )
+        training_sampler = NPM3DSampler(training_dataset)
+        test_sampler = NPM3DSampler(test_dataset)
         collate_fn = NPM3DCollate
     elif config.dataset == "S3DIS":
         training_dataset = S3DISDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             split="training",
             use_potentials=True,
         )
         test_dataset = S3DISDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             split="validation",
             use_potentials=True,
         )
-        training_sampler = S3DISSampler(
-            training_dataset,
-            args.chosen_log,
-            args.filename,
-        )
-        test_sampler = S3DISSampler(
-            test_dataset,
-            args.chosen_log,
-            args.filename,
-        )
+        training_sampler = S3DISSampler(training_dataset)
+        test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
     elif config.dataset == "SemanticKitti":
         training_dataset = SemanticKittiDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             split="training",
             balance_classes=True,
         )
         test_dataset = SemanticKittiDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             split="validation",
             balance_classes=False,
         )
-        training_sampler = SemanticKittiSampler(
-            training_dataset,
-            args.chosen_log,
-            args.infered_file,
-        )
-        test_sampler = SemanticKittiSampler(
-            test_dataset,
-            args.chosen_log,
-            args.infered_file,
-        )
+        training_sampler = SemanticKittiSampler(training_dataset)
+        test_sampler = SemanticKittiSampler(test_dataset)
         collate_fn = SemanticKittiCollate
     elif config.dataset == "Toronto3D":
         training_dataset = Toronto3DDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             split="training",
             use_potentials=True,
         )
         test_dataset = Toronto3DDataset(
             config=config,
-            datapath=args.datapath,
-            chosen_log=args.chosen_log,
+            datapath=datapath,
+            chosen_log=chosen_log,
             split="validation",
             use_potentials=True,
         )
-        training_sampler = Toronto3DSampler(
-            training_dataset,
-            args.chosen_log,
-            args.infered_file,
-        )
-        test_sampler = Toronto3DSampler(
-            test_dataset,
-            args.chosen_log,
-            args.infered_file,
-        )
+        training_sampler = Toronto3DSampler(training_dataset)
+        test_sampler = Toronto3DSampler(test_dataset)
         collate_fn = Toronto3DCollate
     else:
         raise ValueError("Unsupported dataset : " + config.dataset)
@@ -279,12 +244,10 @@ def main(args):
 
     # Choose index of checkpoint to start from. If None, uses the latest chkp
     chkp_idx = None
-    if get_train_save_path():
+    if train_save_path is not None:
 
         # Find all snapshot in the chosen training folder
-        chkp_path = os.path.join(
-            get_train_save_path(args.output_dir, args.chosen_log), "checkpoints"
-        )
+        chkp_path = os.path.join(train_save_path, "checkpoints")
         chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
 
         # Find which snapshot to restore
@@ -292,24 +255,20 @@ def main(args):
             chosen_chkp = "current_chkp.tar"
         else:
             chosen_chkp = np.sort(chkps)[chkp_idx]
-        chosen_chkp = os.path.join(
-            get_train_save_path(args.output_dir, args.chosen_log),
-            "checkpoints",
-            chosen_chkp,
-        )
+        chosen_chkp = os.path.join(chkp_path, chosen_chkp)
 
     else:
         chosen_chkp = None
 
     # Define a trainer class
-    trainer = ModelTrainer(net, config, args, chkp_path=chosen_chkp)
+    trainer = ModelTrainer(net, config, chkp_path=chosen_chkp, train_save_path=train_save_path)
     print(f"Done in {time.time() - t1:.1f}s\n")
 
     print("\nStart training")
     print("**************")
 
     # Training
-    trainer.train(net, training_loader, test_loader, config, args)
+    trainer.train(net, training_loader, test_loader, config)
 
     print("Forcing exit now")
     os.kill(os.getpid(), signal.SIGINT)

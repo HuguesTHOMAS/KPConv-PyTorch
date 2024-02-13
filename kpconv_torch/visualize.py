@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import time
 
@@ -55,6 +56,10 @@ def model_choice(chosen_log):
 
 
 def main(args):
+    visualize(args.datapath, args.chosen_log)
+
+
+def visualize(datapath: Path, chosen_log: Path) -> None:
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -63,7 +68,7 @@ def main(args):
     deform_idx = 0
 
     # Deal with 'last_XXX' choices
-    chosen_log = model_choice(args.chosen_log)
+    chosen_log = model_choice(chosen_log)
 
     ############################
     # Initialize the environment
@@ -115,13 +120,13 @@ def main(args):
 
     # Initiate dataset
     if config.dataset.startswith("ModelNet40"):
-        test_dataset = ModelNet40Dataset(config=config, datapath=args.datapath, train=False)
+        test_dataset = ModelNet40Dataset(config=config, datapath=datapath, train=False)
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
     elif config.dataset == "S3DIS":
         test_dataset = S3DISDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="validation",
             use_potentials=True,
         )

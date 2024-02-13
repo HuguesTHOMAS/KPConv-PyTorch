@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from kpconv_torch.datasets.ModelNet40 import (
     ModelNet40Config,
     ModelNet40Dataset,
@@ -21,6 +23,10 @@ from kpconv_torch.datasets.Toronto3D import (
 
 
 def main(args):
+    preprocess(args.datapath, args.dataset)
+
+
+def preprocess(datapath: Path, dataset: str) -> None:
 
     # ############################
     # # Initialize the environment
@@ -29,15 +35,15 @@ def main(args):
     # By modifying the CUDA_VISIBLE_DEVICES environment variable
 
     # Initialize configuration class
-    if args.dataset == "ModelNet40":
+    if dataset == "ModelNet40":
         config = ModelNet40Config()
-    if args.dataset == "NPM3D":
+    if dataset == "NPM3D":
         config = NPM3DConfig()
-    if args.dataset == "S3DIS":
+    if dataset == "S3DIS":
         config = S3DISConfig()
-    if args.dataset == "SemanticKitti":
+    if dataset == "SemanticKitti":
         config = SemanticKittiConfig()
-    elif args.dataset == "Toronto3D":
+    elif dataset == "Toronto3D":
         config = Toronto3DConfig()
 
     ##################################
@@ -54,59 +60,59 @@ def main(args):
     print("Data Preparation")
     print("****************")
 
-    # Initialize datasets and samplers
+    # Initialize datasets
     if config.dataset == "ModelNet40":
-        _ = ModelNet40Dataset(config=config, datapath=args.datapath, train=True)
-        _ = ModelNet40Dataset(config=config, datapath=args.datapath, train=False)
+        _ = ModelNet40Dataset(config=config, datapath=datapath, train=True)
+        _ = ModelNet40Dataset(config=config, datapath=datapath, train=False)
     elif config.dataset == "NPM3D":
         _ = NPM3DDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="training",
             use_potentials=True,
         )
         _ = NPM3DDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="validation",
             use_potentials=True,
         )
     elif config.dataset == "S3DIS":
         _ = S3DISDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="training",
             use_potentials=True,
         )
         _ = S3DISDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="validation",
             use_potentials=True,
         )
     elif config.dataset == "SemanticKitti":
         _ = SemanticKittiDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="training",
             balance_classes=True,
         )
         _ = SemanticKittiDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="validation",
             balance_classes=False,
         )
     elif config.dataset == "Toronto3D":
         _ = Toronto3DDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="training",
             use_potentials=True,
         )
         _ = Toronto3DDataset(
             config=config,
-            datapath=args.datapath,
+            datapath=datapath,
             split="validation",
             use_potentials=True,
         )

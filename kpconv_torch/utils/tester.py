@@ -23,7 +23,7 @@ def get_test_save_path(infered_file, chosen_log):
 
 
 class ModelTester:
-    def __init__(self, net, chkp_path=None, on_gpu=True):
+    def __init__(self, net, chkp_path=None, test_path=None, on_gpu=True):
 
         ############
         # Parameters
@@ -43,10 +43,11 @@ class ModelTester:
         self.epoch = checkpoint["epoch"]
         net.eval()
         print("Model and training state restored.")
+        self.test_path = test_path
 
         return
 
-    def classification_test(self, net, test_loader, config, test_path, num_votes=100, debug=False):
+    def classification_test(self, net, test_loader, config, num_votes=100, debug=False):
 
         ############
         # Initialize
@@ -146,9 +147,7 @@ class ModelTester:
 
         return
 
-    def cloud_segmentation_test(
-        self, net, test_loader, config, test_path, num_votes=100, debug=False
-    ):
+    def cloud_segmentation_test(self, net, test_loader, config, num_votes=100, debug=False):
         """
         Test method for cloud segmentation models
         """
@@ -176,16 +175,14 @@ class ModelTester:
 
         # Test saving path
         if config.saving:
-            if not exists(test_path):
-                makedirs(test_path)
-            if not exists(join(test_path, "predictions")):
-                makedirs(join(test_path, "predictions"))
-            if not exists(join(test_path, "probs")):
-                makedirs(join(test_path, "probs"))
-            if not exists(join(test_path, "potentials")):
-                makedirs(join(test_path, "potentials"))
-        else:
-            test_path = None
+            if not exists(self.test_path):
+                makedirs(self.test_path)
+            if not exists(join(self.test_path, "predictions")):
+                makedirs(join(self.test_path, "predictions"))
+            if not exists(join(self.test_path, "probs")):
+                makedirs(join(self.test_path, "probs"))
+            if not exists(join(self.test_path, "potentials")):
+                makedirs(join(self.test_path, "potentials"))
 
         # If on validation directly compute score
         if test_loader.dataset.set == "validation":
@@ -430,9 +427,9 @@ class ModelTester:
 
                         # Save plys
                         cloud_name = file_path.split("/")[-1]
-                        test_name = join(test_path, "predictions", cloud_name)
+                        test_name = join(self.test_path, "predictions", cloud_name)
                         write_ply(test_name, [points, preds], ["x", "y", "z", "preds"])
-                        test_name2 = join(test_path, "probs", cloud_name)
+                        test_name2 = join(self.test_path, "probs", cloud_name)
                         prob_names = [
                             "_".join(test_loader.dataset.label_to_names[label].split())
                             for label in test_loader.dataset.label_values
@@ -445,7 +442,7 @@ class ModelTester:
 
                         # Save potentials
                         pot_points = np.array(test_loader.dataset.pot_trees[i].data, copy=False)
-                        pot_name = join(test_path, "potentials", cloud_name)
+                        pot_name = join(self.test_path, "potentials", cloud_name)
                         pots = test_loader.dataset.potentials[i].numpy().astype(np.float32)
                         write_ply(
                             pot_name,
@@ -457,13 +454,13 @@ class ModelTester:
                         if test_loader.dataset.set == "test":
                             if test_loader.dataset.name.startswith("Semantic3D"):
                                 ascii_name = join(
-                                    test_path,
+                                    self.test_path,
                                     "predictions",
                                     test_loader.dataset.ascii_files[cloud_name],
                                 )
                             else:
                                 ascii_name = join(
-                                    test_path, "predictions", cloud_name[:-4] + ".txt"
+                                    self.test_path, "predictions", cloud_name[:-4] + ".txt"
                                 )
                             np.savetxt(ascii_name, preds, fmt="%d")
 
@@ -479,9 +476,7 @@ class ModelTester:
 
         return
 
-    def slam_segmentation_test(
-        self, net, test_loader, config, test_path, num_votes=100, debug=True
-    ):
+    def slam_segmentation_test(self, net, test_loader, config, num_votes=100, debug=True):
         """
         Test method for slam segmentation models
         """
@@ -502,20 +497,20 @@ class ModelTester:
         # Test saving path
         report_path = None
         if config.saving:
-            if not exists(test_path):
-                makedirs(test_path)
-            report_path = join(test_path, "reports")
+            if not exists(self.test_path):
+                makedirs(self.test_path)
+            report_path = join(self.test_path, "reports")
             if not exists(report_path):
                 makedirs(report_path)
 
         if test_loader.dataset.set == "validation":
             for folder in ["val_predictions", "val_probs"]:
-                if not exists(join(test_path, folder)):
-                    makedirs(join(test_path, folder))
+                if not exists(join(self.test_path, folder)):
+                    makedirs(join(self.test_path, folder))
         else:
             for folder in ["predictions", "probs"]:
-                if not exists(join(test_path, folder)):
-                    makedirs(join(test_path, folder))
+                if not exists(join(self.test_path, folder)):
+                    makedirs(join(self.test_path, folder))
 
         # Init validation container
         all_f_preds = []
@@ -596,7 +591,7 @@ class ModelTester:
                         folder = "probs"
                         pred_folder = "predictions"
                     filename = f"{seq_name}_{f_ind:7d}.npy"
-                    filepath = join(test_path, folder, filename)
+                    filepath = join(self.test_path, folder, filename)
                     if exists(filepath):
                         frame_probs_uint8 = np.load(filepath)
                     else:
@@ -636,7 +631,7 @@ class ModelTester:
                             )
                             frame_points = np.fromfile(velo_file, dtype=np.float32)
                             frame_points = frame_points.reshape((-1, 4))
-                            predpath = join(test_path, pred_folder, filename[:-4] + ".ply")
+                            predpath = join(self.test_path, pred_folder, filename[:-4] + ".ply")
                             pots = np.zeros((0,))  # test_loader.dataset.f_potentials[s_ind][f_ind]
                             if pots.shape[0] > 0:
                                 write_ply(
@@ -657,7 +652,7 @@ class ModelTester:
                                 )
 
                             # Also Save lbl probabilities
-                            probpath = join(test_path, folder, filename[:-4] + "_probs.ply")
+                            probpath = join(self.test_path, folder, filename[:-4] + "_probs.ply")
                             lbl_names = [
                                 test_loader.dataset.label_to_names[label_value]
                                 for label_value in test_loader.dataset.label_values
@@ -703,7 +698,7 @@ class ModelTester:
                             )
                             frame_points = np.fromfile(velo_file, dtype=np.float32)
                             frame_points = frame_points.reshape((-1, 4))
-                            predpath = join(test_path, pred_folder, filename[:-4] + ".ply")
+                            predpath = join(self.test_path, pred_folder, filename[:-4] + ".ply")
                             pots = np.zeros((0,))  # test_loader.dataset.f_potentials[s_ind][f_ind]
                             if pots.shape[0] > 0:
                                 write_ply(
