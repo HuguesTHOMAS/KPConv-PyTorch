@@ -164,7 +164,8 @@ class ModelTrainer:
                 self.optimizer.step()
 
                 torch.cuda.empty_cache()
-                torch.cuda.synchronize(self.device)
+                if "cuda" in self.device.type:
+                    torch.cuda.synchronize(self.device)
 
                 t += [time.time()]
 
@@ -321,7 +322,8 @@ class ModelTrainer:
             probs += [softmax(outputs).cpu().detach().numpy()]
             targets += [batch.labels.cpu().numpy()]
             obj_inds += [batch.model_inds.cpu().numpy()]
-            torch.cuda.synchronize(self.device)
+            if "cuda" in self.device.type:
+                torch.cuda.synchronize(self.device)
 
             # Average timing
             t += [time.time()]
@@ -468,7 +470,8 @@ class ModelTrainer:
             lengths = batch.lengths[0].cpu().numpy()
             in_inds = batch.input_inds.cpu().numpy()
             cloud_inds = batch.cloud_inds.cpu().numpy()
-            torch.cuda.synchronize(self.device)
+            if "cuda" in self.device.type:
+                torch.cuda.synchronize(self.device)
 
             # Get predictions and labels per instance
             # ***************************************
@@ -708,7 +711,8 @@ class ModelTrainer:
             r_inds_list = batch.reproj_inds
             r_mask_list = batch.reproj_masks
             labels_list = batch.val_labels
-            torch.cuda.synchronize(self.device)
+            if "cuda" in self.device.type:
+                torch.cuda.synchronize(self.device)
 
             # Get predictions and labels per instance
             # ***************************************
