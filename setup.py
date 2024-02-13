@@ -1,6 +1,5 @@
 from setuptools import Extension, find_packages, setup
-
-import numpy as np
+from setuptools.command.build_ext import build_ext
 
 
 def find_version():
@@ -34,6 +33,20 @@ neighboring_module = Extension(
     extra_compile_args=["-std=c++11", "-D_GLIBCXX_USE_CXX11_ABI=0"],
 )
 
+
+class LazyImportBuildExtCmd(build_ext):
+    """Overload build_ext by importing numpy for compiled code
+
+    See https://ymd_h.gitlab.io/ymd_blog/posts/setup_config_for_cython_numpy/
+    """
+
+    def run(self):
+        import numpy as np
+
+        self.include_dirs.append(np.get_include())
+        super().run()
+
+
 setup(
     name="kpconv_torch",
     version=find_version(),
@@ -54,7 +67,9 @@ setup(
         "Programming Language :: Python :: 3.10",
     ],
     python_requires=">=3",
+    install_requires=["numpy"],
+    setup_requires=["numpy"],
     packages=find_packages(),
     ext_modules=[subsampling_module, neighboring_module],
-    include_dirs=np.get_include(),
+    cmdclass={"build_ext": LazyImportBuildExtCmd},
 )
