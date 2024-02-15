@@ -237,7 +237,7 @@ def train(datapath: Path, chosen_log: Path, output_dir: Path, dataset: str) -> N
         )
         print("\n*************************************\n")
 
-    # Choose index of checkpoint to start from. If None, uses the latest chkp
+    # Choose index of checkpoint to start from. If None, uses the latest chkp.
     chkp_idx = None
     if train_save_path is not None:
 

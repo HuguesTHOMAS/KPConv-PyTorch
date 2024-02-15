@@ -1,6 +1,5 @@
 from multiprocessing import Lock
-from os import makedirs
-from os.path import exists, join
+import os
 import pickle
 import time
 import warnings
@@ -80,7 +79,7 @@ class NPM3DDataset(PointCloudDataset):
         self.original_ply_path = "original_ply"
 
         # List of files to process
-        ply_path = join(self.path, self.train_files_path)
+        ply_path = os.path.join(self.path, self.train_files_path)
 
         # Proportion of validation scenes
         self.cloud_names = [
@@ -124,13 +123,13 @@ class NPM3DDataset(PointCloudDataset):
         for i, f in enumerate(self.cloud_names):
             if self.set == "training":
                 if self.all_splits[i] in self.train_splits:
-                    self.files += [join(ply_path, f + ".ply")]
+                    self.files += [os.path.join(ply_path, f + ".ply")]
             elif self.set in ["validation", "ERF"]:
                 if self.all_splits[i] == self.validation_split:
-                    self.files += [join(ply_path, f + ".ply")]
+                    self.files += [os.path.join(ply_path, f + ".ply")]
             elif self.set == "test":
                 if self.all_splits[i] in self.test_splits:
-                    self.files += [join(ply_path, f + ".ply")]
+                    self.files += [os.path.join(ply_path, f + ".ply")]
             else:
                 raise ValueError("Unknown set for NPM3D data: ", self.set)
         print("The set is " + str(self.set))
@@ -635,18 +634,20 @@ class NPM3DDataset(PointCloudDataset):
         t0 = time.time()
 
         # Folder for the ply files
-        ply_path = join(self.path, self.train_files_path)
-        if not exists(ply_path):
-            makedirs(ply_path)
+        ply_path = os.path.join(self.path, self.train_files_path)
+        if not os.path.exists(ply_path):
+            os.makedirs(ply_path)
 
         for cloud_name in self.cloud_names:
 
             # Pass if the cloud has already been computed
-            cloud_file = join(ply_path, cloud_name + ".ply")
-            if exists(cloud_file):
+            cloud_file = os.path.join(ply_path, cloud_name + ".ply")
+            if os.path.exists(cloud_file):
                 continue
 
-            original_ply = read_ply(join(self.path, self.original_ply_path, cloud_name + ".ply"))
+            original_ply = read_ply(
+                os.path.join(self.path, self.original_ply_path, cloud_name + ".ply")
+            )
 
             # Initiate containers
             cloud_x = original_ply["x"]
@@ -673,7 +674,7 @@ class NPM3DDataset(PointCloudDataset):
             if cloud_name in ["ajaccio_2", "ajaccio_57", "dijon_9"]:
 
                 field_names = ["x", "y", "z"]
-                write_ply(join(ply_path, cloud_name + ".ply"), cloud_points, field_names)
+                write_ply(os.path.join(ply_path, cloud_name + ".ply"), cloud_points, field_names)
 
             else:
                 labels = original_ply["classification"]
@@ -683,7 +684,7 @@ class NPM3DDataset(PointCloudDataset):
                 # Save as ply
                 field_names = ["x", "y", "z", "classification"]
                 write_ply(
-                    join(ply_path, cloud_name + ".ply"),
+                    os.path.join(ply_path, cloud_name + ".ply"),
                     [cloud_points, labels],
                     field_names,
                 )
@@ -697,9 +698,9 @@ class NPM3DDataset(PointCloudDataset):
         dl = self.config.first_subsampling_dl
 
         # Create path for files
-        tree_path = join(self.path, f"input_{dl:.3f}")
-        if not exists(tree_path):
-            makedirs(tree_path)
+        tree_path = os.path.join(self.path, f"input_{dl:.3f}")
+        if not os.path.exists(tree_path):
+            os.makedirs(tree_path)
 
         ##############
         # Load KDTrees
@@ -714,11 +715,11 @@ class NPM3DDataset(PointCloudDataset):
             cloud_name = self.cloud_names[i]
 
             # Name of the input files
-            KDTree_file = join(tree_path, f"{cloud_name}_KDTree.pkl")
-            sub_ply_file = join(tree_path, f"{cloud_name}.ply")
+            KDTree_file = os.path.join(tree_path, f"{cloud_name}_KDTree.pkl")
+            sub_ply_file = os.path.join(tree_path, f"{cloud_name}.ply")
 
             # Check if inputs have already been computed
-            if exists(KDTree_file):
+            if os.path.exists(KDTree_file):
                 print(f"\nFound KDTree for cloud {cloud_name}, subsampled at {dl:3f}")
 
                 # read ply with data
@@ -782,10 +783,10 @@ class NPM3DDataset(PointCloudDataset):
                 cloud_name = self.cloud_names[file_idx]
 
                 # Name of the input files
-                coarse_KDTree_file = join(tree_path, f"{cloud_name}_coarse_KDTree.pkl")
+                coarse_KDTree_file = os.path.join(tree_path, f"{cloud_name}_coarse_KDTree.pkl")
 
                 # Check if inputs have already been computed
-                if exists(coarse_KDTree_file):
+                if os.path.exists(coarse_KDTree_file):
                     # Read pkl with search tree
                     with open(coarse_KDTree_file, "rb") as f:
                         search_tree = pickle.load(f)
@@ -829,10 +830,10 @@ class NPM3DDataset(PointCloudDataset):
                 cloud_name = self.cloud_names[i]
 
                 # File name for saving
-                proj_file = join(tree_path, f"{cloud_name}_proj.pkl")
+                proj_file = os.path.join(tree_path, f"{cloud_name}_proj.pkl")
 
                 # Try to load previous indices
-                if exists(proj_file):
+                if os.path.exists(proj_file):
                     with open(proj_file, "rb") as f:
                         proj_inds, labels = pickle.load(f)
                 else:
@@ -878,8 +879,8 @@ class NPM3DSampler(Sampler):
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
-        self.calibration_path = join(self.dataset.path, "calibration")
-        makedirs(self.calibration_path, exist_ok=True)
+        self.calibration_path = os.path.join(self.dataset.path, "calibration")
+        os.makedirs(self.calibration_path, exist_ok=True)
 
         # Number of step per epoch
         if dataset.set == "training":
@@ -1089,8 +1090,8 @@ class NPM3DSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.calibration_path, "batch_limits.pkl")
-        if exists(batch_lim_file):
+        batch_lim_file = os.path.join(self.calibration_path, "batch_limits.pkl")
+        if os.path.exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
         else:
@@ -1125,8 +1126,8 @@ class NPM3DSampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.calibration_path, "neighbors_limits.pkl")
-        if exists(neighb_lim_file):
+        neighb_lim_file = os.path.join(self.calibration_path, "neighbors_limits.pkl")
+        if os.path.exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
         else:

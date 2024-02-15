@@ -225,7 +225,6 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
     >>> colors = np.random.randint(255, size=(10,3), dtype=np.uint8)
     >>> field_names = ['x', 'y', 'z', 'red', 'green', 'blue', 'classification']
     >>> write_ply('example3.ply', [points, colors, values], field_names)
-
     """
 
     # Format list input to the right form
@@ -240,7 +239,6 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
         if field.ndim > 2:
             print("fields have more than 2 dimensions")
             return False
-
     # check all fields have the same number of data
     n_points = [field.shape[0] for field in field_list]
     if not np.all(np.equal(n_points, n_points[0])):
@@ -297,7 +295,6 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
             for field in fields.T:
                 data[field_names[i]] = field
                 i += 1
-
         data.tofile(plyfile)
 
         if triangular_faces is not None:

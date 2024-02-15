@@ -1,5 +1,4 @@
-from os import makedirs
-from os.path import exists, join
+import os
 import pickle
 import time
 
@@ -214,9 +213,11 @@ class ModelNet40Dataset(PointCloudDataset):
             split = "test"
 
         print(f"\nLoading {split} points subsampled at {self.config.first_subsampling_dl:3f}")
-        filename = join(self.path, f"{split}_{self.config.first_subsampling_dl:3f}_record.pkl")
+        filename = os.path.join(
+            self.path, f"{split}_{self.config.first_subsampling_dl:3f}_record.pkl"
+        )
 
-        if exists(filename):
+        if os.path.exists(filename):
             with open(filename, "rb") as file:
                 input_points, input_normals, input_labels = pickle.load(file)
 
@@ -225,9 +226,9 @@ class ModelNet40Dataset(PointCloudDataset):
 
             # Collect training file names
             if self.set == "training":
-                names = np.loadtxt(join(self.path, "modelnet40_train.txt"), dtype=np.str)
+                names = np.loadtxt(os.path.join(self.path, "modelnet40_train.txt"), dtype=np.str)
             else:
-                names = np.loadtxt(join(self.path, "modelnet40_test.txt"), dtype=np.str)
+                names = np.loadtxt(os.path.join(self.path, "modelnet40_test.txt"), dtype=np.str)
 
             # Initialize containers
             input_points = []
@@ -243,7 +244,7 @@ class ModelNet40Dataset(PointCloudDataset):
 
                 # Read points
                 class_folder = "_".join(cloud_name.split("_")[:-1])
-                txt_file = join(self.path, class_folder, cloud_name) + ".txt"
+                txt_file = os.path.join(self.path, class_folder, cloud_name) + ".txt"
                 data = np.loadtxt(txt_file, delimiter=",", dtype=np.float32)
 
                 # Subsample them
@@ -310,8 +311,8 @@ class ModelNet40Sampler(Sampler):
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
-        self.calibration_path = join(self.dataset.path, "calibration")
-        makedirs(self.calibration_path, exist_ok=True)
+        self.calibration_path = os.path.join(self.dataset.path, "calibration")
+        os.makedirs(self.calibration_path, exist_ok=True)
 
         # Create potentials
         if self.use_potential:
@@ -443,8 +444,8 @@ class ModelNet40Sampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.calibration_path, "batch_limits.pkl")
-        if exists(batch_lim_file):
+        batch_lim_file = os.path.join(self.calibration_path, "batch_limits.pkl")
+        if os.path.exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
         else:
@@ -474,8 +475,8 @@ class ModelNet40Sampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.calibration_path, "neighbors_limits.pkl")
-        if exists(neighb_lim_file):
+        neighb_lim_file = os.path.join(self.calibration_path, "neighbors_limits.pkl")
+        if os.path.exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
         else:

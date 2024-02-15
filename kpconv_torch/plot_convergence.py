@@ -1,6 +1,5 @@
 import contextlib
-from os import listdir, remove
-from os.path import exists, isfile, join
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -21,7 +20,7 @@ def listdir_str(path):
     # listdir can return binary string instead od decoded string sometimes.
     # This function ensures a steady behavior
     f_list = []
-    for f in listdir(path):
+    for f in os.listdir(path):
         with contextlib.suppress(UnicodeDecodeError, AttributeError):  # clearer than try/except
             f = f.decode()
         f_list.append(f)
@@ -87,7 +86,7 @@ def load_confusions(filename, n_class):
 
 
 def load_training_results(path):
-    filename = join(path, "training.txt")
+    filename = os.path.join(path, "training.txt")
     with open(filename) as f:
         lines = f.readlines()
 
@@ -125,7 +124,7 @@ def load_single_IoU(filename, n_parts):
 
 def load_snap_clouds(path, dataset, only_last=False):
     cloud_folders = np.array(
-        [join(path, f) for f in listdir_str(path) if f.startswith("val_preds")]
+        [os.path.join(path, f) for f in listdir_str(path) if f.startswith("val_preds")]
     )
     cloud_epochs = np.array([int(f.split("_")[-1]) for f in cloud_folders])
     epoch_order = np.argsort(cloud_epochs)
@@ -138,14 +137,14 @@ def load_snap_clouds(path, dataset, only_last=False):
             continue
 
         # Load confusion if previously saved
-        conf_file = join(cloud_folder, "conf.txt")
-        if isfile(conf_file):
+        conf_file = os.path.join(cloud_folder, "conf.txt")
+        if os.path.isfile(conf_file):
             Confs[c_i] += np.loadtxt(conf_file, dtype=np.int32)
 
         else:
             for f in listdir_str(cloud_folder):
                 if f.endswith(".ply") and not f.endswith("sub.ply"):
-                    data = read_ply(join(cloud_folder, f))
+                    data = read_ply(os.path.join(cloud_folder, f))
                     labels = data["classification"]
                     preds = data["preds"]
                     Confs[c_i] += fast_confusion(labels, preds, dataset.label_values).astype(
@@ -158,7 +157,7 @@ def load_snap_clouds(path, dataset, only_last=False):
         if c_i < len(cloud_folders) - 1:
             for f in listdir_str(cloud_folder):
                 if f.endswith(".ply"):
-                    remove(join(cloud_folder, f))
+                    os.remove(os.path.join(cloud_folder, f))
 
     # Remove ignored labels from confusions
     for l_ind, label_value in reversed(list(enumerate(dataset.label_values))):
@@ -322,7 +321,7 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
     for path in list_of_paths:
 
         # Get validation IoUs
-        file = join(path, "val_IoUs.txt")
+        file = os.path.join(path, "val_IoUs.txt")
         val_IoUs = load_single_IoU(file, config.num_classes)
 
         # Get mean IoU
@@ -433,13 +432,13 @@ def compare_convergences_classif(list_of_paths, list_of_labels=None):
         first_e = np.min(epochs)
 
         # Get validation confusions
-        file = join(path, "val_confs.txt")
+        file = os.path.join(path, "val_confs.txt")
         val_C1 = load_confusions(file, n_class)
         val_PRE, val_REC, val_F1, val_IoU, val_ACC = smooth_metrics(val_C1, smooth_n=smooth_n)
 
         # Get vote confusions
-        file = join(path, "vote_confs.txt")
-        if exists(file):
+        file = os.path.join(path, "vote_confs.txt")
+        if os.path.exists(file):
             vote_C2 = load_confusions(file, n_class)
             _, _, _, _, vote_ACC = smooth_metrics(vote_C2, smooth_n=2)
         else:
@@ -525,7 +524,11 @@ def experiment_name_1():
 
     # Gather logs and sort by date
     logs = np.sort(
-        [join(res_path, log_dir) for log_dir in listdir_str(res_path) if start <= log_dir <= end]
+        [
+            os.path.join(res_path, log_dir)
+            for log_dir in listdir_str(res_path)
+            if start <= log_dir <= end
+        ]
     )
 
     # Give names to the logs (for plot legends)
@@ -555,7 +558,11 @@ def experiment_name_2():
 
     # Gather logs and sort by date
     logs = np.sort(
-        [join(res_path, log_dir) for log_dir in listdir_str(res_path) if start <= log_dir <= end]
+        [
+            os.path.join(res_path, log_dir)
+            for log_dir in listdir_str(res_path)
+            if start <= log_dir <= end
+        ]
     )
 
     # Optionally add a specific log at a specific place in the log list

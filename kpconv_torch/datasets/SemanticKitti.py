@@ -1,6 +1,5 @@
 from multiprocessing import Lock
-from os import listdir, makedirs
-from os.path import exists, join
+import os
 import pickle
 import time
 
@@ -55,8 +54,8 @@ class SemanticKittiDataset(PointCloudDataset):
         # List all files in each sequence
         self.frames = []
         for seq in self.sequences:
-            velo_path = join(self.path, "sequences", seq, "velodyne")
-            frames = np.sort([vf[:-4] for vf in listdir(velo_path) if vf.endswith(".bin")])
+            velo_path = os.path.join(self.path, "sequences", seq, "velodyne")
+            frames = np.sort([vf[:-4] for vf in os.listdir(velo_path) if vf.endswith(".bin")])
             self.frames.append(frames)
 
         ###########################
@@ -65,9 +64,9 @@ class SemanticKittiDataset(PointCloudDataset):
 
         # Read labels
         if config.n_frames == 1:
-            config_file = join(self.path, "semantic-kitti.yaml")
+            config_file = os.path.join(self.path, "semantic-kitti.yaml")
         elif config.n_frames > 1:
-            config_file = join(self.path, "semantic-kitti-all.yaml")
+            config_file = os.path.join(self.path, "semantic-kitti-all.yaml")
         else:
             raise ValueError("number of frames has to be >= 1")
 
@@ -245,12 +244,14 @@ class SemanticKittiDataset(PointCloudDataset):
                         continue
 
                 # Path of points and labels
-                seq_path = join(self.path, "sequences", self.sequences[s_ind])
-                velo_file = join(seq_path, "velodyne", self.frames[s_ind][f_ind - f_inc] + ".bin")
+                seq_path = os.path.join(self.path, "sequences", self.sequences[s_ind])
+                velo_file = os.path.join(
+                    seq_path, "velodyne", self.frames[s_ind][f_ind - f_inc] + ".bin"
+                )
                 if self.set == "test":
                     label_file = None
                 else:
-                    label_file = join(
+                    label_file = os.path.join(
                         seq_path, "labels", self.frames[s_ind][f_ind - f_inc] + ".label"
                     )
 
@@ -555,16 +556,18 @@ class SemanticKittiDataset(PointCloudDataset):
 
         for seq in self.sequences:
 
-            seq_folder = join(self.path, "sequences", seq)
+            seq_folder = os.path.join(self.path, "sequences", seq)
 
             # Read Calib
-            self.calibrations.append(self.parse_calibration(join(seq_folder, "calib.txt")))
+            self.calibrations.append(self.parse_calibration(os.path.join(seq_folder, "calib.txt")))
 
             # Read times
-            self.times.append(np.loadtxt(join(seq_folder, "times.txt"), dtype=np.float32))
+            self.times.append(np.loadtxt(os.path.join(seq_folder, "times.txt"), dtype=np.float32))
 
             # Read poses
-            poses_f64 = self.parse_poses(join(seq_folder, "poses.txt"), self.calibrations[-1])
+            poses_f64 = self.parse_poses(
+                os.path.join(seq_folder, "poses.txt"), self.calibrations[-1]
+            )
             self.poses.append([pose.astype(np.float32) for pose in poses_f64])
 
         ###################################
@@ -591,10 +594,10 @@ class SemanticKittiDataset(PointCloudDataset):
                 frame_mode = "single"
                 if self.config.n_frames > 1:
                     frame_mode = "multi"
-                seq_stat_file = join(self.path, "sequences", seq, f"stats_{frame_mode}.pkl")
+                seq_stat_file = os.path.join(self.path, "sequences", seq, f"stats_{frame_mode}.pkl")
 
                 # Check if inputs have already been computed
-                if exists(seq_stat_file):
+                if os.path.exists(seq_stat_file):
                     # Read pkl
                     with open(seq_stat_file, "rb") as f:
                         seq_class_frames, seq_proportions = pickle.load(f)
@@ -611,13 +614,13 @@ class SemanticKittiDataset(PointCloudDataset):
                     seq_proportions = np.zeros((self.num_classes,), dtype=np.int32)
 
                     # Sequence path
-                    seq_path = join(self.path, "sequences", seq)
+                    seq_path = os.path.join(self.path, "sequences", seq)
 
                     # Read all frames
                     for f_ind, frame_name in enumerate(seq_frames):
 
                         # Path of points and labels
-                        label_file = join(seq_path, "labels", frame_name + ".label")
+                        label_file = os.path.join(seq_path, "labels", frame_name + ".label")
 
                         # Read labels
                         frame_labels = np.fromfile(label_file, dtype=np.int32)
@@ -730,8 +733,8 @@ class SemanticKittiSampler(Sampler):
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
-        self.calibration_path = join(self.dataset.path, "calibration")
-        makedirs(self.calibration_path, exist_ok=True)
+        self.calibration_path = os.path.join(self.dataset.path, "calibration")
+        os.makedirs(self.calibration_path, exist_ok=True)
 
         # Number of step per epoch
         if dataset.set == "training":
@@ -889,8 +892,8 @@ class SemanticKittiSampler(Sampler):
         # ***********
 
         # Load max_in_limit dictionary
-        max_in_lim_file = join(self.calibration_path, "max_in_limits.pkl")
-        if exists(max_in_lim_file):
+        max_in_lim_file = os.path.join(self.calibration_path, "max_in_limits.pkl")
+        if os.path.exists(max_in_lim_file):
             with open(max_in_lim_file, "rb") as file:
                 max_in_lim_dict = pickle.load(file)
         else:
@@ -1008,8 +1011,8 @@ class SemanticKittiSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.calibration_path, "batch_limits.pkl")
-        if exists(batch_lim_file):
+        batch_lim_file = os.path.join(self.calibration_path, "batch_limits.pkl")
+        if os.path.exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
         else:
@@ -1045,8 +1048,8 @@ class SemanticKittiSampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.calibration_path, "neighbors_limits.pkl")
-        if exists(neighb_lim_file):
+        neighb_lim_file = os.path.join(self.calibration_path, "neighbors_limits.pkl")
+        if os.path.exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
         else:

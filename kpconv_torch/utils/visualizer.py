@@ -1,5 +1,4 @@
-from os import listdir
-from os.path import join
+import os
 import time
 
 from mayavi import mlab
@@ -406,7 +405,7 @@ class ModelVisualizer:
                         # Find a new name
                         file_i = 0
                         file_name = f"KP_{file_i:03d}.ply"
-                        files = [f for f in listdir("KP_clouds") if f.endswith(".ply")]
+                        files = [f for f in os.listdir("KP_clouds") if f.endswith(".ply")]
                         while file_name in files:
                             file_i += 1
                             file_name = f"KP_{file_i:03d}.ply"
@@ -416,17 +415,17 @@ class ModelVisualizer:
 
                         # Save
                         write_ply(
-                            join("KP_clouds", file_name),
+                            os.path.join("KP_clouds", file_name),
                             [in_points[obj_i], in_colors[obj_i]],
                             ["x", "y", "z", "red", "green", "blue"],
                         )
                         write_ply(
-                            join("KP_clouds", f"KP_{file_i:03d}_deform.ply"),
+                            os.path.join("KP_clouds", f"KP_{file_i:03d}_deform.ply"),
                             [KP_deform],
                             ["x", "y", "z"],
                         )
                         write_ply(
-                            join("KP_clouds", f"KP_{file_i:03d}_normal.ply"),
+                            os.path.join("KP_clouds", f"KP_{file_i:03d}_normal.ply"),
                             [KP_normal],
                             ["x", "y", "z"],
                         )

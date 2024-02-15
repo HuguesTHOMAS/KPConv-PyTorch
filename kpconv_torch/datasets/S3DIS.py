@@ -1,6 +1,5 @@
 from multiprocessing import Lock
-from os import listdir, makedirs
-from os.path import exists, isdir, join
+import os
 from pathlib import Path
 
 import pickle
@@ -83,15 +82,15 @@ class S3DISDataset(PointCloudDataset):
         self.use_potentials = use_potentials
 
         # Path of the training files
-        self.train_files_path = join(self.path, "original_ply")
-        if not exists(self.train_files_path):
+        self.train_files_path = os.path.join(self.path, "original_ply")
+        if not os.path.exists(self.train_files_path):
             print("The ply folder does not exist, create it.")
-            makedirs(self.train_files_path)
+            os.makedirs(self.train_files_path)
 
         # Create path for files
-        self.tree_path = join(self.path, f"input_{self.config.first_subsampling_dl:.3f}")
-        if not exists(self.tree_path):
-            makedirs(self.tree_path)
+        self.tree_path = os.path.join(self.path, f"input_{self.config.first_subsampling_dl:.3f}")
+        if not os.path.exists(self.tree_path):
+            os.makedirs(self.tree_path)
 
         # Proportion of validation scenes
         self.training_cloud_names = ["Area_1", "Area_2", "Area_3", "Area_4", "Area_6"]
@@ -108,7 +107,7 @@ class S3DISDataset(PointCloudDataset):
             (
                 cloud_name
                 if self.set == "test" and infered_file is not None
-                else join(self.train_files_path, cloud_name + ".ply")
+                else os.path.join(self.train_files_path, cloud_name + ".ply")
             )
             for i, cloud_name in enumerate(self.cloud_names)
         ]
@@ -164,9 +163,9 @@ class S3DISDataset(PointCloudDataset):
         return len(self.cloud_names)
 
     def __getitem__(self, batch_i):
-        """The main thread gives a list of indices to load a batch.
-        Each worker is going to work in parallel to load a different list of indices.
-
+        """
+        The main thread gives a list of indices to load a batch. Each worker is going to work
+        in parallel to load a different list of indices.
         """
 
         if self.use_potentials:
@@ -585,17 +584,17 @@ class S3DISDataset(PointCloudDataset):
 
         for cloud_name in self.cloud_names:
             # Pass if the cloud has already been computed
-            cloud_file = join(self.train_files_path, cloud_name + ".ply")
-            if exists(cloud_file):
+            cloud_file = os.path.join(self.train_files_path, cloud_name + ".ply")
+            if os.path.exists(cloud_file):
                 print(f"{cloud_file} does already exist.")
                 continue
 
             # Get rooms of the current cloud
-            cloud_folder = join(self.path, cloud_name)
+            cloud_folder = os.path.join(self.path, cloud_name)
             room_folders = [
-                join(cloud_folder, room)
-                for room in listdir(cloud_folder)
-                if isdir(join(cloud_folder, room))
+                os.path.join(cloud_folder, room)
+                for room in os.listdir(cloud_folder)
+                if os.path.isdir(os.path.join(cloud_folder, room))
             ]
 
             # Initiate containers
@@ -611,12 +610,12 @@ class S3DISDataset(PointCloudDataset):
                     % (cloud_name, i + 1, len(room_folders), room_folder.split("/")[-1])
                 )
 
-                for object_name in listdir(join(room_folder, "Annotations")):
+                for object_name in os.listdir(os.path.join(room_folder, "Annotations")):
 
                     if object_name[-4:] == ".txt":
 
                         # Text file containing point of the object
-                        object_file = join(room_folder, "Annotations", object_name)
+                        object_file = os.path.join(room_folder, "Annotations", object_name)
 
                         # Object class and ID
                         tmp = object_name[:-4].split("_")[0]
@@ -667,14 +666,14 @@ class S3DISDataset(PointCloudDataset):
         t0 = time.time()
 
         # Name of the input files
-        KDTree_file = join(self.tree_path, f"{cloud_name}_KDTree.pkl")
-        sub_ply_file = join(self.tree_path, f"{cloud_name}.ply")
+        KDTree_file = os.path.join(self.tree_path, f"{cloud_name}_KDTree.pkl")
+        sub_ply_file = os.path.join(self.tree_path, f"{cloud_name}.ply")
 
         print("KDTree file:", KDTree_file)
         print("Sub PLY file:", sub_ply_file)
         print("File path:", file_path)
         # Check if inputs have already been computed
-        if exists(KDTree_file):
+        if os.path.exists(KDTree_file):
             print(
                 f"\nFound KDTree for cloud {cloud_name}, "
                 f"subsampled at {self.config.first_subsampling_dl:3f}"
@@ -689,8 +688,8 @@ class S3DISDataset(PointCloudDataset):
 
         else:
             print(
-                f"\nPreparing KDTree for cloud {cloud_name}, subsampled at "
-                f"{self.config.first_subsampling_dl:3f}"
+                f"\nPreparing KDTree for cloud {cloud_name}, "
+                f"subsampled at {self.config.first_subsampling_dl:3f}."
             )
 
             points, colors, labels = self.read_input(file_path)
@@ -736,10 +735,10 @@ class S3DISDataset(PointCloudDataset):
         t0 = time.time()
 
         # Name of the input files
-        coarse_KDTree_file = join(self.tree_path, f"{cloud_name}_coarse_KDTree.pkl")
+        coarse_KDTree_file = os.path.join(self.tree_path, f"{cloud_name}_coarse_KDTree.pkl")
 
         # Check if inputs have already been computed
-        if exists(coarse_KDTree_file):
+        if os.path.exists(coarse_KDTree_file):
             # Read pkl with search tree
             with open(coarse_KDTree_file, "rb") as f:
                 search_tree = pickle.load(f)
@@ -771,10 +770,10 @@ class S3DISDataset(PointCloudDataset):
         t0 = time.time()
 
         # File name for saving
-        proj_file = join(self.tree_path, f"{cloud_name}_proj.pkl")
+        proj_file = os.path.join(self.tree_path, f"{cloud_name}_proj.pkl")
 
         # Try to load previous indices
-        if exists(proj_file):
+        if os.path.exists(proj_file):
             with open(proj_file, "rb") as f:
                 proj_inds, labels = pickle.load(f)
         else:
@@ -880,8 +879,8 @@ class S3DISSampler(Sampler):
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
-        self.calibration_path = join(self.dataset.path, "calibration")
-        makedirs(self.calibration_path, exist_ok=True)
+        self.calibration_path = os.path.join(self.dataset.path, "calibration")
+        os.makedirs(self.calibration_path, exist_ok=True)
 
         # Number of step per epoch
         if dataset.set == "training":
@@ -1091,8 +1090,8 @@ class S3DISSampler(Sampler):
         # ***********
 
         # Load batch_limit dictionary
-        batch_lim_file = join(self.calibration_path, "batch_limits.pkl")
-        if exists(batch_lim_file):
+        batch_lim_file = os.path.join(self.calibration_path, "batch_limits.pkl")
+        if os.path.exists(batch_lim_file):
             with open(batch_lim_file, "rb") as file:
                 batch_lim_dict = pickle.load(file)
         else:
@@ -1127,8 +1126,8 @@ class S3DISSampler(Sampler):
         # ***************
 
         # Load neighb_limits dictionary
-        neighb_lim_file = join(self.calibration_path, "neighbors_limits.pkl")
-        if exists(neighb_lim_file):
+        neighb_lim_file = os.path.join(self.calibration_path, "neighbors_limits.pkl")
+        if os.path.exists(neighb_lim_file):
             with open(neighb_lim_file, "rb") as file:
                 neighb_lim_dict = pickle.load(file)
         else:
