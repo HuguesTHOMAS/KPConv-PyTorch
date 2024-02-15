@@ -1111,7 +1111,7 @@ class Toronto3DSampler(Sampler):
             sampler_method = "random"
         key = (
             f"{sampler_method}_{self.dataset.config.in_radius:3f}_"
-            "{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
+            f"{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
         )
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
@@ -1362,7 +1362,7 @@ class Toronto3DSampler(Sampler):
                 sampler_method = "random"
             key = (
                 f"{sampler_method}_{self.dataset.config.in_radius:3f}_"
-                "{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
+                f"{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
             )
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:

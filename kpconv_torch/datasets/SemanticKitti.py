@@ -1021,9 +1021,9 @@ class SemanticKittiSampler(Sampler):
         else:
             sampler_method = "random"
         key = (
-            "{sampler_method}_{self.dataset.in_R:3f}_"
-            "{self.dataset.config.first_subsampling_dl:f}_"
-            "{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
+            f"{sampler_method}_{self.dataset.in_R:3f}_"
+            f"{self.dataset.config.first_subsampling_dl:f}_"
+            f"{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
         )
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
@@ -1237,8 +1237,8 @@ class SemanticKittiSampler(Sampler):
             # Save batch_limit dictionary
             key = (
                 f"{sampler_method}_{self.dataset.in_R:3f}_"
-                "{self.dataset.config.first_subsampling_dl:3f}_"
-                "{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
+                f"{self.dataset.config.first_subsampling_dl:3f}_"
+                f"{self.dataset.batch_num:d}_{self.dataset.max_in_p:d}"
             )
             batch_lim_dict[key] = float(self.dataset.batch_limit[0])
             with open(batch_lim_file, "wb") as file:
