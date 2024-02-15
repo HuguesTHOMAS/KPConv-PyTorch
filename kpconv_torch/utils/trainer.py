@@ -1,5 +1,4 @@
-from os import makedirs, remove
-from os.path import exists, join
+import os
 import time
 
 import numpy as np
@@ -16,15 +15,15 @@ def get_train_save_path(output_dir, chosen_log):
     elif chosen_log is not None:
         train_path = chosen_log
     elif output_dir is not None:
-        train_path = join(output_dir, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime()))
-    if train_path is not None and not exists(train_path):
-        makedirs(train_path)
+        train_path = os.path.join(output_dir, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime()))
+    if train_path is not None and not os.path.exists(train_path):
+        os.makedirs(train_path)
     return train_path
 
 
 class ModelTrainer:
     def __init__(
-        self, net, config, args, chkp_path=None, train_save_path=None, finetune=False, on_gpu=True
+        self, net, config, chkp_path=None, train_save_path=None, finetune=False, on_gpu=True
     ):
         """
         Initialize training parameters and reload previous model for restore/finetune
@@ -88,7 +87,7 @@ class ModelTrainer:
     # Training main method
     # ------------------------------------------------------------------------------------------------------------------
 
-    def train(self, net, training_loader, val_loader, config, args):
+    def train(self, net, training_loader, val_loader, config):
         """
         Train the model on a particular dataset.
         """
@@ -99,19 +98,19 @@ class ModelTrainer:
 
         if config.saving:
             # Training log file
-            with open(self.train_save_path + "/" + "training.txt", "w") as fobj:
+            with open(self.train_save_path / "training.txt", "w") as fobj:
                 fobj.write("epochs steps out_loss offset_loss train_accuracy time\n")
 
             # Killing file (simply delete this file when you want to stop the training)
-            PID_file = self.train_save_path + "/" + "running_PID.txt"
-            if not exists(PID_file):
+            PID_file = self.train_save_path / "running_PID.txt"
+            if not os.path.exists(PID_file):
                 with open(PID_file, "w") as fobj:
                     fobj.write("Launched with PyCharm")
 
             # Checkpoints directory
-            checkpoint_directory = self.train_save_path + "/" + "checkpoints"
-            if not exists(checkpoint_directory):
-                makedirs(checkpoint_directory)
+            checkpoint_directory = self.train_save_path / "checkpoints"
+            if not os.path.exists(checkpoint_directory):
+                os.makedirs(checkpoint_directory)
         else:
             checkpoint_directory = None
             PID_file = None
@@ -126,14 +125,14 @@ class ModelTrainer:
         for epoch in range(config.max_epoch):
 
             # Remove File for kill signal
-            if epoch == config.max_epoch - 1 and exists(PID_file):
-                remove(PID_file)
+            if epoch == config.max_epoch - 1 and os.path.exists(PID_file):
+                os.remove(PID_file)
 
             self.step = 0
             for batch in training_loader:
 
                 # Check kill signal (running_PID.txt deleted)
-                if config.saving and not exists(PID_file):
+                if config.saving and not os.path.exists(PID_file):
                     continue
 
                 ##################
@@ -215,7 +214,7 @@ class ModelTrainer:
             ##############
 
             # Check kill signal (running_PID.txt deleted)
-            if config.saving and not exists(PID_file):
+            if config.saving and not os.path.exists(PID_file):
                 break
 
             # Update learning rate
@@ -237,17 +236,19 @@ class ModelTrainer:
                 }
 
                 # Save current state of the network (for restoring purposes)
-                checkpoint_path = join(checkpoint_directory, "current_chkp.tar")
+                checkpoint_path = os.path.join(checkpoint_directory, "current_chkp.tar")
                 torch.save(save_dict, checkpoint_path)
 
                 # Save checkpoints occasionally
                 if (self.epoch + 1) % config.checkpoint_gap == 0:
-                    checkpoint_path = join(checkpoint_directory, f"chkp_{self.epoch + 1:04d}.tar")
+                    checkpoint_path = os.path.join(
+                        checkpoint_directory, f"chkp_{self.epoch + 1:04d}.tar"
+                    )
                     torch.save(save_dict, checkpoint_path)
 
             # Validation
             net.eval()
-            self.validation(net, val_loader, config, args)
+            self.validation(net, val_loader, config)
             net.train()
 
         print("Finished Training")
@@ -256,19 +257,19 @@ class ModelTrainer:
     # Validation methods
     # ------------------------------------------------------------------------------------------------------------------
 
-    def validation(self, net, val_loader, config: Config, args):
+    def validation(self, net, val_loader, config: Config):
         if config.dataset_task == "classification":
-            self.object_classification_validation(net, val_loader, config, args)
+            self.object_classification_validation(net, val_loader, config)
         elif config.dataset_task == "segmentation":
             self.object_segmentation_validation(net, val_loader, config)
         elif config.dataset_task == "cloud_segmentation":
-            self.cloud_segmentation_validation(net, val_loader, config, args)
+            self.cloud_segmentation_validation(net, val_loader, config)
         elif config.dataset_task == "slam_segmentation":
-            self.slam_segmentation_validation(net, val_loader, config, args)
+            self.slam_segmentation_validation(net, val_loader, config)
         else:
             raise ValueError("No validation method implemented for this network type")
 
-    def object_classification_validation(self, net, val_loader, config, args):
+    def object_classification_validation(self, net, val_loader, config):
         """
         Perform a round of validation and show/save results
         :param net: network object
@@ -372,7 +373,7 @@ class ModelTrainer:
             file_list = ["val_confs.txt", "vote_confs.txt"]
             for conf, conf_file in zip(conf_list, file_list):
                 test_file = self.train_save_path + "/" + conf_file
-                if exists(test_file):
+                if os.path.exists(test_file):
                     with open(test_file, "a") as text_file:
                         for line in conf:
                             for value in line:
@@ -391,7 +392,7 @@ class ModelTrainer:
 
         return C1
 
-    def cloud_segmentation_validation(self, net, val_loader, config, args, debug=False):
+    def cloud_segmentation_validation(self, net, val_loader, config, debug=False):
         """
         Validation method for cloud segmentation models
         """
@@ -560,7 +561,7 @@ class ModelTrainer:
             line = line + "\n"
 
             # Write in file
-            if exists(test_file):
+            if os.path.exists(test_file):
                 with open(test_file, "a") as text_file:
                     text_file.write(line)
             else:
@@ -570,13 +571,13 @@ class ModelTrainer:
             # Save potentials
             if val_loader.dataset.use_potentials:
                 pot_path = self.train_save_path + "/" + "potentials"
-                if not exists(pot_path):
-                    makedirs(pot_path)
+                if not os.path.exists(pot_path):
+                    os.makedirs(pot_path)
                 files = val_loader.dataset.files
                 for i, file_path in enumerate(files):
                     pot_points = np.array(val_loader.dataset.pot_trees[i].data, copy=False)
                     cloud_name = file_path.split("/")[-1]
-                    pot_name = join(pot_path, cloud_name)
+                    pot_name = os.path.join(pot_path, cloud_name)
                     pots = val_loader.dataset.potentials[i].numpy().astype(np.float32)
                     write_ply(
                         pot_name,
@@ -593,8 +594,8 @@ class ModelTrainer:
         # Save predicted cloud occasionally
         if config.saving and (self.epoch + 1) % config.checkpoint_gap == 0:
             val_path = self.train_save_path + "/" + f"val_preds_{self.epoch + 1:d}"
-            if not exists(val_path):
-                makedirs(val_path)
+            if not os.path.exists(val_path):
+                os.makedirs(val_path)
             files = val_loader.dataset.files
             for i, file_path in enumerate(files):
 
@@ -619,7 +620,7 @@ class ModelTrainer:
 
                 # Path of saved validation file
                 cloud_name = file_path.split("/")[-1]
-                val_name = join(val_path, cloud_name)
+                val_name = os.path.join(val_path, cloud_name)
 
                 # Save file
                 labels = val_loader.dataset.validation_labels[i].astype(np.int32)
@@ -643,7 +644,7 @@ class ModelTrainer:
 
         return
 
-    def slam_segmentation_validation(self, net, val_loader, config, args, debug=True):
+    def slam_segmentation_validation(self, net, val_loader, config, debug=True):
         """
         Validation method for slam segmentation models
         """
@@ -662,8 +663,8 @@ class ModelTrainer:
         softmax = torch.nn.Softmax(1)
 
         # Create folder for validation predictions
-        if not exists(self.train_save_path + "/" + "val_preds"):
-            makedirs(self.train_save_path + "/" + "val_preds")
+        if not os.path.exists(self.train_save_path + "/" + "val_preds"):
+            os.makedirs(self.train_save_path + "/" + "val_preds")
 
         # initiate the dataset validation containers
         val_loader.dataset.val_points = []
@@ -741,7 +742,7 @@ class ModelTrainer:
                 # Save predictions in a binary file
                 filename = f"{val_loader.dataset.sequences[s_ind]}_{f_ind:7d}.npy"
                 filepath = self.train_save_path + "/" + "val_preds" + "/" + filename
-                if exists(filepath):
+                if os.path.exists(filepath):
                     frame_preds = np.load(filepath)
                 else:
                     frame_preds = np.zeros(frame_labels.shape, dtype=np.uint8)
@@ -750,12 +751,12 @@ class ModelTrainer:
 
                 # Save some of the frame pots
                 if f_ind % 20 == 0:
-                    seq_path = join(
+                    seq_path = os.path.join(
                         val_loader.dataset.path,
                         "sequences",
                         val_loader.dataset.sequences[s_ind],
                     )
-                    velo_file = join(
+                    velo_file = os.path.join(
                         seq_path,
                         "velodyne",
                         val_loader.dataset.frames[s_ind][f_ind] + ".bin",
@@ -877,7 +878,7 @@ class ModelTrainer:
                 line = line + "\n"
 
                 # Write in file
-                if exists(test_file):
+                if os.path.exists(test_file):
                     with open(test_file, "a") as text_file:
                         text_file.write(line)
                 else:

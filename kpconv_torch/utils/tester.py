@@ -1,5 +1,4 @@
-from os import makedirs
-from os.path import exists, join
+import os
 from pathlib import Path
 import time
 
@@ -17,8 +16,8 @@ def get_test_save_path(infered_file, chosen_log):
         test_path = Path(infered_file).parent / "test" / Path(chosen_log).name
     else:
         test_path = Path(chosen_log) / "test"
-    if test_path is not None and not exists(test_path):
-        makedirs(test_path)
+    if test_path is not None and not os.path.exists(test_path):
+        os.makedirs(test_path)
     return test_path
 
 
@@ -175,14 +174,14 @@ class ModelTester:
 
         # Test saving path
         if config.saving:
-            if not exists(self.test_path):
-                makedirs(self.test_path)
-            if not exists(join(self.test_path, "predictions")):
-                makedirs(join(self.test_path, "predictions"))
-            if not exists(join(self.test_path, "probs")):
-                makedirs(join(self.test_path, "probs"))
-            if not exists(join(self.test_path, "potentials")):
-                makedirs(join(self.test_path, "potentials"))
+            if not os.path.exists(self.test_path):
+                os.makedirs(self.test_path)
+            if not os.path.exists(os.path.join(self.test_path, "predictions")):
+                os.makedirs(os.path.join(self.test_path, "predictions"))
+            if not os.path.exists(os.path.join(self.test_path, "probs")):
+                os.makedirs(os.path.join(self.test_path, "probs"))
+            if not os.path.exists(os.path.join(self.test_path, "potentials")):
+                os.makedirs(os.path.join(self.test_path, "potentials"))
 
         # If on validation directly compute score
         if test_loader.dataset.set == "validation":
@@ -428,9 +427,9 @@ class ModelTester:
 
                         # Save plys
                         cloud_name = file_path.split("/")[-1]
-                        test_name = join(self.test_path, "predictions", cloud_name)
+                        test_name = os.path.join(self.test_path, "predictions", cloud_name)
                         write_ply(test_name, [points, preds], ["x", "y", "z", "preds"])
-                        test_name2 = join(self.test_path, "probs", cloud_name)
+                        test_name2 = os.path.join(self.test_path, "probs", cloud_name)
                         prob_names = [
                             "_".join(test_loader.dataset.label_to_names[label].split())
                             for label in test_loader.dataset.label_values
@@ -443,7 +442,7 @@ class ModelTester:
 
                         # Save potentials
                         pot_points = np.array(test_loader.dataset.pot_trees[i].data, copy=False)
-                        pot_name = join(self.test_path, "potentials", cloud_name)
+                        pot_name = os.path.join(self.test_path, "potentials", cloud_name)
                         pots = test_loader.dataset.potentials[i].numpy().astype(np.float32)
                         write_ply(
                             pot_name,
@@ -454,13 +453,13 @@ class ModelTester:
                         # Save ascii preds
                         if test_loader.dataset.set == "test":
                             if test_loader.dataset.name.startswith("Semantic3D"):
-                                ascii_name = join(
+                                ascii_name = os.path.join(
                                     self.test_path,
                                     "predictions",
                                     test_loader.dataset.ascii_files[cloud_name],
                                 )
                             else:
-                                ascii_name = join(
+                                ascii_name = os.path.join(
                                     self.test_path, "predictions", cloud_name[:-4] + ".txt"
                                 )
                             np.savetxt(ascii_name, preds, fmt="%d")
@@ -498,20 +497,20 @@ class ModelTester:
         # Test saving path
         report_path = None
         if config.saving:
-            if not exists(self.test_path):
-                makedirs(self.test_path)
-            report_path = join(self.test_path, "reports")
-            if not exists(report_path):
-                makedirs(report_path)
+            if not os.path.exists(self.test_path):
+                os.makedirs(self.test_path)
+            report_path = os.path.join(self.test_path, "reports")
+            if not os.path.exists(report_path):
+                os.makedirs(report_path)
 
         if test_loader.dataset.set == "validation":
             for folder in ["val_predictions", "val_probs"]:
-                if not exists(join(self.test_path, folder)):
-                    makedirs(join(self.test_path, folder))
+                if not os.path.exists(os.path.join(self.test_path, folder)):
+                    os.makedirs(os.path.join(self.test_path, folder))
         else:
             for folder in ["predictions", "probs"]:
-                if not exists(join(self.test_path, folder)):
-                    makedirs(join(self.test_path, folder))
+                if not os.path.exists(os.path.join(self.test_path, folder)):
+                    os.makedirs(os.path.join(self.test_path, folder))
 
         # Init validation container
         all_f_preds = []
@@ -593,8 +592,8 @@ class ModelTester:
                         folder = "probs"
                         pred_folder = "predictions"
                     filename = f"{seq_name}_{f_ind:7d}.npy"
-                    filepath = join(self.test_path, folder, filename)
-                    if exists(filepath):
+                    filepath = os.path.join(self.test_path, folder, filename)
+                    if os.path.exists(filepath):
                         frame_probs_uint8 = np.load(filepath)
                     else:
                         frame_probs_uint8 = np.zeros((proj_mask.shape[0], nc_model), dtype=np.uint8)
@@ -621,19 +620,21 @@ class ModelTester:
 
                         # Save some of the frame pots
                         if f_ind % 20 == 0:
-                            seq_path = join(
+                            seq_path = os.path.join(
                                 test_loader.dataset.path,
                                 "sequences",
                                 test_loader.dataset.sequences[s_ind],
                             )
-                            velo_file = join(
+                            velo_file = os.path.join(
                                 seq_path,
                                 "velodyne",
                                 test_loader.dataset.frames[s_ind][f_ind] + ".bin",
                             )
                             frame_points = np.fromfile(velo_file, dtype=np.float32)
                             frame_points = frame_points.reshape((-1, 4))
-                            predpath = join(self.test_path, pred_folder, filename[:-4] + ".ply")
+                            predpath = os.path.join(
+                                self.test_path, pred_folder, filename[:-4] + ".ply"
+                            )
                             pots = np.zeros((0,))  # test_loader.dataset.f_potentials[s_ind][f_ind]
                             if pots.shape[0] > 0:
                                 write_ply(
@@ -654,7 +655,9 @@ class ModelTester:
                                 )
 
                             # Also Save lbl probabilities
-                            probpath = join(self.test_path, folder, filename[:-4] + "_probs.ply")
+                            probpath = os.path.join(
+                                self.test_path, folder, filename[:-4] + "_probs.ply"
+                            )
                             lbl_names = [
                                 test_loader.dataset.label_to_names[label_value]
                                 for label_value in test_loader.dataset.label_values
@@ -688,19 +691,21 @@ class ModelTester:
                             ].astype(np.int32)
 
                             # Load points
-                            seq_path = join(
+                            seq_path = os.path.join(
                                 test_loader.dataset.path,
                                 "sequences",
                                 test_loader.dataset.sequences[s_ind],
                             )
-                            velo_file = join(
+                            velo_file = os.path.join(
                                 seq_path,
                                 "velodyne",
                                 test_loader.dataset.frames[s_ind][f_ind] + ".bin",
                             )
                             frame_points = np.fromfile(velo_file, dtype=np.float32)
                             frame_points = frame_points.reshape((-1, 4))
-                            predpath = join(self.test_path, pred_folder, filename[:-4] + ".ply")
+                            predpath = os.path.join(
+                                self.test_path, pred_folder, filename[:-4] + ".ply"
+                            )
                             pots = np.zeros((0,))  # test_loader.dataset.f_potentials[s_ind][f_ind]
                             if pots.shape[0] > 0:
                                 write_ply(
@@ -817,7 +822,9 @@ class ModelTester:
                     print(s2 + "\n")
 
                     # Save a report
-                    report_file = join(report_path, f"report_{int(np.floor(last_min)):04d}.txt")
+                    report_file = os.path.join(
+                        report_path, f"report_{int(np.floor(last_min)):04d}.txt"
+                    )
                     str_report = "Report of the confusion and metrics\n"
                     str_report += "***********************************\n\n\n"
                     str_report += "Confusion matrix:\n\n"

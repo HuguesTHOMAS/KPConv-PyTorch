@@ -9,7 +9,7 @@ def test_write_ply_with_classification(
     example_filepath = fixture_path / "example_with_classification.ply"
     res = ply.write_ply(
         str(example_filepath),
-        [points_array, colors_array, classification_array],
+        (points_array, colors_array, classification_array),
         ["x", "y", "z", "red", "green", "blue", "classification"],
     )
     assert res and example_filepath.exists()

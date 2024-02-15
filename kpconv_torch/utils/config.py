@@ -1,5 +1,5 @@
 from enum import Enum
-from os.path import join
+import os
 
 import numpy as np
 
@@ -230,7 +230,7 @@ class Config:
         self.output_dir = output_dir
 
     def load(self, train_save_path):
-        filename = join(train_save_path, "parameters.txt")
+        filename = os.path.join(train_save_path, "parameters.txt")
         with open(filename) as f:
             lines = f.readlines()
 
@@ -275,7 +275,7 @@ class Config:
 
     def save_parameters(self, train_save_path):
 
-        with open(join(train_save_path, "parameters.txt"), "w") as text_file:
+        with open(os.path.join(train_save_path, "parameters.txt"), "w") as text_file:
             text_file.write("# -----------------------------------#\n")
             text_file.write("# Parameters of the training session #\n")
             text_file.write("# -----------------------------------#\n\n")

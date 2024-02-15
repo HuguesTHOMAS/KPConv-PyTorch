@@ -178,19 +178,18 @@ def read_ply(filepath, triangular_mesh=False):
             # Get data
             data = np.fromfile(plyfile, dtype=properties, count=num_points)
 
+        fields = [p[0] for p in properties]
         points = np.vstack((data["x"], data["y"], data["z"])).transpose().astype(np.float32)
-        if "red" in properties[:][3] and "green" in properties[:][4] and "blue" in properties[:][5]:
+        if "red" in fields and "green" in fields and "blue" in fields:
             colors = (
                 np.vstack((data["red"], data["green"], data["blue"])).transpose().astype(np.uint8)
             )
         else:
             colors = np.zeros((points.shape[0], 3), dtype=np.uint8)
-        if (len(properties) > 3 and "classification" in properties[4][0]) or (
-            len(properties) > 6 and "classification" in properties[6][0]
-        ):
+        if "classification" in fields:
             labels = data["classification"]
         else:
-            labels = np.zeros((points.shape[0], 1), dtype=np.int32)
+            labels = np.zeros((points.shape[0]), dtype=np.int32)
 
     return points, colors, labels
 
@@ -225,7 +224,6 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
     >>> colors = np.random.randint(255, size=(10,3), dtype=np.uint8)
     >>> field_names = ['x', 'y', 'z', 'red', 'green', 'blue', 'classification']
     >>> write_ply('example3.ply', [points, colors, values], field_names)
-
     """
 
     # Format list input to the right form
@@ -240,7 +238,6 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
         if field.ndim > 2:
             print("fields have more than 2 dimensions")
             return False
-
     # check all fields have the same number of data
     n_points = [field.shape[0] for field in field_list]
     if not np.all(np.equal(n_points, n_points[0])):
@@ -297,7 +294,6 @@ def write_ply(filename, field_list, field_names, triangular_faces=None):
             for field in fields.T:
                 data[field_names[i]] = field
                 i += 1
-
         data.tofile(plyfile)
 
         if triangular_faces is not None:

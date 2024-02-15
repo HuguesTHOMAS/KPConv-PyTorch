@@ -1,5 +1,4 @@
-from os import makedirs
-from os.path import exists, join
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -428,18 +427,18 @@ def load_kernels(radius, num_kpoints, dimension, fixed, lloyd=False):
 
     # Kernel directory
     kernel_dir = "kernels/dispositions"
-    if not exists(kernel_dir):
-        makedirs(kernel_dir)
+    if not os.path.exists(kernel_dir):
+        os.makedirs(kernel_dir)
 
     # To many points switch to Lloyds
     if num_kpoints > 30:
         lloyd = True
 
     # Kernel_file
-    kernel_file = join(kernel_dir, f"k_{num_kpoints:3d}_{fixed}_{dimension:d}D.ply")
+    kernel_file = os.path.join(kernel_dir, f"k_{num_kpoints:3d}_{fixed}_{dimension:d}D.ply")
 
     # Check if already done
-    if not exists(kernel_file):
+    if not os.path.exists(kernel_file):
         if lloyd:
             # Create kernels
             kernel_points = spherical_Lloyd(
