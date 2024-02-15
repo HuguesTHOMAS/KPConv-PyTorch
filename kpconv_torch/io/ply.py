@@ -190,7 +190,7 @@ def read_ply(filepath, triangular_mesh=False):
         ):
             labels = data["classification"]
         else:
-            labels = np.zeros((points.shape[0], 1), dtype=np.int32)
+            labels = np.zeros((points.shape[0]), dtype=np.int32)
 
     return points, colors, labels
 
