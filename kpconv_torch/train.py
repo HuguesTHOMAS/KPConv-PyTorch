@@ -239,10 +239,10 @@ def train(datapath: Path, chosen_log: Path, output_dir: Path, dataset: str) -> N
 
     # Choose index of checkpoint to start from. If None, uses the latest chkp.
     chkp_idx = None
-    if train_save_path is not None:
+    if chosen_log is not None:
 
         # Find all snapshot in the chosen training folder
-        chkp_path = os.path.join(train_save_path, "checkpoints")
+        chkp_path = os.path.join(chosen_log, "checkpoints")
         chkps = [f for f in os.listdir(chkp_path) if f[:4] == "chkp"]
 
         # Find which snapshot to restore
