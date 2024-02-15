@@ -178,16 +178,15 @@ def read_ply(filepath, triangular_mesh=False):
             # Get data
             data = np.fromfile(plyfile, dtype=properties, count=num_points)
 
+        fields = [p[0] for p in properties]
         points = np.vstack((data["x"], data["y"], data["z"])).transpose().astype(np.float32)
-        if "red" in properties[:][3] and "green" in properties[:][4] and "blue" in properties[:][5]:
+        if "red" in fields and "green" in fields and "blue" in fields:
             colors = (
                 np.vstack((data["red"], data["green"], data["blue"])).transpose().astype(np.uint8)
             )
         else:
             colors = np.zeros((points.shape[0], 3), dtype=np.uint8)
-        if (len(properties) > 3 and "classification" in properties[4][0]) or (
-            len(properties) > 6 and "classification" in properties[6][0]
-        ):
+        if "classification" in fields:
             labels = data["classification"]
         else:
             labels = np.zeros((points.shape[0]), dtype=np.int32)
