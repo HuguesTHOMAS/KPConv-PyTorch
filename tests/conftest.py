@@ -43,3 +43,8 @@ def classification_array():
         [1, 2, 2, 3, 1],
         dtype=np.int32,
     )
+
+
+@pytest.fixture
+def dataset():
+    yield "S3DIS"
