@@ -95,14 +95,23 @@ class S3DISDataset(PointCloudDataset):
         # Proportion of validation scenes
         self.training_cloud_names = ["Area_1", "Area_2", "Area_3", "Area_4", "Area_6"]
         self.validation_cloud_names = ["Area_5"]
-        if self.set == "all":
-            self.cloud_names = self.training_cloud_names + self.validation_cloud_names
-        elif self.set == "training":
-            self.cloud_names = self.training_cloud_names
-        elif self.set == "test" and infered_file is not None:
+
+        # Data folder management
+        if self.set == "test" and infered_file is not None:
+            # Inference case: a S3DIS dataset is built with the infered file
             self.cloud_names = [infered_file]
         else:
-            self.cloud_names = self.validation_cloud_names
+            # Any other case: the S3DIS dataset is built with the S3DIS original data
+            if self.set == "all":
+                self.cloud_names = self.training_cloud_names + self.validation_cloud_names
+            elif self.set == "training":
+                self.cloud_names = self.training_cloud_names
+            else:
+                self.cloud_names = self.validation_cloud_names
+            available_cloud_data = [subfolder.name for subfolder in self.path.iterdir()]
+            self.cloud_names = [
+                cloud_name for cloud_name in self.cloud_names if cloud_name in available_cloud_data
+            ]
         self.files = [
             (
                 cloud_name
