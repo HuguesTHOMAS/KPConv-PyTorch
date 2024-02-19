@@ -126,10 +126,6 @@ class ModelTrainer:
         # Start training loop
         for epoch in range(config.max_epoch):
 
-            # Remove File for kill signal
-            if epoch == config.max_epoch - 1 and os.path.exists(PID_file):
-                os.remove(PID_file)
-
             self.step = 0
             for batch in training_loader:
 
@@ -216,9 +212,9 @@ class ModelTrainer:
             # End of epoch
             ##############
 
-            # Check kill signal (running_PID.txt deleted)
-            if config.saving and not os.path.exists(PID_file):
-                break
+            # Remove File for kill signal if last epoch before the end
+            if epoch == config.max_epoch - 1 and os.path.exists(PID_file):
+                os.remove(PID_file)
 
             # Update learning rate
             if self.epoch in config.lr_decays:
@@ -253,6 +249,10 @@ class ModelTrainer:
             net.eval()
             self.validation(net, val_loader, config)
             net.train()
+
+            # Check kill signal (running_PID.txt deleted)
+            if config.saving and not os.path.exists(PID_file):
+                break
 
         print("Finished Training")
         return
