@@ -4,7 +4,7 @@ from kpconv_torch import preprocess
 from kpconv_torch.io import ply
 
 
-def test_preprocess(fixture_path, dataset):
+def test_preprocess(dataset_path):
     """The preprocessing produces .PLY files usable for further training process in 'original_ply'
     subfolder as well as subsampling material in 'input_{subsampling_coef}' subfolder (KDTree,
     coarse KDTree and subsampled .PLY file).
@@ -24,23 +24,24 @@ def test_preprocess(fixture_path, dataset):
             |_ Area_5.ply
 
     """
-    datapath = fixture_path / dataset
-    preprocess.preprocess(datapath, dataset)
+    preprocess.preprocess(dataset_path, dataset_path.name)
     subsampling_coef = 0.03
-    assert (datapath / f"input_{subsampling_coef:.3f}").exists()
-    assert (datapath / "original_ply").exists()
+    assert (dataset_path / f"input_{subsampling_coef:.3f}").exists()
+    assert (dataset_path / "original_ply").exists()
     for room_name, cloud_name in zip(("hallway_3", "storage_3"), ("Area_3", "Area_5")):
         # Check the output tree
         assert (
-            datapath / f"input_{subsampling_coef:.3f}" / f"{cloud_name}_coarse_KDTree.pkl"
+            dataset_path / f"input_{subsampling_coef:.3f}" / f"{cloud_name}_coarse_KDTree.pkl"
         ).exists()
-        assert (datapath / f"input_{subsampling_coef:.3f}" / f"{cloud_name}_KDTree.pkl").exists()
-        assert (datapath / f"input_{subsampling_coef:.3f}" / f"{cloud_name}.ply").exists()
-        assert (datapath / "original_ply" / f"{cloud_name}.ply").exists()
+        assert (
+            dataset_path / f"input_{subsampling_coef:.3f}" / f"{cloud_name}_KDTree.pkl"
+        ).exists()
+        assert (dataset_path / f"input_{subsampling_coef:.3f}" / f"{cloud_name}.ply").exists()
+        assert (dataset_path / "original_ply" / f"{cloud_name}.ply").exists()
 
         # Check the output PLY content
-        raw_data = np.loadtxt(datapath / cloud_name / room_name / f"{room_name}.txt")
-        ply_data = ply.read_ply(datapath / "original_ply" / f"{cloud_name}.ply")
+        raw_data = np.loadtxt(dataset_path / cloud_name / room_name / f"{room_name}.txt")
+        ply_data = ply.read_ply(dataset_path / "original_ply" / f"{cloud_name}.ply")
         assert ply_data[0].shape == (raw_data.shape[0], 3)
         assert ply_data[1].shape == (raw_data.shape[0], 3)
         assert ply_data[2].shape == (raw_data.shape[0],)
@@ -48,7 +49,7 @@ def test_preprocess(fixture_path, dataset):
         expected_label_count = len(
             {
                 filename.name.split("_")[0]
-                for filename in (datapath / cloud_name / room_name / "Annotations").iterdir()
+                for filename in (dataset_path / cloud_name / room_name / "Annotations").iterdir()
             }
         )
         assert len(np.unique(ply_data[2])) == expected_label_count
