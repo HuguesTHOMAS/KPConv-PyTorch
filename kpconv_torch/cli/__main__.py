@@ -96,6 +96,30 @@ def kpconv_parser(subparser, reference_func, command, command_description):
                 "Otherwise, the -l option must be mentioned."
             ),
         )
+        parser.add_argument(
+            "-E",
+            "--max-epoch",
+            type=int,
+            help="Upper bound for the number of training epochs (useful for functional test)",
+        )
+        parser.add_argument(
+            "-g",
+            "--checkpoint-gap",
+            type=int,
+            help="Frequency at which training checkpoint are saved on disk (in terms of epochs)",
+        )
+        parser.add_argument(
+            "-e",
+            "--epoch-steps",
+            type=int,
+            help="Number of steps per training epoch",
+        )
+        parser.add_argument(
+            "-v",
+            "--validation-size",
+            type=int,
+            help="Number of steps per validation process, after each epoch",
+        )
 
     parser.add_argument(
         "-s",
