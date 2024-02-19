@@ -1,5 +1,6 @@
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -9,13 +10,13 @@ from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.io.ply import write_ply
 
 
-def get_train_save_path(output_dir, chosen_log):
+def get_train_save_path(output_dir: Path, chosen_log: Path) -> Path:
     if chosen_log is None and output_dir is None:
         train_path = None
     elif chosen_log is not None:
         train_path = chosen_log
     elif output_dir is not None:
-        train_path = os.path.join(output_dir, time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime()))
+        train_path = output_dir / time.strftime("Log_%Y-%m-%d_%H-%M-%S", time.gmtime())
     if train_path is not None and not os.path.exists(train_path):
         os.makedirs(train_path)
     return train_path
@@ -195,7 +196,7 @@ class ModelTrainer:
 
                 # Log file
                 if config.saving:
-                    with open(self.train_save_path + "/" + "training.txt", "a") as file:
+                    with open(self.train_save_path / "training.txt", "a") as file:
                         message = "{:d} {:d} {:.3f} {:.3f} {:.3f} {:.3f}\n"
                         file.write(
                             message.format(
@@ -374,7 +375,7 @@ class ModelTrainer:
             conf_list = [C1, C2]
             file_list = ["val_confs.txt", "vote_confs.txt"]
             for conf, conf_file in zip(conf_list, file_list):
-                test_file = self.train_save_path + "/" + conf_file
+                test_file = self.train_save_path / conf_file
                 if os.path.exists(test_file):
                     with open(test_file, "a") as text_file:
                         for line in conf:
@@ -555,7 +556,7 @@ class ModelTrainer:
         if config.saving:
 
             # Name of saving file
-            test_file = self.train_save_path + "/" + "val_IoUs.txt"
+            test_file = self.train_save_path / "val_IoUs.txt"
 
             # Line to write:
             line = ""
@@ -573,13 +574,13 @@ class ModelTrainer:
 
             # Save potentials
             if val_loader.dataset.use_potentials:
-                pot_path = self.train_save_path + "/" + "potentials"
+                pot_path = self.train_save_path / "potentials"
                 if not os.path.exists(pot_path):
                     os.makedirs(pot_path)
                 files = val_loader.dataset.files
                 for i, file_path in enumerate(files):
                     pot_points = np.array(val_loader.dataset.pot_trees[i].data, copy=False)
-                    cloud_name = file_path.split("/")[-1]
+                    cloud_name = file_path.name
                     pot_name = os.path.join(pot_path, cloud_name)
                     pots = val_loader.dataset.potentials[i].numpy().astype(np.float32)
                     write_ply(
@@ -596,7 +597,7 @@ class ModelTrainer:
 
         # Save predicted cloud occasionally
         if config.saving and (self.epoch + 1) % config.checkpoint_gap == 0:
-            val_path = self.train_save_path + "/" + f"val_preds_{self.epoch + 1:d}"
+            val_path = self.train_save_path / f"val_preds_{self.epoch + 1:d}"
             if not os.path.exists(val_path):
                 os.makedirs(val_path)
             files = val_loader.dataset.files
@@ -622,7 +623,7 @@ class ModelTrainer:
                 preds = (sub_preds[val_loader.dataset.test_proj[i]]).astype(np.int32)
 
                 # Path of saved validation file
-                cloud_name = file_path.split("/")[-1]
+                cloud_name = file_path.name
                 val_name = os.path.join(val_path, cloud_name)
 
                 # Save file
@@ -666,8 +667,8 @@ class ModelTrainer:
         softmax = torch.nn.Softmax(1)
 
         # Create folder for validation predictions
-        if not os.path.exists(self.train_save_path + "/" + "val_preds"):
-            os.makedirs(self.train_save_path + "/" + "val_preds")
+        if not os.path.exists(self.train_save_path / "val_preds"):
+            os.makedirs(self.train_save_path / "val_preds")
 
         # initiate the dataset validation containers
         val_loader.dataset.val_points = []
@@ -745,7 +746,7 @@ class ModelTrainer:
 
                 # Save predictions in a binary file
                 filename = f"{val_loader.dataset.sequences[s_ind]}_{f_ind:7d}.npy"
-                filepath = self.train_save_path + "/" + "val_preds" + "/" + filename
+                filepath = self.train_save_path / "val_preds" / filename
                 if os.path.exists(filepath):
                     frame_preds = np.load(filepath)
                 else:
@@ -873,7 +874,7 @@ class ModelTrainer:
             for IoUs_to_save, IoU_file in zip(IoU_list, file_list):
 
                 # Name of saving file
-                test_file = self.train_save_path + "/" + IoU_file
+                test_file = self.train_save_path / IoU_file
 
                 # Line to write:
                 line = ""
