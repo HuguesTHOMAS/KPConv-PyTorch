@@ -243,9 +243,9 @@ class ModelTrainer:
                 torch.save(save_dict, checkpoint_path)
 
                 # Save checkpoints occasionally
-                if (self.epoch + 1) % config.checkpoint_gap == 0:
+                if self.epoch % config.checkpoint_gap == 0:
                     checkpoint_path = os.path.join(
-                        checkpoint_directory, f"chkp_{self.epoch + 1:04d}.tar"
+                        checkpoint_directory, f"chkp_{self.epoch:04d}.tar"
                     )
                     torch.save(save_dict, checkpoint_path)
 
@@ -597,8 +597,8 @@ class ModelTrainer:
         print(f"{config.dataset} mean IoU = {mIoU:.1f}%")
 
         # Save predicted cloud occasionally
-        if config.saving and (self.epoch + 1) % config.checkpoint_gap == 0:
-            val_path = self.train_save_path / f"val_preds_{self.epoch + 1:d}"
+        if config.saving and self.epoch % config.checkpoint_gap == 0:
+            val_path = self.train_save_path / f"val_preds_{self.epoch:d}"
             if not os.path.exists(val_path):
                 os.makedirs(val_path)
             files = val_loader.dataset.files
