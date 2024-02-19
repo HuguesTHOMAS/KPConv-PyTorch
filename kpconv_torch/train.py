@@ -42,10 +42,28 @@ from kpconv_torch.utils.trainer import get_train_save_path, ModelTrainer
 
 
 def main(args):
-    train(args.datapath, args.chosen_log, args.output_dir, args.dataset)
+    train(
+        args.datapath,
+        args.chosen_log,
+        args.output_dir,
+        args.dataset,
+        args.max_epoch,
+        args.checkpoint_gap,
+        args.epoch_steps,
+        args.validation_size,
+    )
 
 
-def train(datapath: Path, chosen_log: Path, output_dir: Path, dataset: str) -> None:
+def train(
+    datapath: Path,
+    chosen_log: Path,
+    output_dir: Path,
+    dataset: str,
+    max_epoch: int = None,
+    checkpoint_gap: int = None,
+    epoch_steps: int = None,
+    validation_size: int = None,
+) -> None:
     ############################
     # Initialize the environment
     ############################
@@ -77,6 +95,16 @@ def train(datapath: Path, chosen_log: Path, output_dir: Path, dataset: str) -> N
 
     config.set_output_dir(output_dir)
     config.set_chosen_log(chosen_log)
+
+    # overload training process length and checkpoint saving frequency
+    if max_epoch is not None:
+        config.max_epoch = max_epoch
+    if checkpoint_gap is not None:
+        config.checkpoint_gap = checkpoint_gap
+    if epoch_steps is not None:
+        config.epoch_steps = epoch_steps
+    if validation_size is not None:
+        config.validation_size = validation_size
 
     train_save_path = get_train_save_path(output_dir, chosen_log)
 
