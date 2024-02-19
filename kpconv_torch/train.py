@@ -1,6 +1,5 @@
 from pathlib import Path
 import os
-import signal
 import sys
 import time
 
@@ -292,9 +291,6 @@ def train(
 
     # Training
     trainer.train(net, training_loader, test_loader, config)
-
-    print("Forcing exit now")
-    os.kill(os.getpid(), signal.SIGINT)
 
     end = time.time()
     print(time.strftime("%H:%M:%S", time.gmtime(end - start)))
