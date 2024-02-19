@@ -106,7 +106,7 @@ class ModelTrainer:
             PID_file = self.train_save_path / "running_PID.txt"
             if not os.path.exists(PID_file):
                 with open(PID_file, "w") as fobj:
-                    fobj.write("Launched with PyCharm")
+                    fobj.write("Kill this file when you want to stop the training.")
 
             # Checkpoints directory
             checkpoint_directory = self.train_save_path / "checkpoints"
