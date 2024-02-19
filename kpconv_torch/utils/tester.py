@@ -9,7 +9,7 @@ from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.io.ply import write_ply
 
 
-def get_test_save_path(infered_file, chosen_log):
+def get_test_save_path(infered_file: Path, chosen_log: Path) -> Path:
     if chosen_log is None:
         test_path = None
     elif infered_file is not None:
@@ -426,7 +426,7 @@ class ModelTester:
                         ].astype(np.int32)
 
                         # Save plys
-                        cloud_name = file_path.split("/")[-1]
+                        cloud_name = file_path.name
                         test_name = os.path.join(self.test_path, "predictions", cloud_name)
                         write_ply(test_name, [points, preds], ["x", "y", "z", "preds"])
                         test_name2 = os.path.join(self.test_path, "probs", cloud_name)

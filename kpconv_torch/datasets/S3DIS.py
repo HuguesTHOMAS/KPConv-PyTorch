@@ -82,7 +82,7 @@ class S3DISDataset(PointCloudDataset):
         self.use_potentials = use_potentials
 
         # Path of the training files
-        self.train_files_path = os.path.join(self.path, "original_ply")
+        self.train_files_path = self.path / "original_ply"
         if not os.path.exists(self.train_files_path):
             print("The ply folder does not exist, create it.")
             os.makedirs(self.train_files_path)
@@ -116,7 +116,7 @@ class S3DISDataset(PointCloudDataset):
             (
                 cloud_name
                 if self.set == "test" and infered_file is not None
-                else os.path.join(self.train_files_path, cloud_name + ".ply")
+                else self.train_files_path / (cloud_name + ".ply")
             )
             for i, cloud_name in enumerate(self.cloud_names)
         ]
