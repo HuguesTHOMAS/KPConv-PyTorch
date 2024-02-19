@@ -99,8 +99,9 @@ class ModelTrainer:
 
         if config.saving:
             # Training log file
-            with open(self.train_save_path / "training.txt", "w") as fobj:
-                fobj.write("epochs steps out_loss offset_loss train_accuracy time\n")
+            if not (self.train_save_path / "training.txt").exists():
+                with open(self.train_save_path / "training.txt", "w") as fobj:
+                    fobj.write("epochs steps out_loss offset_loss train_accuracy time\n")
 
             # Killing file (simply delete this file when you want to stop the training)
             PID_file = self.train_save_path / "running_PID.txt"
