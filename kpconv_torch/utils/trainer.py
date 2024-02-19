@@ -106,7 +106,11 @@ class ModelTrainer:
             PID_file = self.train_save_path / "running_PID.txt"
             if not os.path.exists(PID_file):
                 with open(PID_file, "w") as fobj:
-                    fobj.write("Launched with PyCharm")
+                    fobj.write(
+                        "Remove this file when you want the training to stop. "
+                        "The *kpconv* program uses it as a witness, and cancels the remaining "
+                        "training epochs if it is removed, when config.saving is True."
+                    )
 
             # Checkpoints directory
             checkpoint_directory = self.train_save_path / "checkpoints"
