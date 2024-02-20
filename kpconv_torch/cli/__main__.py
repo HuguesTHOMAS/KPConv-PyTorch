@@ -73,6 +73,18 @@ def kpconv_parser(subparser, reference_func, command, command_description):
         )
         # '.../Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
         # 'last_XXX': Automatically retrieve the last trained model on dataset XXX
+        parser.add_argument(
+            "-n",
+            "--n-votes",
+            type=int,
+            help="Number of positive vote during inference process (stop condition to reach)",
+        )
+        parser.add_argument(
+            "-p",
+            "--potential-increment",
+            type=int,
+            help="Increment of inference potential at which results are saved",
+        )
 
     if command == "train":
         group = parser.add_mutually_exclusive_group(required=False)
@@ -114,12 +126,12 @@ def kpconv_parser(subparser, reference_func, command, command_description):
             type=int,
             help="Number of steps per training epoch",
         )
-        parser.add_argument(
-            "-v",
-            "--validation-size",
-            type=int,
-            help="Number of steps per validation process, after each epoch",
-        )
+    parser.add_argument(
+        "-v",
+        "--validation-size",
+        type=int,
+        help="Number of steps per validation process, after each epoch",
+    )
 
     parser.add_argument(
         "-s",

@@ -1651,6 +1651,9 @@ class S3DISConfig(Config):
     # Number of epoch between each checkpoint
     checkpoint_gap = 50
 
+    # Increment of inference potential before saving results
+    potential_increment = 10
+
     # Augmentations
     augment_scale_anisotropic = True
     augment_symmetries = [True, False, False]
