@@ -178,6 +178,9 @@ class Config:
     # Number of epoch between each checkpoint
     checkpoint_gap = 50
 
+    # Increment of inference potential before saving results
+    potential_increment = 10
+
     def __init__(self):
         """
         Class Initialyser

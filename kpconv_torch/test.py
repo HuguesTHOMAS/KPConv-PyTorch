@@ -64,10 +64,26 @@ def model_choice(chosen_log):
 
 
 def main(args):
-    test(args.datapath, args.filename, args.chosen_log, args.dataset)
+    test(
+        args.datapath,
+        args.filename,
+        args.chosen_log,
+        args.dataset,
+        args.n_votes,
+        args.validation_size,
+        args.potential_increment,
+    )
 
 
-def test(datapath: Path, filename: str, chosen_log: Path, dataset: str) -> None:
+def test(
+    datapath: Path,
+    filename: str,
+    chosen_log: Path,
+    dataset: str,
+    n_votes: int = 100,
+    validation_size: int = None,
+    potential_increment: int = None,
+) -> None:
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = -1
 
@@ -108,8 +124,10 @@ def test(datapath: Path, filename: str, chosen_log: Path, dataset: str) -> None:
     # Change model parameters for test
     ##################################
     # Change parameters for the test here. For example, you can stop augmenting the input data.
-    config.validation_size = 200
+    config.validation_size = validation_size if validation_size is not None else 200
     config.input_threads = 10
+    if potential_increment is not None:
+        config.potential_increment = potential_increment
 
     ##############
     # Prepare Data
@@ -202,10 +220,10 @@ def test(datapath: Path, filename: str, chosen_log: Path, dataset: str) -> None:
 
     # Testing
     if config.dataset_task == "classification":
-        tester.classification_test(net, test_loader, config)
+        tester.classification_test(net, test_loader, config, num_votes=n_votes)
     elif config.dataset_task == "cloud_segmentation":
-        tester.cloud_segmentation_test(net, test_loader, config)
+        tester.cloud_segmentation_test(net, test_loader, config, num_votes=n_votes)
     elif config.dataset_task == "slam_segmentation":
-        tester.slam_segmentation_test(net, test_loader, config)
+        tester.slam_segmentation_test(net, test_loader, config, num_votes=n_votes)
     else:
         raise ValueError("Unsupported dataset_task for testing: " + config.dataset_task)
