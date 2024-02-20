@@ -204,7 +204,7 @@ class ModelTester:
         #####################
 
         test_epoch = 0
-        last_min = -0.5
+        last_saved_min = last_min = -0.5
 
         t = [time.time()]
         last_display = time.time()
@@ -347,7 +347,8 @@ class ModelTester:
                     print(s + "\n")
 
                 # Save real IoU once in a while
-                if int(np.ceil(new_min)) % config.potential_increment == 0:
+                if last_saved_min + config.potential_increment < new_min:
+                    last_saved_min = new_min
 
                     # Project predictions
                     print(f"\nReproject Vote #{int(np.floor(new_min)):d}")
