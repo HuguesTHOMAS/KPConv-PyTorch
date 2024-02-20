@@ -56,16 +56,16 @@ class KPCNN(nn.Module):
 
         # Current radius of convolution and feature dimension
         layer = 0
-        r = config.first_subsampling_dl * config.conv_radius
-        in_dim = config.in_features_dim
-        out_dim = config.first_features_dim
-        self.K = config.num_kernel_points
+        r = config["kpconv"]["first_subsampling_dl"] * config["kpconv"]["conv_radius"]
+        in_dim = config["input"]["in_features_dim"]
+        out_dim = config["model"]["first_features_dim"]
+        self.K = config["kpconv"]["num_kernel_points"]
 
         # Save all block operations in a list of modules
         self.block_ops = nn.ModuleList()
 
         # Loop over consecutive blocks
-        for block in config.architecture:
+        for block in config["model"]["architecture"]:
 
             # Check equivariance
             if ("equivariant" in block) and (out_dim % 3 != 0):
@@ -92,17 +92,17 @@ class KPCNN(nn.Module):
                 out_dim *= 2
 
         self.head_mlp = UnaryBlock(out_dim, 1024, False, 0)
-        self.head_softmax = UnaryBlock(1024, config.num_classes, False, 0, no_relu=True)
+        self.head_softmax = UnaryBlock(1024, config["input"]["num_classes"], False, 0, no_relu=True)
 
         ################
         # Network Losses
         ################
 
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.deform_fitting_mode = config.deform_fitting_mode
-        self.deform_fitting_power = config.deform_fitting_power
-        self.deform_lr_factor = config.deform_lr_factor
-        self.repulse_extent = config.repulse_extent
+        self.deform_fitting_mode = config["kpconv"]["deform_fitting_mode"]
+        self.deform_fitting_power = config["kpconv"]["deform_fitting_power"]
+        self.deform_lr_factor = config["kpconv"]["deform_lr_factor"]
+        self.repulse_extent = config["train"]["repulse_extent"]
         self.output_loss = 0
         self.reg_loss = 0
         self.l1 = nn.L1Loss()
@@ -174,10 +174,10 @@ class KPFCNN(nn.Module):
 
         # Current radius of convolution and feature dimension
         layer = 0
-        r = config.first_subsampling_dl * config.conv_radius
-        in_dim = config.in_features_dim
-        out_dim = config.first_features_dim
-        self.K = config.num_kernel_points
+        r = config["kpconv"]["first_subsampling_dl"] * config["kpconv"]["conv_radius"]
+        in_dim = config["input"]["in_features_dim"]
+        out_dim = config["model"]["first_features_dim"]
+        self.K = config["kpconv"]["num_kernel_points"]
         self.C = len(lbl_values) - len(ign_lbls)
 
         #####################
@@ -190,7 +190,7 @@ class KPFCNN(nn.Module):
         self.encoder_skips = []
 
         # Loop over consecutive blocks
-        for block_i, block in enumerate(config.architecture):
+        for block_i, block in enumerate(config["model"]["architecture"]):
 
             # Check equivariance
             if ("equivariant" in block) and (out_dim % 3 != 0):
@@ -231,16 +231,16 @@ class KPFCNN(nn.Module):
 
         # Find first upsampling block
         start_i = 0
-        for block_i, block in enumerate(config.architecture):
+        for block_i, block in enumerate(config["model"]["architecture"]):
             if "upsample" in block:
                 start_i = block_i
                 break
 
         # Loop over consecutive blocks
-        for block_i, block in enumerate(config.architecture[start_i:]):
+        for block_i, block in enumerate(config["model"]["architecture"][start_i:]):
 
             # Add dimension of skip connection concat
-            if block_i > 0 and "upsample" in config.architecture[start_i + block_i - 1]:
+            if block_i > 0 and "upsample" in config["model"]["architecture"][start_i + block_i - 1]:
                 in_dim += self.encoder_skip_dims[layer]
                 self.decoder_concats.append(block_i)
 
@@ -257,8 +257,10 @@ class KPFCNN(nn.Module):
                 r *= 0.5
                 out_dim = out_dim // 2
 
-        self.head_mlp = UnaryBlock(out_dim, config.first_features_dim, False, 0)
-        self.head_softmax = UnaryBlock(config.first_features_dim, self.C, False, 0, no_relu=True)
+        self.head_mlp = UnaryBlock(out_dim, config["model"]["first_features_dim"], False, 0)
+        self.head_softmax = UnaryBlock(
+            config["model"]["first_features_dim"], self.C, False, 0, no_relu=True
+        )
 
         ################
         # Network Losses
@@ -268,15 +270,16 @@ class KPFCNN(nn.Module):
         self.valid_labels = np.sort([c for c in lbl_values if c not in ign_lbls])
 
         # Choose segmentation loss
-        if len(config.class_w) > 0:
-            class_w = torch.from_numpy(np.array(config.class_w, dtype=np.float32))
-            self.criterion = torch.nn.CrossEntropyLoss(weight=class_w, ignore_index=-1)
+        if len(config["train"]["class_w"]) > 0:
+            self.criterion = torch.nn.CrossEntropyLoss(
+                weight=config["train"]["class_w"], ignore_index=-1
+            )
         else:
             self.criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
-        self.deform_fitting_mode = config.deform_fitting_mode
-        self.deform_fitting_power = config.deform_fitting_power
-        self.deform_lr_factor = config.deform_lr_factor
-        self.repulse_extent = config.repulse_extent
+        self.deform_fitting_mode = config["kpconv"]["deform_fitting_power"]
+        self.deform_fitting_power = config["kpconv"]["deform_fitting_power"]
+        self.deform_lr_factor = config["kpconv"]["deform_lr_factor"]
+        self.repulse_extent = self.config["kpconv"]["KP_extent"]
         self.output_loss = 0
         self.reg_loss = 0
         self.l1 = nn.L1Loss()

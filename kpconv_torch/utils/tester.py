@@ -59,7 +59,7 @@ class ModelTester:
         test_loader.dataset.num_classes
 
         # Number of classes predicted by the model
-        nc_model = config.num_classes
+        nc_model = config["input"]["num_classes"]
 
         # Initiate global prediction over test clouds
         self.test_probs = np.zeros((test_loader.dataset.num_models, nc_model))
@@ -110,7 +110,7 @@ class ModelTester:
                     print(
                         message.format(
                             np.min(self.test_counts),
-                            100 * len(obj_inds) / config.validation_size,
+                            100 * len(obj_inds) / config["train"]["validation_size"],
                             1000 * (mean_dt[0]),
                             1000 * (mean_dt[1]),
                         )
@@ -164,7 +164,7 @@ class ModelTester:
         test_loader.dataset.num_classes
 
         # Number of classes predicted by the model
-        nc_model = config.num_classes
+        nc_model = config["input"]["num_classes"]
 
         # Initiate global prediction over test clouds
         self.test_probs = [
@@ -173,7 +173,7 @@ class ModelTester:
         ]
 
         # Test saving path
-        if config.saving:
+        if config["train"]["saving"]:
             if not os.path.exists(self.test_path):
                 os.makedirs(self.test_path)
             if not os.path.exists(os.path.join(self.test_path, "predictions")):
@@ -204,7 +204,7 @@ class ModelTester:
         #####################
 
         test_epoch = 0
-        last_min = -0.5
+        last_saved_min = last_min = -0.5
 
         t = [time.time()]
         last_display = time.time()
@@ -253,7 +253,8 @@ class ModelTester:
 
                     if 0 < test_radius_ratio < 1:
                         mask = (
-                            np.sum(points**2, axis=1) < (test_radius_ratio * config.in_radius) ** 2
+                            np.sum(points**2, axis=1)
+                            < (test_radius_ratio * config["input"]["in_radius"]) ** 2
                         )
                         inds = inds[mask]
                         probs = probs[mask]
@@ -279,7 +280,7 @@ class ModelTester:
                         message.format(
                             test_epoch,
                             i,
-                            100 * i / config.validation_size,
+                            100 * i / config["train"]["validation_size"],
                             1000 * (mean_dt[0]),
                             1000 * (mean_dt[1]),
                             1000 * (mean_dt[2]),
@@ -347,7 +348,8 @@ class ModelTester:
                     print(s + "\n")
 
                 # Save real IoU once in a while
-                if int(np.ceil(new_min)) % config.potential_increment == 0:
+                if last_saved_min + config["train"]["potential_increment"] < new_min:
+                    last_saved_min = new_min
 
                     # Project predictions
                     print(f"\nReproject Vote #{int(np.floor(new_min)):d}")
@@ -496,7 +498,7 @@ class ModelTester:
 
         # Test saving path
         report_path = None
-        if config.saving:
+        if config["train"]["saving"]:
             if not os.path.exists(self.test_path):
                 os.makedirs(self.test_path)
             report_path = os.path.join(self.test_path, "reports")
@@ -740,12 +742,16 @@ class ModelTester:
                         .type(torch.int32)
                         .item()
                     )
-                    current_num = pot_num + (i + 1 - config.validation_size) * config.val_batch_num
+                    current_num = (
+                        pot_num
+                        + (i + 1 - config["train"]["validation_size"])
+                        * config["train"]["val_batch_num"]
+                    )
                     print(
                         message.format(
                             test_epoch,
                             i,
-                            100 * i / config.validation_size,
+                            100 * i / config["train"]["validation_size"],
                             1000 * (mean_dt[0]),
                             1000 * (mean_dt[1]),
                             1000 * (mean_dt[2]),

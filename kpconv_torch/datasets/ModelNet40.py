@@ -7,7 +7,6 @@ import torch
 from torch.utils.data import get_worker_info, Sampler
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
-from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 
 
@@ -21,7 +20,7 @@ class ModelNet40Dataset(PointCloudDataset):
         chosen_log=None,
         infered_file=None,
         orient_correction=True,
-        split="training",
+        split="train",
     ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
@@ -39,73 +38,30 @@ class ModelNet40Dataset(PointCloudDataset):
         # Parameters
         ############
 
-        # Dict from labels to names
-        self.label_to_names = {
-            0: "airplane",
-            1: "bathtub",
-            2: "bed",
-            3: "bench",
-            4: "bookshelf",
-            5: "bottle",
-            6: "bowl",
-            7: "car",
-            8: "chair",
-            9: "cone",
-            10: "cup",
-            11: "curtain",
-            12: "desk",
-            13: "door",
-            14: "dresser",
-            15: "flower_pot",
-            16: "glass_box",
-            17: "guitar",
-            18: "keyboard",
-            19: "lamp",
-            20: "laptop",
-            21: "mantel",
-            22: "monitor",
-            23: "night_stand",
-            24: "person",
-            25: "piano",
-            26: "plant",
-            27: "radio",
-            28: "range_hood",
-            29: "sink",
-            30: "sofa",
-            31: "stairs",
-            32: "stool",
-            33: "table",
-            34: "tent",
-            35: "toilet",
-            36: "tv_stand",
-            37: "vase",
-            38: "wardrobe",
-            39: "xbox",
-        }
-
         # Initialize a bunch of variables concerning class labels
         self.init_labels()
 
-        # List of classes ignored during training (can be empty)
+        # List of classes ignored during train (can be empty)
         self.ignored_labels = np.array([])
-
-        # Type of task conducted on this dataset
-        self.dataset_task = "classification"
 
         # Update number of class and data task in configuration
         config.num_classes = self.num_classes
-        config.dataset_task = self.dataset_task
 
         # Number of models and models used per epoch
-        if self.set == "training":
+        if self.split == "train":
             self.num_models = 9843
-            if config.epoch_steps and config.epoch_steps * config.batch_num < self.num_models:
-                self.epoch_n = config.epoch_steps * config.batch_num
+            if (
+                config.epoch_steps
+                and config.epoch_steps * self.dataset.config["train"]["batch_num"] < self.num_models
+            ):
+                self.epoch_n = config.epoch_steps * self.dataset.config["train"]["batch_num"]
             else:
                 self.epoch_n = self.num_models
         else:
             self.num_models = 2468
-            self.epoch_n = min(self.num_models, config.validation_size * config.batch_num)
+            self.epoch_n = min(
+                self.num_models, config.validation_size * self.dataset.config["train"]["batch_num"]
+            )
 
         #############
         # Load models
@@ -207,8 +163,8 @@ class ModelNet40Dataset(PointCloudDataset):
         t0 = time.time()
 
         # Load wanted points if possible
-        if self.set == "training":
-            split = "training"
+        if self.split == "train":
+            split = "train"
         else:
             split = "test"
 
@@ -224,8 +180,8 @@ class ModelNet40Dataset(PointCloudDataset):
         # Else compute them from original points
         else:
 
-            # Collect training file names
-            if self.set == "training":
+            # Collect train file names
+            if self.split == "train":
                 names = np.loadtxt(os.path.join(self.path, "modelnet40_train.txt"), dtype=np.str)
             else:
                 names = np.loadtxt(os.path.join(self.path, "modelnet40_test.txt"), dtype=np.str)
@@ -419,7 +375,7 @@ class ModelNet40Sampler(Sampler):
         """
         return None
 
-    def calibration(self, dataloader, untouched_ratio=0.9, verbose=False):
+    def calibration(self, config, dataloader, untouched_ratio=0.9, verbose=False):
         """Method performing batch and neighbors calibration.
 
         Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch)
@@ -453,7 +409,7 @@ class ModelNet40Sampler(Sampler):
 
         # Check if the batch limit associated with current parameters exists
         key = "{:.3f}_{:d}".format(
-            self.dataset.config.first_subsampling_dl, self.dataset.config.batch_num
+            config["kpconv"]["first_subsampling_dl"], config["train"]["batch_num"]
         )
         if key in batch_lim_dict:
             self.batch_limit = batch_lim_dict[key]
@@ -464,12 +420,12 @@ class ModelNet40Sampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = BColors.OKGREEN.value
+                color = config["colors"]["okgreen"]
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = BColors.FAIL.value
+                color = self.config["colors"]["fail"]
                 v = "?"
-            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{config["colors"]["endc"]}')
 
         # Neighbors limit
         # ***************
@@ -484,52 +440,55 @@ class ModelNet40Sampler(Sampler):
 
         # Check if the limit associated with current parameters exists (for each layer)
         neighb_limits = []
-        for layer_ind in range(self.dataset.config.num_layers):
+        for layer_ind in range(self.dataset.config["model"]["num_layers"]):
 
-            dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-            if self.dataset.config.deform_layers[layer_ind]:
-                r = dl * self.dataset.config.deform_radius
+            dl = self.dataset["kpconv"]["first_subsampling_dl"] * (2**layer_ind)
+            if self.dataset.deform_layers[layer_ind]:
+                r = dl * self.dataset["kpconv"]["deform_radius"]
             else:
-                r = dl * self.dataset.config.conv_radius
+                r = dl * self.dataset["kpconv"]["conv_radius"]
 
             key = f"{dl:.3f}_{r:.3f}"
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
-        if len(neighb_limits) == self.dataset.config.num_layers:
+        if len(neighb_limits) == config["model"]["num_layers"]:
             self.dataset.neighborhood_limits = neighb_limits
         else:
             redo = True
 
         if verbose:
             print("Check neighbors limit dictionary")
-            for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-                if self.dataset.config.deform_layers[layer_ind]:
-                    r = dl * self.dataset.config.deform_radius
+            for layer_ind in range(self.dataset.config["model"]["num_layers"]):
+                dl = self.dataset.config["kpconv"]["first_subsampling_dl"] * (2**layer_ind)
+                if self.dataset.deform_layers[layer_ind]:
+                    r = dl * self.dataset["kpconv"]["deform_radius"]
                 else:
-                    r = dl * self.dataset.config.conv_radius
+                    r = dl * self.dataset.config["kpconv"]["conv_radius"]
                 key = f"{dl:.3f}_{r:.3f}"
 
                 if key in neighb_lim_dict:
-                    color = BColors.OKGREEN.value
+                    color = self.dataset.config["colors"]["okgreen"]
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = BColors.FAIL.value
+                    color = self.dataset.config["colors"]["fail"]
                     v = "?"
-                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{self.dataset.config["colors"]["endc"]}')
 
         if redo:
-
             ############################
             # Neighbors calib parameters
             ############################
 
             # From config parameter, compute higher bound of neighbors number in a neighborhood
-            hist_n = int(np.ceil(4 / 3 * np.pi * (self.dataset.config.conv_radius + 1) ** 3))
+            hist_n = int(
+                np.ceil(4 / 3 * np.pi * (self.dataset.config["kpconv"]["conv_radius"] + 1) ** 3)
+            )
 
             # Histogram of neighborhood sizes
-            neighb_hists = np.zeros((self.dataset.config.num_layers, hist_n), dtype=np.int32)
+            neighb_hists = np.zeros(
+                (self.dataset.config["model"]["num_layers"], hist_n), dtype=np.int32
+            )
 
             ########################
             # Batch calib parameters
@@ -537,7 +496,7 @@ class ModelNet40Sampler(Sampler):
 
             # Estimated average batch size and target value
             estim_b = 0
-            target_b = self.dataset.config.batch_num
+            target_b = self.dataset.config["train"]["batch_num"]
 
             # Calibration parameters
             low_pass_T = 10
@@ -628,13 +587,12 @@ class ModelNet40Sampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = BColors.FAIL.value
+                            color = self.config["colors"]["fail"]
                         else:
-                            color = BColors.OKGREEN.value
+                            color = self.config["colors"]["okgreen"]
                         line0 += "|{:}{:10d}{:}  ".format(
-                            color, neighb_hists[layer, neighb_size], BColors.ENDC.value
+                            color, neighb_hists[layer, neighb_size], self.config["colors"]["endc"]
                         )
-
                     print(line0)
 
                 print("\n**************************************************\n")
@@ -643,16 +601,16 @@ class ModelNet40Sampler(Sampler):
 
             # Save batch_limit dictionary
             key = "{:.3f}_{:d}".format(
-                self.dataset.config.first_subsampling_dl, self.dataset.config.batch_num
+                self.dataset.config.first_subsampling_dl, self.dataset.config["train"]["batch_num"]
             )
             batch_lim_dict[key] = self.batch_limit
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
 
             # Save neighb_limit dictionary
-            for layer_ind in range(self.dataset.config.num_layers):
+            for layer_ind in range(self.dataset.config["model"]["num_layers"]):
                 dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-                if self.dataset.config.deform_layers[layer_ind]:
+                if self.dataset.deform_layers[layer_ind]:
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
@@ -797,151 +755,6 @@ def ModelNet40Collate(batch_data):
     return ModelNet40CustomBatch(batch_data)
 
 
-class ModelNet40Config(Config):
-    """
-    Override the parameters you want to modify for this dataset
-    """
-
-    ####################
-    # Dataset parameters
-    ####################
-
-    # Dataset name
-    dataset = "ModelNet40"
-
-    # Number of classes in the dataset (This value is overwritten by dataset class when
-    # Initializating dataset).
-    num_classes = None
-
-    # Type of task performed on this dataset (also overwritten)
-    dataset_task = ""
-
-    # Number of CPU threads for the input pipeline
-    input_threads = 10
-
-    #########################
-    # Architecture definition
-    #########################
-
-    # Define layers
-    architecture = [
-        "simple",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "global_average",
-    ]
-
-    ###################
-    # KPConv parameters
-    ###################
-
-    # Number of kernel points
-    num_kernel_points = 15
-
-    # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.02
-
-    # Radius of convolution in "number grid cell". (2.5 is the standard value)
-    conv_radius = 2.5
-
-    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can
-    # spread out
-    deform_radius = 6.0
-
-    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the
-    # standard value)
-    KP_extent = 1.2
-
-    # Behavior of convolutions in ('constant', 'linear', 'gaussian')
-    KP_influence = "linear"
-
-    # Aggregation function of KPConv in ('closest', 'sum')
-    aggregation_mode = "sum"
-
-    # Choice of input features
-    in_features_dim = 1
-
-    # Can the network learn modulations
-    modulated = True
-
-    # Batch normalization parameters
-    use_batch_norm = True
-    batch_norm_momentum = 0.05
-
-    # Deformable offset loss : fitting geometry by penalizing distance from deform point to input
-    # points ('point2point'), or to input point triplet ('point2plane', not implemented)
-    deform_fitting_mode = "point2point"
-    deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
-    deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
-    repulse_extent = 1.2  # Distance of repulsion for deformed kernel points
-
-    #####################
-    # Training parameters
-    #####################
-
-    # Maximal number of epochs
-    max_epoch = 500
-
-    # Learning rate management
-    learning_rate = 1e-2
-    momentum = 0.98
-    lr_decays = {i: 0.1 ** (1 / 100) for i in range(1, max_epoch)}
-    grad_clip_norm = 100.0
-
-    # Number of batch
-    batch_num = 10
-
-    # Number of steps per epochs
-    epoch_steps = 300
-
-    # Number of validation examples per epoch
-    validation_size = 30
-
-    # Number of epoch between each checkpoint
-    checkpoint_gap = 50
-
-    # Increment of inference potential before saving results
-    potential_increment = 10
-
-    # Augmentations
-    augment_scale_anisotropic = True
-    augment_symmetries = [True, True, True]
-    augment_rotation = "none"
-    augment_scale_min = 0.8
-    augment_scale_max = 1.2
-    augment_noise = 0.001
-    augment_color = 1.0
-
-    # The way we balance segmentation loss
-    # - 'none': Each point in the whole batch has the same contribution.
-    # - 'class': Each class has the same contribution (points are weighted according to class
-    #   balance)
-    # - 'batch': Each cloud in the batch has the same contribution (points are weighted according
-    #   cloud sizes)
-    segloss_balance = "none"
-
-    # Do we need to save convergence
-    saving = True
-    chosen_log = None
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Debug functions
-#       \*********************/
-
-
 def debug_sampling(dataset, sampler, loader):
     """Shows which labels are sampled according to strategy chosen"""
     label_sum = np.zeros((dataset.num_classes), dtype=np.int32)
@@ -997,13 +810,10 @@ def debug_timing(dataset, sampler, loader):
     print(counts)
 
 
-def debug_show_clouds(dataset, sampler, loader):
+def debug_show_clouds(dataset, config, loader):
 
     for _ in range(10):
-
-        pass
-
-        L = dataset.config.num_layers
+        L = config["model"]["num_layers"]
 
         for batch in loader:
 

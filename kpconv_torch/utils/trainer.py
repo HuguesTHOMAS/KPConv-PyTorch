@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from utils.config import save_config
 from kpconv_torch.utils.config import Config
 from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.io.ply import write_ply
@@ -31,6 +32,7 @@ class ModelTrainer:
         :param net: network object
         :param config: configuration object
         :param chkp_path: path to the checkpoint that needs to be loaded (None for new training)
+        :param chosen_log: path to the folder containing the trained model
         :param finetune: finetune from checkpoint (True) or restore training from checkpoint (False)
         :param on_gpu: Train on GPU or CPU
         """
@@ -45,12 +47,12 @@ class ModelTrainer:
         # Optimizer with specific learning rate for deformable KPConv
         deform_params = [v for k, v in net.named_parameters() if "offset" in k]
         other_params = [v for k, v in net.named_parameters() if "offset" not in k]
-        deform_lr = config.learning_rate * config.deform_lr_factor
+        deform_lr = config["train"]["learning_rate"] * config["kpconv"]["deform_lr_factor"]
         self.optimizer = torch.optim.SGD(
             [{"params": other_params}, {"params": deform_params, "lr": deform_lr}],
-            lr=config.learning_rate,
-            momentum=config.momentum,
-            weight_decay=config.weight_decay,
+            lr=config["train"]["learning_rate"],
+            momentum=config["train"]["momentum"],
+            weight_decay=config["train"]["weight_decay"],
         )
 
         # Choose to train on CPU or GPU
@@ -80,15 +82,15 @@ class ModelTrainer:
 
         # Path of the result folder
         self.train_save_path = train_save_path
-        if config.saving:
-            config.save_parameters(self.train_save_path)
+        if config["model"]["saving"]:
+            save_config(self.train_save_path)
 
         return
 
     # Training main method
     # ------------------------------------------------------------------------------------------------------------------
 
-    def train(self, net, training_loader, val_loader, config):
+    def train(self, net, training_loader, val_loader, chosen_log, config):
         """
         Train the model on a particular dataset.
         """
@@ -97,7 +99,7 @@ class ModelTrainer:
         # Initialization
         ################
 
-        if config.saving:
+        if config["model"]["saving"]:
             # Training log file
             if not (self.train_save_path / "training.txt").exists():
                 with open(self.train_save_path / "training.txt", "w") as fobj:
@@ -124,13 +126,13 @@ class ModelTrainer:
         mean_dt = np.zeros(1)
 
         # Start training loop
-        for epoch in range(config.max_epoch):
+        for epoch in range(config["kpconv"]["max_epoch"]):
 
             self.step = 0
             for batch in training_loader:
 
                 # Check kill signal (running_PID.txt deleted)
-                if config.saving and not os.path.exists(PID_file):
+                if config["model"]["saving"] and not os.path.exists(PID_file):
                     continue
 
                 ##################
@@ -157,8 +159,10 @@ class ModelTrainer:
                 # Backward + optimize
                 loss.backward()
 
-                if config.grad_clip_norm > 0:
-                    torch.nn.utils.clip_grad_value_(net.parameters(), config.grad_clip_norm)
+                if config["train"]["grad_clip_norm"] > 0:
+                    torch.nn.utils.clip_grad_value_(
+                        net.parameters(), config["train"]["grad_clip_norm"]
+                    )
                 self.optimizer.step()
 
                 torch.cuda.empty_cache()
@@ -192,7 +196,7 @@ class ModelTrainer:
                     )
 
                 # Log file
-                if config.saving:
+                if config["model"]["saving"]:
                     with open(self.train_save_path / "training.txt", "a") as file:
                         message = "{:d} {:d} {:.3f} {:.3f} {:.3f} {:.3f}\n"
                         file.write(
@@ -213,25 +217,25 @@ class ModelTrainer:
             ##############
 
             # Remove File for kill signal if last epoch before the end
-            if epoch == config.max_epoch - 1 and os.path.exists(PID_file):
+            if epoch == config["kpconv"]["max_epoch"] - 1 and os.path.exists(PID_file):
                 os.remove(PID_file)
 
             # Update learning rate
-            if self.epoch in config.lr_decays:
+            if self.epoch in config["train"]["lr_decays"]:
                 for param_group in self.optimizer.param_groups:
-                    param_group["lr"] *= config.lr_decays[self.epoch]
+                    param_group["lr"] *= config["train"]["lr_decays"][self.epoch]
 
             # Update epoch
             self.epoch += 1
 
             # Saving
-            if config.saving:
+            if config["train"]["saving"]:
                 # Get current state dict
                 save_dict = {
                     "epoch": self.epoch,
                     "model_state_dict": net.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
-                    "chosen_log": config.chosen_log,
+                    "chosen_log": chosen_log,
                 }
 
                 # Save current state of the network (for restoring purposes)
@@ -239,7 +243,7 @@ class ModelTrainer:
                 torch.save(save_dict, checkpoint_path)
 
                 # Save checkpoints occasionally
-                if self.epoch % config.checkpoint_gap == 0:
+                if self.epoch % config["train"]["checkpoint_gap"] == 0:
                     checkpoint_path = os.path.join(
                         checkpoint_directory, f"chkp_{self.epoch:04d}.tar"
                     )
@@ -251,7 +255,7 @@ class ModelTrainer:
             net.train()
 
             # Check kill signal (running_PID.txt deleted)
-            if config.saving and not os.path.exists(PID_file):
+            if config["training"]["saving"] and not os.path.exists(PID_file):
                 break
 
         print("Finished Training")
@@ -261,13 +265,13 @@ class ModelTrainer:
     # ------------------------------------------------------------------------------------------------------------------
 
     def validation(self, net, val_loader, config: Config):
-        if config.dataset_task == "classification":
+        if config["input"]["dataset_task"] == "classification":
             self.object_classification_validation(net, val_loader, config)
-        elif config.dataset_task == "segmentation":
+        elif config["input"]["dataset_task"] == "segmentation":
             self.object_segmentation_validation(net, val_loader, config)
-        elif config.dataset_task == "cloud_segmentation":
+        elif config["input"]["dataset_task"] == "cloud_segmentation":
             self.cloud_segmentation_validation(net, val_loader, config)
-        elif config.dataset_task == "slam_segmentation":
+        elif config["input"]["dataset_task"] == "slam_segmentation":
             self.slam_segmentation_validation(net, val_loader, config)
         else:
             raise ValueError("No validation method implemented for this network type")
@@ -288,7 +292,7 @@ class ModelTrainer:
         val_smooth = 0.95
 
         # Number of classes predicted by the model
-        nc_model = config.num_classes
+        nc_model = config["input"]["num_classes"]
         softmax = torch.nn.Softmax(1)
 
         # Initialize global prediction over all models
@@ -337,7 +341,7 @@ class ModelTrainer:
                 message = "Validation : {:.1f}% (timings : {:4.2f} {:4.2f})"
                 print(
                     message.format(
-                        100 * len(obj_inds) / config.validation_size,
+                        100 * len(obj_inds) / config["train"]["validation_size"],
                         1000 * (mean_dt[0]),
                         1000 * (mean_dt[1]),
                     )
@@ -371,7 +375,7 @@ class ModelTrainer:
         )
 
         # Saving
-        if config.saving:
+        if config["model"]["saving"]:
             print("Save confusions")
             conf_list = [C1, C2]
             file_list = ["val_confs.txt", "vote_confs.txt"]
@@ -420,7 +424,7 @@ class ModelTrainer:
         nc_tot = val_loader.dataset.num_classes
 
         # Number of classes predicted by the model
-        nc_model = config.num_classes
+        nc_model = config["input"]["num_classes"]
 
         # Initiate global prediction over validation clouds
         if not hasattr(self, "validation_probs"):
@@ -507,7 +511,7 @@ class ModelTrainer:
                 message = "Validation : {:.1f}% (timings : {:4.2f} {:4.2f})"
                 print(
                     message.format(
-                        100 * i / config.validation_size,
+                        100 * i / config["train"]["validation_size"],
                         1000 * (mean_dt[0]),
                         1000 * (mean_dt[1]),
                     )
@@ -554,8 +558,7 @@ class ModelTrainer:
         t5 = time.time()
 
         # Saving
-        if config.saving:
-
+        if config["train"]["saving"]:
             # Name of saving file
             test_file = self.train_save_path / "val_IoUs.txt"
 
@@ -574,7 +577,7 @@ class ModelTrainer:
                     text_file.write(line)
 
             # Save potentials
-            if val_loader.dataset.use_potentials:
+            if config["input"]["use_potentials"]:
                 pot_path = self.train_save_path / "potentials"
                 if not os.path.exists(pot_path):
                     os.makedirs(pot_path)
@@ -594,10 +597,11 @@ class ModelTrainer:
 
         # Print instance mean
         mIoU = 100 * np.mean(IoUs)
-        print(f"{config.dataset} mean IoU = {mIoU:.1f}%")
+        t = config["dataset"]
+        print(f"{t} mean IoU = {mIoU:.1f}%")
 
         # Save predicted cloud occasionally
-        if config.saving and self.epoch % config.checkpoint_gap == 0:
+        if config.saving and self.epoch % config["train"]["checkpoint_gap"] == 0:
             val_path = self.train_save_path / f"val_preds_{self.epoch:d}"
             if not os.path.exists(val_path):
                 os.makedirs(val_path)
@@ -800,7 +804,7 @@ class ModelTrainer:
                 message = "Validation : {:.1f}% (timings : {:4.2f} {:4.2f})"
                 print(
                     message.format(
-                        100 * i / config.validation_size,
+                        100 * i / config["train"]["validation_size"],
                         1000 * (mean_dt[0]),
                         1000 * (mean_dt[1]),
                     )
@@ -868,7 +872,7 @@ class ModelTrainer:
         t5 = time.time()
 
         # Saving
-        if config.saving:
+        if config["model"]["saving"]:
 
             IoU_list = [IoUs, val_IoUs]
             file_list = ["subpart_IoUs.txt", "val_IoUs.txt"]
@@ -893,9 +897,10 @@ class ModelTrainer:
 
         # Print instance mean
         mIoU = 100 * np.mean(IoUs)
-        print(f"{config.dataset} : subpart mIoU = {mIoU:1f} %")
+        t = config["dataset"]
+        print(f"{t} : subpart mIoU = {mIoU:1f} %")
         mIoU = 100 * np.mean(val_IoUs)
-        print(f"{config.dataset} :     val mIoU = {mIoU:1f} %")
+        print(f"{t} :     val mIoU = {mIoU:1f} %")
 
         t6 = time.time()
 

@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 import time
 
+from utils.config import load_config
 import numpy as np
 from torch.utils.data import DataLoader
 
@@ -26,7 +27,6 @@ from kpconv_torch.datasets.Toronto3D import (
     Toronto3DSampler,
 )
 from kpconv_torch.models.architectures import KPCNN, KPFCNN
-from kpconv_torch.utils.config import Config
 from kpconv_torch.utils.tester import ModelTester, get_test_save_path
 
 
@@ -36,7 +36,6 @@ def model_choice(chosen_log):
     ###########################
     # Automatically retrieve the last trained model
     if chosen_log in ["last_ModelNet40", "last_ShapeNetPart", "last_S3DIS"]:
-
         # Dataset name
         test_dataset = "_".join(chosen_log.split("_")[1:])
 
@@ -47,9 +46,8 @@ def model_choice(chosen_log):
 
         # Find the last log of asked dataset
         for log in logs[::-1]:
-            log_config = Config()
-            log_config.load(log)
-            if log_config.dataset.startswith(test_dataset):
+            log_config = load_config(log)
+            if log_config["dataset"] == test_dataset:
                 chosen_log = log
                 break
 
@@ -68,20 +66,18 @@ def main(args):
         args.datapath,
         args.filename,
         args.chosen_log,
-        args.dataset,
         args.n_votes,
-        args.validation_size,
         args.potential_increment,
     )
 
 
 def test(
+    config,
     datapath: Path,
     filename: str,
     chosen_log: Path,
     dataset: str,
     n_votes: int = 100,
-    validation_size: int = None,
     potential_increment: int = None,
 ) -> None:
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
@@ -116,19 +112,6 @@ def test(
         chosen_chkp = np.sort(chkps)[chkp_idx]
     chosen_chkp = os.path.join(chosen_log, "checkpoints", chosen_chkp)
 
-    # Initialize configuration class
-    config = Config()
-    config.load(chosen_log)
-
-    ##################################
-    # Change model parameters for test
-    ##################################
-    # Change parameters for the test here. For example, you can stop augmenting the input data.
-    config.validation_size = validation_size if validation_size is not None else 200
-    config.input_threads = 10
-    if potential_increment is not None:
-        config.potential_increment = potential_increment
-
     ##############
     # Prepare Data
     ##############
@@ -139,7 +122,7 @@ def test(
     split = "validation" if on_val else "test"
 
     # Initiate dataset
-    if config.dataset == "ModelNet40":
+    if dataset == "ModelNet40":
         test_dataset = ModelNet40Dataset(
             config=config,
             datapath=datapath,
@@ -149,29 +132,27 @@ def test(
         )
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
-    elif config.dataset == "S3DIS":
+    elif dataset == "S3DIS":
         test_dataset = S3DISDataset(
             config=config,
             datapath=datapath,
             chosen_log=chosen_log,
             infered_file=filename,
             split="validation" if filename is None else "test",
-            use_potentials=True,
         )
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
-    elif config.dataset == "Toronto3D":
+    elif dataset == "Toronto3D":
         test_dataset = Toronto3DDataset(
             config=config,
             datapath=datapath,
             chosen_log=chosen_log,
             infered_file=filename,
             split="test",
-            use_potentials=True,
         )
         test_sampler = Toronto3DSampler(test_dataset)
         collate_fn = Toronto3DCollate
-    elif config.dataset == "SemanticKitti":
+    elif dataset == "SemanticKitti":
         test_dataset = SemanticKittiDataset(
             config=config,
             datapath=datapath,
@@ -183,7 +164,7 @@ def test(
         test_sampler = SemanticKittiSampler(test_dataset)
         collate_fn = SemanticKittiCollate
     else:
-        raise ValueError("Unsupported dataset : " + config.dataset)
+        raise ValueError("Unsupported dataset : " + config["dataset"])
 
     # Data loader
     test_loader = DataLoader(
@@ -191,7 +172,7 @@ def test(
         batch_size=1,
         sampler=test_sampler,
         collate_fn=collate_fn,
-        num_workers=config.input_threads,
+        num_workers=config["model"]["input_threads"],
         pin_memory=True,
     )
 
@@ -203,12 +184,12 @@ def test(
 
     # Define network model
     t1 = time.time()
-    if config.dataset_task == "classification":
+    if config["input"]["dataset_task"] == "classification":
         net = KPCNN(config)
-    elif config.dataset_task in ["cloud_segmentation", "slam_segmentation"]:
+    elif config["input"]["dataset_task"] in ["cloud_segmentation", "slam_segmentation"]:
         net = KPFCNN(config, test_dataset.label_values, test_dataset.ignored_labels)
     else:
-        raise ValueError("Unsupported dataset_task for testing: " + config.dataset_task)
+        raise ValueError("Unsupported dataset_task for testing: " + config["input"]["dataset_task"])
 
     # Define a visualizer class
     output_path = get_test_save_path(filename, chosen_log)
@@ -219,11 +200,11 @@ def test(
     print("**********\n")
 
     # Testing
-    if config.dataset_task == "classification":
+    if config["input"]["dataset_task"] == "classification":
         tester.classification_test(net, test_loader, config, num_votes=n_votes)
-    elif config.dataset_task == "cloud_segmentation":
+    elif config["input"]["dataset_task"] == "cloud_segmentation":
         tester.cloud_segmentation_test(net, test_loader, config, num_votes=n_votes)
-    elif config.dataset_task == "slam_segmentation":
+    elif config["input"]["dataset_task"] == "slam_segmentation":
         tester.slam_segmentation_test(net, test_loader, config, num_votes=n_votes)
     else:
-        raise ValueError("Unsupported dataset_task for testing: " + config.dataset_task)
+        raise ValueError("Unsupported dataset_task for testing: " + config["input"]["dataset_task"])

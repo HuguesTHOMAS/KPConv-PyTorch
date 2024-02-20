@@ -1,5 +1,6 @@
 import numpy as np
 from torch.utils.data import Dataset
+import yaml
 
 import radius_neighbors as cpp_neighbors
 import grid_subsampling as cpp_subsampling
@@ -181,30 +182,15 @@ def batch_neighbors(queries, supports, q_batches, s_batches, radius):
     return cpp_neighbors.batch_query(queries, supports, q_batches, s_batches, radius=radius)
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Class definition
-#       \**********************/
-
-
 class PointCloudDataset(Dataset):
     """Parent class for Point Cloud Datasets."""
 
-    def __init__(
-        self,
-        config,
-        datapath,
-        dataset,
-        chosen_log=None,
-        infered_file=None,
-        split="training",
-    ):
+    def __init__(self, dataset, chosen_log=None, infered_file=None, split="train"):
         """
         Initialize parameters of the dataset here.
         """
         # Name of the dataset
         self.name = dataset
-
         self.label_to_names = {}
         self.num_classes = 0
         self.label_values = np.zeros((0,), dtype=np.int32)
@@ -213,20 +199,51 @@ class PointCloudDataset(Dataset):
         self.name_to_label = {}
         self.neighborhood_limits = []
 
-        # Parameters from config
-        self.config = config
-
-        # Dataset folder
-        self.path = datapath
-
-        # Training or test set
-        self.set = split
-
         # Training or test set
         if split not in ["training", "validation", "test", "ERF", "all"]:
             raise ValueError("Unknown set for the dataset: ", split)
+        else:
+            self.split = split
 
         self.test_save_path = get_test_save_path(infered_file, chosen_log)
+
+        # Number of layers
+        self.num_layers = (
+            len([block for block in self.architecture if "pool" in block or "strided" in block]) + 1
+        )
+
+        ###################
+        # Deform layer list
+        ###################
+        # List of boolean indicating which layer has a deformable convolution
+
+        layer_blocks = []
+        self.deform_layers = []
+        for block in self.architecture:
+
+            # Get all blocks of the layer
+            if not (
+                "pool" in block or "strided" in block or "global" in block or "upsample" in block
+            ):
+                layer_blocks += [block]
+                continue
+
+            # Convolution neighbors indices
+            # *****************************
+
+            deform_layer = False
+            if layer_blocks and np.any(["deformable" in blck for blck in layer_blocks]):
+                deform_layer = True
+
+            if ("pool" in block or "strided" in block) and "deformable" in block:
+                deform_layer = True
+
+            self.deform_layers += [deform_layer]
+            layer_blocks = []
+
+            # Stop when meeting a global pooling or upsampling
+            if "global" in block or "upsample" in block:
+                break
 
         return
 
@@ -375,8 +392,7 @@ class PointCloudDataset(Dataset):
         # Loop over the blocks
         ######################
 
-        for block in self.config.architecture:
-
+        for block in self.config["model"]["architecture"]:
             # Get all blocks of the layer
             if not (
                 "pool" in block or "strided" in block or "global" in block or "upsample" in block
@@ -486,91 +502,103 @@ class PointCloudDataset(Dataset):
         # Loop over the blocks
         ######################
 
-        for block in self.config.architecture:
+        with open("../config.yml") as file_object:
+            config = yaml.load(file_object, Loader=yaml.SafeLoader)
 
-            # Get all blocks of the layer
-            if not (
-                "pool" in block or "strided" in block or "global" in block or "upsample" in block
-            ):
-                layer_blocks += [block]
-                continue
+            for block in config["model"]["architecture"]:
+                # Get all blocks of the layer
+                if not (
+                    "pool" in block
+                    or "strided" in block
+                    or "global" in block
+                    or "upsample" in block
+                ):
+                    layer_blocks += [block]
+                    continue
 
-            # Convolution neighbors indices
-            # *****************************
+                # Convolution neighbors indices
+                # *****************************
 
-            deform_layer = False
-            if layer_blocks:
-                # Convolutions are done in this layer, compute the neighbors with the good radius
-                if np.any(["deformable" in blck for blck in layer_blocks]):
-                    r = r_normal * self.config.deform_radius / self.config.conv_radius
-                    deform_layer = True
+                deform_layer = False
+                if layer_blocks:
+                    # Convolutions are done in this layer
+                    # compute the neighbors with the good radius
+                    if np.any(["deformable" in blck for blck in layer_blocks]):
+                        r = (
+                            r_normal
+                            * config["kpconv"]["deform_radius"]
+                            / config["kpconv"]["conv_radius"]
+                        )
+                        deform_layer = True
+                    else:
+                        r = r_normal
+                    conv_i = batch_neighbors(
+                        stacked_points, stacked_points, stack_lengths, stack_lengths, r
+                    )
+
                 else:
-                    r = r_normal
-                conv_i = batch_neighbors(
-                    stacked_points, stacked_points, stack_lengths, stack_lengths, r
-                )
+                    # This layer only perform pooling, no neighbors required
+                    conv_i = np.zeros((0, 1), dtype=np.int32)
 
-            else:
-                # This layer only perform pooling, no neighbors required
-                conv_i = np.zeros((0, 1), dtype=np.int32)
+                # Pooling neighbors indices
+                # *************************
 
-            # Pooling neighbors indices
-            # *************************
+                # If end of layer is a pooling operation
+                if "pool" in block or "strided" in block:
 
-            # If end of layer is a pooling operation
-            if "pool" in block or "strided" in block:
+                    # New subsampling length
+                    dl = 2 * r_normal / self.config.conv_radius
 
-                # New subsampling length
-                dl = 2 * r_normal / self.config.conv_radius
+                    # Subsampled points
+                    pool_p, pool_b = batch_grid_subsampling(
+                        stacked_points, stack_lengths, sampleDl=dl
+                    )
 
-                # Subsampled points
-                pool_p, pool_b = batch_grid_subsampling(stacked_points, stack_lengths, sampleDl=dl)
+                    # Radius of pooled neighbors
+                    if "deformable" in block:
+                        r = r_normal * self.config.deform_radius / self.config.conv_radius
+                        deform_layer = True
+                    else:
+                        r = r_normal
 
-                # Radius of pooled neighbors
-                if "deformable" in block:
-                    r = r_normal * self.config.deform_radius / self.config.conv_radius
-                    deform_layer = True
+                    # Subsample indices
+                    pool_i = batch_neighbors(pool_p, stacked_points, pool_b, stack_lengths, r)
+
+                    # Upsample indices (with the radius of the next layer to keep wanted density)
+                    up_i = batch_neighbors(stacked_points, pool_p, stack_lengths, pool_b, 2 * r)
+
                 else:
-                    r = r_normal
+                    # No pooling in the end of this layer, no pooling indices required
+                    pool_i = np.zeros((0, 1), dtype=np.int32)
+                    pool_p = np.zeros((0, 3), dtype=np.float32)
+                    pool_b = np.zeros((0,), dtype=np.int32)
+                    up_i = np.zeros((0, 1), dtype=np.int32)
 
-                # Subsample indices
-                pool_i = batch_neighbors(pool_p, stacked_points, pool_b, stack_lengths, r)
+                # Reduce size of neighbors matrices by eliminating furthest point
+                conv_i = self.big_neighborhood_filter(conv_i, len(input_points))
+                pool_i = self.big_neighborhood_filter(pool_i, len(input_points))
+                if up_i.shape[0] > 0:
+                    up_i = self.big_neighborhood_filter(up_i, len(input_points) + 1)
 
-                # Upsample indices (with the radius of the next layer to keep wanted density)
-                up_i = batch_neighbors(stacked_points, pool_p, stack_lengths, pool_b, 2 * r)
+                # Updating input lists
+                input_points += [stacked_points]
+                input_neighbors += [conv_i.astype(np.int64)]
+                input_pools += [pool_i.astype(np.int64)]
+                input_upsamples += [up_i.astype(np.int64)]
+                input_stack_lengths += [stack_lengths]
+                deform_layers += [deform_layer]
 
-            else:
-                # No pooling in the end of this layer, no pooling indices required
-                pool_i = np.zeros((0, 1), dtype=np.int32)
-                pool_p = np.zeros((0, 3), dtype=np.float32)
-                pool_b = np.zeros((0,), dtype=np.int32)
-                up_i = np.zeros((0, 1), dtype=np.int32)
+                # New points for next layer
+                stacked_points = pool_p
+                stack_lengths = pool_b
 
-            # Reduce size of neighbors matrices by eliminating furthest point
-            conv_i = self.big_neighborhood_filter(conv_i, len(input_points))
-            pool_i = self.big_neighborhood_filter(pool_i, len(input_points))
-            if up_i.shape[0] > 0:
-                up_i = self.big_neighborhood_filter(up_i, len(input_points) + 1)
+                # Update radius and reset blocks
+                r_normal *= 2
+                layer_blocks = []
 
-            # Updating input lists
-            input_points += [stacked_points]
-            input_neighbors += [conv_i.astype(np.int64)]
-            input_pools += [pool_i.astype(np.int64)]
-            input_upsamples += [up_i.astype(np.int64)]
-            input_stack_lengths += [stack_lengths]
-            deform_layers += [deform_layer]
-
-            # New points for next layer
-            stacked_points = pool_p
-            stack_lengths = pool_b
-
-            # Update radius and reset blocks
-            r_normal *= 2
-            layer_blocks = []
-
-            # Stop when meeting a global pooling or upsampling
-            if "global" in block or "upsample" in block:
-                break
+                # Stop when meeting a global pooling or upsampling
+                if "global" in block or "upsample" in block:
+                    break
 
         ###############
         # Return inputs

@@ -2,12 +2,12 @@ import contextlib
 import os
 from pathlib import Path
 
+from utils.config import load_config
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
 from kpconv_torch.datasets.S3DIS import S3DISDataset
-from kpconv_torch.utils.config import Config
 from kpconv_torch.utils.metrics import (
     fast_confusion,
     IoU_from_confusions,
@@ -187,8 +187,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
 
     for path in list_of_paths:
         if ("val_IoUs.txt" in listdir_str(path)) or ("val_confs.txt" in listdir_str(path)):
-            config = Config()
-            config.load(path)
+            config = load_config(path)
         else:
             continue
 
@@ -215,11 +214,11 @@ def compare_trainings(list_of_paths, list_of_labels=None):
 
         # Learning rate
         if plot_lr:
-            lr_decay_v = np.array([lr_d for ep, lr_d in config.lr_decays.items()])
-            lr_decay_e = np.array([ep for ep, lr_d in config.lr_decays.items()])
+            lr_decay_v = np.array([lr_d for ep, lr_d in config["train"]["lr_decays"].items()])
+            lr_decay_e = np.array([ep for ep, lr_d in config["train"]["lr_decays"].items()])
             max_e = max(np.max(all_epochs[-1]) + 1, np.max(lr_decay_e) + 1)
             lr_decays = np.ones(int(np.ceil(max_e)), dtype=np.float32)
-            lr_decays[0] = float(config.learning_rate)
+            lr_decays[0] = float(config["train"]["learning_rate"])
             lr_decays[lr_decay_e] = lr_decay_v
             lr = np.cumprod(lr_decays)
             all_lr += [lr[np.floor(all_epochs[-1]).astype(np.int32)]]
@@ -304,8 +303,7 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
     all_snap_IoUs = []
 
     # Load parameters
-    config = Config()
-    config.load(list_of_paths[0])
+    config = load_config(list_of_paths[0])
 
     class_list = [
         dataset.label_to_names[label]
@@ -317,12 +315,12 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
     for c in class_list:
         s += f"{c:^10}"
     print(s)
-    print(10 * "-" + "|" + 10 * config.num_classes * "-")
+    print(10 * "-" + "|" + 10 * config["input"]["num_classes"] * "-")
     for path in list_of_paths:
 
         # Get validation IoUs
         file = os.path.join(path, "val_IoUs.txt")
-        val_IoUs = load_single_IoU(file, config.num_classes)
+        val_IoUs = load_single_IoU(file, config["input"]["num_classes"])
 
         # Get mean IoU
         class_IoUs, mIoUs = IoU_class_metrics(val_IoUs, smooth_n)
@@ -342,7 +340,7 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
         all_snap_epochs += [snap_epochs]
         all_snap_IoUs += [snap_IoUs]
 
-    print(10 * "-" + "|" + 10 * config.num_classes * "-")
+    print(10 * "-" + "|" + 10 * config["input"]["num_classes"] * "-")
     for snap_IoUs in all_snap_IoUs:
         if len(snap_IoUs) > 0:
             s = f"{100 * np.mean(snap_IoUs[-1]):^10.1f}|"
@@ -350,7 +348,7 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
                 s += f"{100 * IoU:^10.1f}"
         else:
             s = "{:^10s}".format("-")
-            for _ in range(config.num_classes):
+            for _ in range(config["input"]["num_classes"]):
                 s += "{:^10s}".format("-")
         print(s)
 
@@ -421,8 +419,7 @@ def compare_convergences_classif(list_of_paths, list_of_labels=None):
 
     for path in list_of_paths:
         # Load parameters
-        config = Config()
-        config.load(list_of_paths[0])
+        config = load_config(list_of_paths[0])
 
         # Get the number of classes
         n_class = config.num_classes
@@ -596,12 +593,11 @@ def plot(datapath: Path) -> None:
     plot_dataset = None
     config = None
     for log in logs:
-        config = Config()
-        config.load(log)
-        if "ShapeNetPart" in config.dataset:
+        config = load_config(log)
+        if "ShapeNetPart" in config["dataset"]:
             this_dataset = "ShapeNetPart"
         else:
-            this_dataset = config.dataset
+            this_dataset = config["dataset"]
         if plot_dataset:
             if plot_dataset == this_dataset:
                 continue
@@ -614,10 +610,10 @@ def plot(datapath: Path) -> None:
     compare_trainings(logs, logs_names)
 
     # Plot the validation
-    if config.dataset_task == "classification":
+    if config[config["input"]]["dataset_task"] == "classification":
         compare_convergences_classif(logs, logs_names)
     elif config.dataset_task == "cloud_segmentation":
-        if config.dataset.startswith("S3DIS"):
+        if config["dataset"] == "S3DIS":
             dataset = S3DISDataset(
                 config=config,
                 datapath=datapath,

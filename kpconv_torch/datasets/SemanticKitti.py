@@ -2,15 +2,14 @@ from multiprocessing import Lock
 import os
 import pickle
 import time
+import yaml
 
 import numpy as np
 from sklearn.neighbors import KDTree
 import torch
 from torch.utils.data import Sampler
-import yaml
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
-from kpconv_torch.utils.config import BColors, Config
 
 
 class SemanticKittiDataset(PointCloudDataset):
@@ -23,7 +22,7 @@ class SemanticKittiDataset(PointCloudDataset):
         chosen_log=None,
         infered_file=None,
         balance_classes=True,
-        split="training",
+        split="train",
     ):
         super().__init__(
             config=config,
@@ -34,22 +33,21 @@ class SemanticKittiDataset(PointCloudDataset):
             split=split,
         )
 
+        self.config = config
+
         ##########################
         # Parameters for the files
         ##########################
 
-        # Type of task conducted on this dataset
-        self.dataset_task = "slam_segmentation"
-
         # Get a list of sequences
-        if self.set == "training":
+        if self.split == "train":
             self.sequences = [f"{i:02d}" for i in range(11) if i != 8]
-        elif self.set == "validation":
+        elif self.split == "validation":
             self.sequences = [f"{i:02d}" for i in range(11) if i == 8]
-        elif self.set == "test":
+        elif self.split == "test":
             self.sequences = [f"{i:02d}" for i in range(11, 22)]
         else:
-            raise ValueError("Unknown set for SemanticKitti data: ", self.set)
+            raise ValueError("Unknown set for SemanticKitti data: ", self.split)
 
         # List all files in each sequence
         self.frames = []
@@ -63,9 +61,9 @@ class SemanticKittiDataset(PointCloudDataset):
         ###########################
 
         # Read labels
-        if config.n_frames == 1:
+        if config["kpconv"]["n_frames"] == 1:
             config_file = os.path.join(self.path, "semantic-kitti.yaml")
-        elif config.n_frames > 1:
+        elif config["kpconv"]["n_frames"] > 1:
             config_file = os.path.join(self.path, "semantic-kitti-all.yaml")
         else:
             raise ValueError("number of frames has to be >= 1")
@@ -89,7 +87,7 @@ class SemanticKittiDataset(PointCloudDataset):
         # Initiate a bunch of variables concerning class labels
         self.init_labels()
 
-        # List of classes ignored during training (can be empty)
+        # List of classes ignored during train (can be empty)
         self.ignored_labels = np.sort([0])
 
         ##################
@@ -98,7 +96,6 @@ class SemanticKittiDataset(PointCloudDataset):
 
         # Update number of class and data task in configuration
         config.num_classes = self.num_classes
-        config.dataset_task = self.dataset_task
 
         ##################
         # Load calibration
@@ -131,8 +128,8 @@ class SemanticKittiDataset(PointCloudDataset):
         # If true, the same amount of frames is picked per class
         self.balance_classes = balance_classes
 
-        # Choose batch_num in_R and max_in_p depending on validation or training
-        if self.set == "training":
+        # Choose batch_num in_R and max_in_p depending on validation or train
+        if self.split == "train":
             self.batch_num = config.batch_num
             self.max_in_p = config.max_in_points
             self.in_R = config.in_radius
@@ -142,7 +139,7 @@ class SemanticKittiDataset(PointCloudDataset):
             self.in_R = config.val_radius
 
         # shared epoch indices and classes (in case we want class balanced sampler)
-        if self.set == "training":
+        if self.split == "train":
             N = int(np.ceil(config.epoch_steps * self.batch_num * 1.1))
         else:
             N = int(np.ceil(config.validation_size * self.batch_num * 1.1))
@@ -248,7 +245,7 @@ class SemanticKittiDataset(PointCloudDataset):
                 velo_file = os.path.join(
                     seq_path, "velodyne", self.frames[s_ind][f_ind - f_inc] + ".bin"
                 )
-                if self.set == "test":
+                if self.split == "test":
                     label_file = None
                 else:
                     label_file = os.path.join(
@@ -259,7 +256,7 @@ class SemanticKittiDataset(PointCloudDataset):
                 frame_points = np.fromfile(velo_file, dtype=np.float32)
                 points = frame_points.reshape((-1, 4))
 
-                if self.set == "test":
+                if self.split == "test":
                     # Fake labels
                     sem_labels = np.zeros((frame_points.shape[0],), dtype=np.int32)
                 else:
@@ -273,7 +270,7 @@ class SemanticKittiDataset(PointCloudDataset):
                 new_points = np.sum(np.expand_dims(hpoints, 2) * pose.T, axis=1)
 
                 # In case of validation, keep the original points in memory
-                if self.set in ["validation", "test"] and f_inc == 0:
+                if self.split in ["validation", "test"] and f_inc == 0:
                     o_pts = new_points[:, :3].astype(np.float32)
                     o_labels = sem_labels.astype(np.int32)
 
@@ -345,7 +342,7 @@ class SemanticKittiDataset(PointCloudDataset):
             t += [time.time()]
 
             # Before augmenting, compute reprojection inds (only for validation and test)
-            if self.set in ["validation", "test"]:
+            if self.split in ["validation", "test"]:
 
                 # get val_points that are in range
                 radiuses = np.sum(np.square(o_pts - p0), axis=1)
@@ -539,7 +536,7 @@ class SemanticKittiDataset(PointCloudDataset):
             ti += 1
             print("\n************************\n")
 
-        return [self.config.num_layers] + input_list
+        return [self.config["model"]["num_layers"]] + input_list
 
     def load_calib_poses(self):
         """
@@ -584,7 +581,7 @@ class SemanticKittiDataset(PointCloudDataset):
         # For each class list the frames containing them
         ################################################
 
-        if self.set in ["training", "validation"]:
+        if self.split in ["train", "validation"]:
 
             class_frames_bool = np.zeros((0, self.num_classes), dtype=np.bool)
             self.class_proportions = np.zeros((self.num_classes,), dtype=np.int32)
@@ -657,7 +654,7 @@ class SemanticKittiDataset(PointCloudDataset):
                     self.class_frames.append(torch.from_numpy(integer_inds.astype(np.int64)))
 
         # Add variables for validation
-        if self.set == "validation":
+        if self.split == "validation":
             self.val_points = []
             self.val_labels = []
             self.val_confs = []
@@ -737,7 +734,7 @@ class SemanticKittiSampler(Sampler):
         os.makedirs(self.calibration_path, exist_ok=True)
 
         # Number of step per epoch
-        if dataset.set == "training":
+        if dataset.set == "train":
             self.N = dataset.config.epoch_steps
         else:
             self.N = dataset.config.validation_size
@@ -916,12 +913,12 @@ class SemanticKittiSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check max_in limit dictionary")
             if key in max_in_lim_dict:
-                color = BColors.OKGREEN.value
+                color = self.config["colors"]["okgreen"]
                 v = str(int(max_in_lim_dict[key]))
             else:
-                color = BColors.FAIL.value
+                color = self.config["colors"]["fail"]
                 v = "?"
-            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{self.config["colors"]["endc"]}')
 
         if redo:
 
@@ -978,7 +975,7 @@ class SemanticKittiSampler(Sampler):
                 pickle.dump(max_in_lim_dict, file)
 
         # Update value in config
-        if self.dataset.set == "training":
+        if self.dataset.set == "train":
             config.max_in_points = self.dataset.max_in_p
         else:
             config.max_val_points = self.dataset.max_in_p
@@ -1037,12 +1034,12 @@ class SemanticKittiSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = BColors.OKGREEN.value
+                color = self.config["colors"]["okgreen"]
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = BColors.FAIL.value
+                color = self.config["colors"]["fail"]
                 v = "?"
-            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{self.config["colors"]["endc"]}')
 
         # Neighbors limit
         # ***************
@@ -1057,7 +1054,7 @@ class SemanticKittiSampler(Sampler):
 
         # Check if the limit associated with current parameters exists (for each layer)
         neighb_limits = []
-        for layer_ind in range(self.dataset.config.num_layers):
+        for layer_ind in range(self.dataset.config["model"]["num_layers"]):
 
             dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
             if self.dataset.config.deform_layers[layer_ind]:
@@ -1069,28 +1066,28 @@ class SemanticKittiSampler(Sampler):
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
-        if not redo and len(neighb_limits) == self.dataset.config.num_layers:
+        if not redo and len(neighb_limits) == self.dataset.config["model"]["num_layers"]:
             self.dataset.neighborhood_limits = neighb_limits
         else:
             redo = True
 
         if verbose:
             print("Check neighbors limit dictionary")
-            for layer_ind in range(self.dataset.config.num_layers):
+            for layer_ind in range(self.dataset.config["model"]["num_layers"]):
                 dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-                if self.dataset.config.deform_layers[layer_ind]:
+                if self.dataset.deform_layers[layer_ind]:
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
                 key = f"{sampler_method}_{self.dataset.max_in_p:d}_{dl:3f}_{r:3f}"
 
                 if key in neighb_lim_dict:
-                    color = BColors.OKGREEN.value
+                    color = self.config["colors"]["okgreen"]
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = BColors.FAIL.value
+                    color = self.config["colors"]["fail"]
                     v = "?"
-                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{self.config["colors"]["endc"]}')
 
         if redo:
 
@@ -1102,7 +1099,9 @@ class SemanticKittiSampler(Sampler):
             hist_n = int(np.ceil(4 / 3 * np.pi * (self.dataset.config.deform_radius + 1) ** 3))
 
             # Histogram of neighborhood sizes
-            neighb_hists = np.zeros((self.dataset.config.num_layers, hist_n), dtype=np.int32)
+            neighb_hists = np.zeros(
+                (self.dataset.config["model"]["num_layers"], hist_n), dtype=np.int32
+            )
 
             ########################
             # Batch calib parameters
@@ -1210,11 +1209,11 @@ class SemanticKittiSampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = BColors.FAIL.value
+                            color = self.config["colors"]["fail"]
                         else:
-                            color = BColors.OKGREEN.value
+                            color = self.config["colors"]["okgreen"]
                         line0 += "|{:}{:10d}{:}  ".format(
-                            color, neighb_hists[layer, neighb_size], BColors.ENDC.value
+                            color, neighb_hists[layer, neighb_size], self.config["colors"]["endc"]
                         )
 
                     print(line0)
@@ -1226,13 +1225,12 @@ class SemanticKittiSampler(Sampler):
             # Control max_in_points value
             print("\n**************************************************\n")
             if cropped_n > 0.3 * all_n:
-                color = BColors.FAIL.value
+                color = self.config["colors"]["fail"]
             else:
-                color = BColors.OKGREEN.value
+                color = self.config["colors"]["okgreen"]
             print(f"Current value of max_in_points {self.dataset.max_in_p:d}")
-            print(
-                f"  > {color}{100 * cropped_n / all_n:.1f}% inputs are cropped{BColors.ENDC.value}"
-            )
+            t = self.config["colors"]["endc"]
+            print(f"  > {color}{100 * cropped_n / all_n:.1f}% inputs are cropped{t}")
             if cropped_n > 0.3 * all_n:
                 print("\nTry a higher max_in_points value\n")
             print("\n**************************************************\n")
@@ -1248,9 +1246,9 @@ class SemanticKittiSampler(Sampler):
                 pickle.dump(batch_lim_dict, file)
 
             # Save neighb_limit dictionary
-            for layer_ind in range(self.dataset.config.num_layers):
+            for layer_ind in range(self.dataset.config["model"]["num_layers"]):
                 dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-                if self.dataset.config.deform_layers[layer_ind]:
+                if self.dataset.deform_layers[layer_ind]:
                     r = dl * self.dataset.config.deform_radius
                 else:
                     r = dl * self.dataset.config.conv_radius
@@ -1407,171 +1405,6 @@ class SemanticKittiCustomBatch:
 
 def SemanticKittiCollate(batch_data):
     return SemanticKittiCustomBatch(batch_data)
-
-
-class SemanticKittiConfig(Config):
-    """
-    Override the parameters you want to modify for this dataset
-    """
-
-    ####################
-    # Dataset parameters
-    ####################
-
-    # Dataset name
-    dataset = "SemanticKitti"
-
-    # Number of classes in the dataset (This value is overwritten by dataset class when
-    # Initializating dataset).
-    num_classes = None
-
-    # Type of task performed on this dataset (also overwritten)
-    dataset_task = ""
-
-    # Number of CPU threads for the input pipeline
-    input_threads = 10
-
-    #########################
-    # Architecture definition
-    #########################
-
-    # Define layers
-    architecture = [
-        "simple",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-    ]
-
-    ###################
-    # KPConv parameters
-    ###################
-
-    # Radius of the input sphere
-    in_radius = 4.0
-    val_radius = 4.0
-    n_frames = 1
-    max_in_points = 100000
-    max_val_points = 100000
-
-    # Number of batch
-    batch_num = 8
-    val_batch_num = 8
-
-    # Number of kernel points
-    num_kernel_points = 15
-
-    # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.06
-
-    # Radius of convolution in "number grid cell". (2.5 is the standard value)
-    conv_radius = 2.5
-
-    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can
-    # spread out
-    deform_radius = 6.0
-
-    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the
-    # standard value)
-    KP_extent = 1.2
-
-    # Behavior of convolutions in ('constant', 'linear', 'gaussian')
-    KP_influence = "linear"
-
-    # Aggregation function of KPConv in ('closest', 'sum')
-    aggregation_mode = "sum"
-
-    # Choice of input features
-    first_features_dim = 128
-    in_features_dim = 2
-
-    # Can the network learn modulations
-    modulated = False
-
-    # Batch normalization parameters
-    use_batch_norm = True
-    batch_norm_momentum = 0.02
-
-    # Deformable offset loss : fitting geometry by penalizing distance from deform point to input
-    # points ('point2point'), or to input point triplet ('point2plane', not implemented)
-    deform_fitting_mode = "point2point"
-    deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
-    deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
-    repulse_extent = 1.2  # Distance of repulsion for deformed kernel points
-
-    #####################
-    # Training parameters
-    #####################
-
-    # Maximal number of epochs
-    max_epoch = 800
-
-    # Learning rate management
-    learning_rate = 1e-2
-    momentum = 0.98
-    lr_decays = {i: 0.1 ** (1 / 150) for i in range(1, max_epoch)}
-    grad_clip_norm = 100.0
-
-    # Number of steps per epochs
-    epoch_steps = 500
-
-    # Number of validation examples per epoch
-    validation_size = 200
-
-    # Number of epoch between each checkpoint
-    checkpoint_gap = 50
-
-    # Increment of inference potential before saving results
-    potential_increment = 10
-
-    # Augmentations
-    augment_scale_anisotropic = True
-    augment_symmetries = [True, False, False]
-    augment_rotation = "vertical"
-    augment_scale_min = 0.8
-    augment_scale_max = 1.2
-    augment_noise = 0.001
-    augment_color = 0.8
-
-    # Choose weights for class (used in segmentation loss). Empty list for no weights
-    # class proportion for R=10.0 and dl=0.08 (first is unlabeled)
-    # 19.1 48.9 0.5 1.1 5.6 3.6 0.7 0.6 0.9 193.2 17.7 127.4 6.7 132.3 68.4 283.8 7.0 78.5 3.3 0.8
-    #
-
-    # sqrt(Inverse of proportion * 100)
-    # class_w = [1.430, 14.142, 9.535, 4.226, 5.270, 11.952, 12.910, 10.541, 0.719,
-    #            2.377, 0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.505, 11.180]
-
-    # sqrt(Inverse of proportion * 100)  capped (0.5 < X < 5)
-    # class_w = [1.430, 5.000, 5.000, 4.226, 5.000, 5.000, 5.000, 5.000, 0.719, 2.377,
-    #            0.886, 3.863, 0.869, 1.209, 0.594, 3.780, 1.129, 5.000, 5.000]
-
-    # Do we need to save convergence
-    saving = True
-    chosen_log = None
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Debug functions
-#       \*********************/
 
 
 def debug_timing(dataset, loader):

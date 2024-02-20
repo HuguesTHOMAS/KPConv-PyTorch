@@ -73,7 +73,6 @@ def test_train(dataset_path, trained_model_path):
     """
     max_epoch = 1
     epoch_steps = 3
-    validation_size = 1
     # First run
     train.train(
         dataset_path,
@@ -83,7 +82,6 @@ def test_train(dataset_path, trained_model_path):
         max_epoch=max_epoch,
         checkpoint_gap=1,
         epoch_steps=epoch_steps,
-        validation_size=validation_size,
     )
 
     log_dirs = list(trained_model_path.iterdir())

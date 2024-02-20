@@ -174,6 +174,12 @@ def main():
 
     args = parser.parse_args()
 
+    if args.dataset not in ("ModelNet40", "NPM3D", "S3DIS", "SemanticKitti", "Toronto3D"):
+        raise ValueError(
+            f"Error - unsupported dataset {args.dataset}: --dataset or -d parameter must\
+            be among ModelNet40, NPM3D, S3DIS, SemanticKitti, Toronto3D"
+        )
+
     if "func" in vars(args):
         args.func(args)
     else:
