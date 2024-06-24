@@ -111,7 +111,7 @@ class SensatUrbanDataset(PointCloudDataset):
 
         # Proportion of validation scenes
         self.cloud_names = [
-            "cambridge_block_0",
+           "cambridge_block_0",
             "cambridge_block_1",
             "cambridge_block_2",
             "cambridge_block_3",
@@ -136,6 +136,8 @@ class SensatUrbanDataset(PointCloudDataset):
             "cambridge_block_32",
             "cambridge_block_33",
             "cambridge_block_34",
+            "birmingham_block_1",
+            "birmingham_block_3",
             "birmingham_block_4",
             "birmingham_block_5",
             "birmingham_block_6",
@@ -146,8 +148,14 @@ class SensatUrbanDataset(PointCloudDataset):
             "birmingham_block_12",
             "birmingham_block_13",
         ]   
-        self.all_splits = [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43]
-        self.validation_split = 30
+        # 37 cloud files
+        self.all_splits = [
+            # Cambridge
+            0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            # Birmingham
+            0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0,
+        ]
+        self.validation_split = 1
 
         # Number of models used per epoch
         if self.set == "training":
