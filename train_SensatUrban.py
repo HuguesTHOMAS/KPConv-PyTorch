@@ -201,7 +201,21 @@ class SensatUrbanConfig(Config):
     #   > 'none': Each point in the whole batch has the same contribution.
     #   > 'class': Each class has the same contribution (points are weighted according to class balance)
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
-    segloss_balance = "none"
+    segloss_balance = "class"
+    proportions = [0.2028088885,
+        0.2513084539,
+        0.3979947284,
+        0.0095143598,
+        0.0014058568,
+        0.0228332248,
+        0.0002303890,
+        0.0607027858,
+        0.0123139005,
+        0.0173409825,
+        0.0201929531,
+        0.0000803975,
+        0.0032730794]
+    class_w = np.sqrt([1.0 / p for p in proportions])
 
     # Do we nee to save convergence
     saving = True
@@ -233,8 +247,8 @@ if __name__ == "__main__":
     ###############
 
     # Choose here if you want to start training from a previous snapshot (None for new training)
-    # previous_training_path = 'Log_2020-03-19_19-53-27'
-    previous_training_path = "Log_2024-05-14_08-06-01"
+    # previous_training_path = 'Log_2024-06-21_09-09-55'
+    previous_training_path = None
 
     # Choose index of checkpoint to start from. If None, uses the latest chkp
     chkp_idx = None

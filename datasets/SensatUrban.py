@@ -1636,7 +1636,8 @@ def debug_upsampling(dataset, loader):
             print("******************")
         print("*******************************************")
 
-    _, counts = np.unique(dataset.input_labels, return_counts=True)
+    flat_labels = np.concatenate(dataset.input_labels) if isinstance(dataset.input_labels[0], (list, np.ndarray)) else dataset.input_labels
+    _, counts = np.unique(flat_labels, return_counts=True)
     print(counts)
 
 
@@ -1680,8 +1681,9 @@ def debug_timing(dataset, loader):
                 )
 
         print("************* Epoch ended *************")
-
-    _, counts = np.unique(dataset.input_labels, return_counts=True)
+        
+    flat_labels = np.concatenate(dataset.input_labels) if isinstance(dataset.input_labels[0], (list, np.ndarray)) else dataset.input_labels
+    _, counts = np.unique(flat_labels, return_counts=True)
     print(counts)
 
 
