@@ -18,7 +18,7 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   unit_test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -37,7 +37,8 @@ jobs:
       - name: Install numpy (needed for cpp script compilation)
         run: |
           python -m pip install --upgrade pip
-          python -m pip install numpy
+          python -m pip install --upgrade setuptools
+          python -m pip install "numpy<2"
 
       - name: Compile the extra cpp code
         run: |

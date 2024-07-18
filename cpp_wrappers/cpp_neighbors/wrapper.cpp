@@ -16,7 +16,7 @@ static char batch_query_docstring[] = "Method to get radius neighbors in a batch
 // Declare the functions
 // *********************
 
-static PyObject *batch_neighbors(PyObject *self, PyObject *args, PyObject *keywds);
+static PyArrayObject *batch_neighbors(PyObject *self, PyObject *args, PyObject *keywds);
 
 
 // Specify the members of the module
@@ -55,7 +55,7 @@ PyMODINIT_FUNC PyInit_radius_neighbors(void)
 // Definition of the batch_subsample method
 // **********************************
 
-static PyObject* batch_neighbors(PyObject* self, PyObject* args, PyObject* keywds)
+static PyArrayObject* batch_neighbors(PyObject* self, PyObject* args, PyObject* keywds)
 {
 
 	// Manage inputs
@@ -80,10 +80,10 @@ static PyObject* batch_neighbors(PyObject* self, PyObject* args, PyObject* keywd
 
 
 	// Interpret the input objects as numpy arrays.
-	PyObject* queries_array = PyArray_FROM_OTF(queries_obj, NPY_FLOAT, NPY_IN_ARRAY);
-	PyObject* supports_array = PyArray_FROM_OTF(supports_obj, NPY_FLOAT, NPY_IN_ARRAY);
-	PyObject* q_batches_array = PyArray_FROM_OTF(q_batches_obj, NPY_INT, NPY_IN_ARRAY);
-	PyObject* s_batches_array = PyArray_FROM_OTF(s_batches_obj, NPY_INT, NPY_IN_ARRAY);
+	PyArrayObject* queries_array = (PyArrayObject*)PyArray_FROM_OTF(queries_obj, NPY_FLOAT, NPY_IN_ARRAY);
+	PyArrayObject* supports_array = (PyArrayObject*)PyArray_FROM_OTF(supports_obj, NPY_FLOAT, NPY_IN_ARRAY);
+	PyArrayObject* q_batches_array = (PyArrayObject*)PyArray_FROM_OTF(q_batches_obj, NPY_INT, NPY_IN_ARRAY);
+	PyArrayObject* s_batches_array = (PyArrayObject*)PyArray_FROM_OTF(s_batches_obj, NPY_INT, NPY_IN_ARRAY);
 
 	// Verify data was load correctly.
 	if (queries_array == NULL)
@@ -216,15 +216,15 @@ static PyObject* batch_neighbors(PyObject* self, PyObject* args, PyObject* keywd
 	neighbors_dims[1] = max_neighbors;
 
 	// Create output array
-	PyObject* res_obj = PyArray_SimpleNew(2, neighbors_dims, NPY_INT);
-	PyObject* ret = NULL;
+	PyArrayObject* res_obj = (PyArrayObject*)PyArray_SimpleNew(2, neighbors_dims, NPY_INT);
+	PyArrayObject* ret = NULL;
 
 	// Fill output array with values
 	size_t size_in_bytes = Nq * max_neighbors * sizeof(int);
-	memcpy(PyArray_DATA(res_obj), neighbors_indices.data(), size_in_bytes);
+	memcpy((PyArrayObject*)PyArray_DATA(res_obj), neighbors_indices.data(), size_in_bytes);
 
 	// Merge results
-	ret = Py_BuildValue("N", res_obj);
+	ret = (PyArrayObject*)Py_BuildValue("N", res_obj);
 
 	// Clean up
 	// ********
