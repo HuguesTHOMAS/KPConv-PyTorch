@@ -9,7 +9,7 @@ from kpconv_torch.utils.metrics import fast_confusion, IoU_from_confusions
 from kpconv_torch.io.ply import write_ply
 
 
-def get_test_save_path(infered_file, chosen_log):
+def get_test_save_path(infered_file: Path, chosen_log: Path) -> Path:
     if chosen_log is None:
         test_path = None
     elif infered_file is not None:
@@ -204,7 +204,7 @@ class ModelTester:
         #####################
 
         test_epoch = 0
-        last_min = -0.5
+        last_saved_min = last_min = -0.5
 
         t = [time.time()]
         last_display = time.time()
@@ -347,7 +347,8 @@ class ModelTester:
                     print(s + "\n")
 
                 # Save real IoU once in a while
-                if int(np.ceil(new_min)) % 10 == 0:
+                if last_saved_min + config.potential_increment < new_min:
+                    last_saved_min = new_min
 
                     # Project predictions
                     print(f"\nReproject Vote #{int(np.floor(new_min)):d}")
@@ -426,7 +427,7 @@ class ModelTester:
                         ].astype(np.int32)
 
                         # Save plys
-                        cloud_name = file_path.split("/")[-1]
+                        cloud_name = file_path.name
                         test_name = os.path.join(self.test_path, "predictions", cloud_name)
                         write_ply(test_name, [points, preds], ["x", "y", "z", "preds"])
                         test_name2 = os.path.join(self.test_path, "probs", cloud_name)

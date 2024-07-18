@@ -1,5 +1,5 @@
 -e .
-numpy
+numpy<2
 scikit-learn<=1.2.2
 pyyaml
 torch

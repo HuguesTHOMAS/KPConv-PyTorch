@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import rmtree
 
 import numpy as np
 import pytest
@@ -7,6 +8,28 @@ import pytest
 @pytest.fixture
 def fixture_path():
     yield Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture
+def dataset_path(fixture_path):
+    yield fixture_path / "S3DIS"
+
+
+@pytest.fixture
+def trained_model_path(fixture_path):
+    yield fixture_path / "trained_models"
+
+
+@pytest.fixture
+def training_log(trained_model_path):
+    chosen_log_dir = next(trained_model_path.iterdir())
+    yield chosen_log_dir
+
+
+@pytest.fixture
+def inference_file(fixture_path, training_log):
+    yield fixture_path / "inference" / "Area4_hallway5.ply"
+    rmtree(training_log)
 
 
 @pytest.fixture

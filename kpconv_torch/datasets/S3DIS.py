@@ -82,7 +82,7 @@ class S3DISDataset(PointCloudDataset):
         self.use_potentials = use_potentials
 
         # Path of the training files
-        self.train_files_path = os.path.join(self.path, "original_ply")
+        self.train_files_path = self.path / "original_ply"
         if not os.path.exists(self.train_files_path):
             print("The ply folder does not exist, create it.")
             os.makedirs(self.train_files_path)
@@ -95,19 +95,28 @@ class S3DISDataset(PointCloudDataset):
         # Proportion of validation scenes
         self.training_cloud_names = ["Area_1", "Area_2", "Area_3", "Area_4", "Area_6"]
         self.validation_cloud_names = ["Area_5"]
-        if self.set == "all":
-            self.cloud_names = self.training_cloud_names + self.validation_cloud_names
-        elif self.set == "training":
-            self.cloud_names = self.training_cloud_names
-        elif self.set == "test" and infered_file is not None:
+
+        # Data folder management
+        if self.set == "test" and infered_file is not None:
+            # Inference case: a S3DIS dataset is built with the infered file
             self.cloud_names = [infered_file]
         else:
-            self.cloud_names = self.validation_cloud_names
+            # Any other case: the S3DIS dataset is built with the S3DIS original data
+            if self.set == "all":
+                self.cloud_names = self.training_cloud_names + self.validation_cloud_names
+            elif self.set == "training":
+                self.cloud_names = self.training_cloud_names
+            else:
+                self.cloud_names = self.validation_cloud_names
+            available_cloud_data = [subfolder.name for subfolder in self.path.iterdir()]
+            self.cloud_names = [
+                cloud_name for cloud_name in self.cloud_names if cloud_name in available_cloud_data
+            ]
         self.files = [
             (
                 cloud_name
                 if self.set == "test" and infered_file is not None
-                else os.path.join(self.train_files_path, cloud_name + ".ply")
+                else self.train_files_path / (cloud_name + ".ply")
             )
             for i, cloud_name in enumerate(self.cloud_names)
         ]
@@ -1641,6 +1650,9 @@ class S3DISConfig(Config):
 
     # Number of epoch between each checkpoint
     checkpoint_gap = 50
+
+    # Increment of inference potential before saving results
+    potential_increment = 10
 
     # Augmentations
     augment_scale_anisotropic = True
