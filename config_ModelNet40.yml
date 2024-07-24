@@ -1,0 +1,190 @@
+colors:
+  header: \033[95m
+  okblue: \033[94m
+  okgreen: \033[92m
+  warning: \033[93m
+  fail: \033[91m
+  endc: \033[0m
+  bold: \033[1m
+  underline: \033[4m
+
+# Name of the dataset, possible values: S3DIS, ModelNet40, SemanticKitti, Toronto3D, NPM3D
+dataset: ModelNet40
+
+input:
+  # Type of network model, possible values: classification, segmentation, cloud_segmentation for S3DIS, slam_segmentation
+  task: classification
+  # Choice of input features
+  features_dim: 1
+  # Dimension of input points
+  points_dim: 3
+  # Number of CPU threads for the input pipeline
+  threads: 10
+  # Radius of the input sphere (decrease value to reduce memory cost)
+  sphere_radius: 1.0
+  # Using potential or random epoch generation
+  use_potentials: True
+
+model:
+  architecture:
+    - simple
+    - resnetb
+    - resnetb_strided
+    - resnetb
+    - resnetb
+    - resnetb_strided
+    - resnetb
+    - resnetb
+    - resnetb_strided
+    - resnetb
+    - resnetb
+    - resnetb_strided
+    - resnetb
+    - resnetb
+    - global_average
+  batch_norm_momentum: 0.05
+  # Decide the mode of equivariance
+  equivar_mode:
+  # Dimension of the first feature maps
+  first_features_dim: 64  # Do we need to save convergence
+  # Decide the mode of invariance
+  invar_mode:
+  label_to_names:
+    0: airplane
+    1: bathtub
+    2: bed
+    3: bench
+    4: bookshelf
+    5: bottle
+    6: bowl
+    7: car
+    8: chair
+    9: cone
+    10: cup
+    11: curtain
+    12: desk
+    13: door
+    14: dresser
+    15: flower_pot
+    16: glass_box
+    17: guitar
+    18: keyboard
+    19: lamp
+    20: laptop
+    21: mantel
+    22: monitor
+    23: night_stand
+    24: person
+    25: piano
+    26: plant
+    27: radio
+    28: range_hood
+    29: sink
+    30: sofa
+    31: stairs
+    32: stool
+    33: table
+    34: tent
+    35: toilet
+    36: tv_stand
+    37: vase
+    38: wardrobe
+    39: xbox
+  num_layers:
+  saving: True
+  # For segmentation models: ratio between the segmented area and the input area
+  segmentation_ratio:
+  # Batch normalization parameters
+  use_batch_norm: True
+
+kpconv:
+  # Aggregation function of KPConv in ('closest', 'sum')
+  # Decide if you sum all kernel point influences,
+  # or if you only take the influence of the closest KP
+  aggregation_mode: sum
+  # Radius of convolution in number grid cell. (2.5 is the standard value)
+  conv_radius: 2.5
+  # Deformable offset loss
+  # Fitting geometry by penalizing distance from deform point to input points ('point2point')
+  # or to input point triplet ('point2plane', not implemented)
+  deform_fitting_mode: "point2point"
+  # Multiplier for the fitting/repulsive loss
+  deform_fitting_power: 1.0
+  # Multiplier for learning rate applied to the deformations
+  deform_lr_factor: 0.1
+  # Radius of deformable convolution in number grid cell. Larger so that deformed kernel can spread out
+  deform_radius: 6.0
+  # Size of the first subsampling grid in meters
+  first_subsampling_dl: 0.02
+  # Fixed points in the kernel : 'none', 'center' or 'verticals'
+  fixed_kernel_points: none
+  # Radius of the area of influence of each kernel point in number grid cell. (1.0 is the standard value)
+  KP_extent: 1.2
+  # Behaviour of convolutions. Influence function when d < KP_extent. ('constant', 'linear', 'gaussian')
+  # When d > KP_extent, always zero
+  KP_influence: linear
+  max_in_points:
+  # Maximal number of epochs
+  max_epoch: 500
+  # Radius of the area of influence of each kernel point in number grid cell. (1.0 is the standard value)
+  max_val_points: 50000
+  # Can the network learn modulations (in deformable convolutions)
+  modulated: True
+  n_frames: 1
+  # Number of kernel points
+  num_kernel_points: 15
+  val_radius:
+
+train:
+  # Augmentation parameters
+  augment_occlusion: none
+  augment_occlusion_ratio:
+  augment_occlusion_num:
+  augment_scale_anisotropic: True
+  augment_scale_min: 0.8
+  augment_scale_max: 1.2
+  augment_symmetries: [True, True, True]
+  augment_rotation: none
+  augment_noise: 0.001
+  augment_color: 1.0
+  # Number of batch
+  batch_num: 10
+  # Frequency at which training checkpoints are saved on disk (in terms of epochs)
+  checkpoint_gap: 50
+  # Deformable offset loss
+  # Fitting geometry by penalizing distance from deform point to input points ('point2point')
+  # or to input point triplet ('point2plane', not implemented)
+  # Choose weights for class (used in segmentation loss). Empty list for no weights
+  class_w: {}
+  # Number of steps per epochs
+  epoch_steps: 300
+  # Gradient clipping value (negative means no clipping)
+  grad_clip_norm: 100.0
+  # Network optimizer parameters (learning rate and momentum)
+  learning_rate: 0.01
+  lr_decay_epochs:
+  # Maximal number of epochs
+  max_epoch: 1000
+  momentum: 0.98
+  # Increment of inference potential before saving results
+  potential_increment: 10
+  # Distance of repulsion for deformed kernel points
+  repulse_extent: 1.2
+  # The way we balance segmentation loss
+  # - 'none': Each point in the whole batch has the same contribution.
+  # - 'class': Each class has the same contribution (points are weighted according to class balance)
+  # - 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
+  segloss_balance: none
+  val_batch_num: 10
+  # Number of validation examples per epoch
+  validation_size: 30
+  # Regularization loss importance
+  weight_decay: 0.001
+
+test:
+  # Increment of inference potential before saving results
+  potential_increment: 10
+  n_votes: 100
+  val_bath_num: 10
+  # Number of validation examples per epoch
+  validation_size: 50
