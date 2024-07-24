@@ -50,7 +50,7 @@ There are $M$ `cat-z_m.txt` files, each one corresponding to one labeled object 
 ### Preprocessing
 
 ```bash
-kpconv preprocess -s S3DIS -d ~/data/S3DIS
+kpconv preprocess -c ./config_S3DIS.yml -d ~/data/S3DIS
 ```
 
 ### Training
@@ -58,14 +58,14 @@ kpconv preprocess -s S3DIS -d ~/data/S3DIS
 Simply run the following script to start the training:
 ```bash
 mkdir kpconv_trained_models
-kpconv train -s S3DIS -d ~/data/S3DIS -o ~/data/kpconv_trained_models
+kpconv train -s S3DIS -c ./config_S3DIS.yml -d ~/data/S3DIS -o ~/data/kpconv_trained_models
 ```
 The `kpconv_trained_models` folder will be the parent folder of the log folder containing the trained model, which will have the following form: `Log_YYYY-MM-DD_HH-MM-SS`, the horodate corresponding to the launching moment.
 
 To restart the training of an already trained model, at the next iteration, do the following:
 
 ```bash
-kpconv train -s S3DIS -d ~/data/S3DIS -l ~/data/kpconv_trained_models/Log_YYYY-MM-DD_HH-MM-SS
+kpconv train -s S3DIS -c ./config_S3DIS.yml -d ~/data/S3DIS -l ~/data/kpconv_trained_models/Log_YYYY-MM-DD_HH-MM-SS
 ```
 
 Similarly to ModelNet40 training, the parameters can be modified in a configuration subclass called `S3DISConfig`, and the first run of this script might take some time to precompute dataset structures.
@@ -77,7 +77,7 @@ When you start a new training, it is saved in a `results` folder. A dated log fo
 In `plot_convergence.py`, you will find detailed comments explaining how to choose which training log you want to plot. Follow them and then run the script:
 
 ```bash
-kpconv plotconv -s S3DIS -d ~/data/S3DIS -l ~/data/kpconv_trained_models/Log_YYYY-MM-DD_HH-MM-SS
+kpconv plotconv -c ./config_S3DIS.yml -d ~/data/S3DIS -l ~/data/kpconv_trained_models/Log_YYYY-MM-DD_HH-MM-SS
 ```
 
 ### Test the trained model
@@ -86,12 +86,12 @@ The test script includes the preprocessing of the entry file. It is the same for
 
 For any file `~/data/cloud.xyz`:
 ```bash
-kpconv test -s S3DIS -d ~/data/S3DIS -f ~/data/cloud.xyz -l ~/data/kpconv_trained_models/Log_YYYY-MM-DD_HH-MM-SS
+kpconv test -s S3DIS -c ./config_S3DIS.yml -d ~/data/S3DIS -f ~/data/cloud.xyz -l ~/data/kpconv_trained_models/Log_YYYY-MM-DD_HH-MM-SS
 ```
 
 For the validation file `Area_5.ply` of the S3DIS dataset used to train the model:
 ```bash
-kpconv test -s S3DIS -d ~/data/S3DIS -l ~/data/kpconv_trained_models/Log_YYYY-MM-DD_HH-MM-SS
+kpconv test -s S3DIS -c ./config_S3DIS.yml -d ~/data/S3DIS -l ~/data/kpconv_trained_models/Log_YYYY-MM-DD_HH-MM-SS
 ```
 
 You will see the performance (on the subsampled input clouds) increase as the test goes on.

@@ -42,6 +42,14 @@ def kpconv_parser(subparser, reference_func, command, command_description):
     parser = subparser.add_parser(command, help=command_description)
 
     parser.add_argument(
+        "-c",
+        "--configfile",
+        required=False,
+        type=valid_file,
+        help="Path to the config file for the chosen dataset. ",
+    )
+
+    parser.add_argument(
         "-d",
         "--datapath",
         required=True,
@@ -134,13 +142,6 @@ def kpconv_parser(subparser, reference_func, command, command_description):
         help="Number of steps per validation process, after each epoch",
     )
 
-    parser.add_argument(
-        "-s",
-        "--dataset",
-        default="S3DIS",
-        type=valid_dataset,
-        help="Name of the dataset",
-    )
     parser.set_defaults(func=reference_func)
 
 
@@ -174,6 +175,12 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if args.config is None and args.chosen_log is None:
+        raise Exception(
+            "A --chosen-log / -l, with a config.yml file inside the folder "
+            "or a --configfile / -c must be specified."
+        )
 
     if "func" in vars(args):
         args.func(args)
