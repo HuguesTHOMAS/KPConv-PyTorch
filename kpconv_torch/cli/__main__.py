@@ -65,7 +65,7 @@ def kpconv_parser(subparser, reference_func, command, command_description):
             type=valid_file,
             help=(
                 "File on which to predict semantic labels starting from a trained model "
-                "(if None, use the validation split)"
+                "(if None, use the validation task)"
             ),
         )
 
@@ -78,21 +78,6 @@ def kpconv_parser(subparser, reference_func, command, command_description):
                 "If mentioned with the test command, "
                 "the test will use this folder for the inference procedure."
             ),
-        )
-        # '.../Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
-        # 'last_XXX': Automatically retrieve the last trained model on dataset XXX
-        parser.add_argument(
-            "-n",
-            "--n-votes",
-            type=int,
-            default=100,
-            help="Number of positive vote during inference process (stop condition to reach)",
-        )
-        parser.add_argument(
-            "-p",
-            "--potential-increment",
-            type=int,
-            help="Increment of inference potential at which results are saved",
         )
 
     if command == "train":
@@ -117,30 +102,6 @@ def kpconv_parser(subparser, reference_func, command, command_description):
                 "Otherwise, the -l option must be mentioned."
             ),
         )
-        parser.add_argument(
-            "-E",
-            "--max-epoch",
-            type=int,
-            help="Upper bound for the number of training epochs (useful for functional test)",
-        )
-        parser.add_argument(
-            "-g",
-            "--checkpoint-gap",
-            type=int,
-            help="Frequency at which training checkpoints are saved on disk (in terms of epochs)",
-        )
-        parser.add_argument(
-            "-e",
-            "--epoch-steps",
-            type=int,
-            help="Number of steps per training epoch",
-        )
-    parser.add_argument(
-        "-v",
-        "--validation-size",
-        type=int,
-        help="Number of steps per validation process, after each epoch",
-    )
 
     parser.set_defaults(func=reference_func)
 

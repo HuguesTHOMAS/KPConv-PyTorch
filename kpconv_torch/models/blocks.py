@@ -141,7 +141,7 @@ class KPConv(nn.Module):
         :param out_channels: dimension of output features.
         :param KP_extent: influence radius of each kernel point.
         :param radius: radius used for kernel point init. Even for deformable, use the
-        config.conv_radius
+        config["kpconv"]["conv_radius"]
         :param fixed_kernel_points: fix position of certain kernel points ('none', 'center' or
         'verticals').
         :param KP_influence: influence function of the kernel points ('constant', 'linear',
@@ -342,7 +342,7 @@ class KPConv(nn.Module):
             all_weights = radius_gaussian(sq_distances, sigma)
             all_weights = torch.transpose(all_weights, 1, 2)
         else:
-            raise ValueError("Unknown influence function type (config.KP_influence)")
+            raise ValueError("Unknown influence function type KP_influence")
 
         # In case of closest mode, only the closest KP can influence each point
         if self.aggregation_mode == "closest":
@@ -388,7 +388,12 @@ class KPConv(nn.Module):
 def block_decider(block_name, radius, in_dim, out_dim, layer_ind, config):
 
     if block_name == "unary":
-        return UnaryBlock(in_dim, out_dim, config.use_batch_norm, config.batch_norm_momentum)
+        return UnaryBlock(
+            in_dim,
+            out_dim,
+            config["model"]["use_batch_norm"],
+            config["model"]["batch_norm_momentum"],
+        )
 
     elif block_name in [
         "simple",
@@ -522,11 +527,11 @@ class SimpleBlock(nn.Module):
         super().__init__()
 
         # get KP_extent from current radius
-        current_extent = radius * config.KP_extent / config.conv_radius
+        current_extent = radius * config["kpconv"]["KP_extent"] / config["kpconv"]["conv_radius"]
 
         # Get other parameters
-        self.bn_momentum = config.batch_norm_momentum
-        self.use_bn = config.use_batch_norm
+        self.bn_momentum = config["model"]["batch_norm_momentum"]
+        self.use_bn = config["model"]["use_batch_norm"]
         self.layer_ind = layer_ind
         self.block_name = block_name
         self.in_dim = in_dim
@@ -534,17 +539,17 @@ class SimpleBlock(nn.Module):
 
         # Define the KPConv class
         self.KPConv = KPConv(
-            config.num_kernel_points,
-            config.in_points_dim,
+            config["kpconv"]["num_kernel_points"],
+            config["input"]["points_dim"],
             in_dim,
             out_dim // 2,
             current_extent,
             radius,
-            fixed_kernel_points=config.fixed_kernel_points,
-            KP_influence=config.KP_influence,
-            aggregation_mode=config.aggregation_mode,
+            fixed_kernel_points=config["kpconv"]["fixed_kernel_points"],
+            KP_influence=config["kpconv"]["KP_influence"],
+            aggregation_mode=config["kpconv"]["aggregation_mode"],
             deformable="deform" in block_name,
-            modulated=config.modulated,
+            modulated=config["kpconv"]["modulated"],
         )
 
         # Other opperations
@@ -580,11 +585,11 @@ class ResnetBottleneckBlock(nn.Module):
         super().__init__()
 
         # get KP_extent from current radius
-        current_extent = radius * config.KP_extent / config.conv_radius
+        current_extent = radius * config["kpconv"]["KP_extent"] / config["kpconv"]["conv_radius"]
 
         # Get other parameters
-        self.bn_momentum = config.batch_norm_momentum
-        self.use_bn = config.use_batch_norm
+        self.bn_momentum = config["model"]["batch_norm_momentum"]
+        self.use_bn = config["model"]["use_batch_norm"]
         self.block_name = block_name
         self.layer_ind = layer_ind
         self.in_dim = in_dim
@@ -598,17 +603,17 @@ class ResnetBottleneckBlock(nn.Module):
 
         # KPConv block
         self.KPConv = KPConv(
-            config.num_kernel_points,
-            config.in_points_dim,
+            config["kpconv"]["num_kernel_points"],
+            config["input"]["points_dim"],
             out_dim // 4,
             out_dim // 4,
             current_extent,
             radius,
-            fixed_kernel_points=config.fixed_kernel_points,
-            KP_influence=config.KP_influence,
-            aggregation_mode=config.aggregation_mode,
+            fixed_kernel_points=config["kpconv"]["fixed_kernel_points"],
+            KP_influence=config["kpconv"]["KP_influence"],
+            aggregation_mode=config["kpconv"]["aggregation_mode"],
             deformable="deform" in block_name,
-            modulated=config.modulated,
+            modulated=config["kpconv"]["modulated"],
         )
         self.batch_norm_conv = BatchNormBlock(out_dim // 4, self.use_bn, self.bn_momentum)
 

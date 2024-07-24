@@ -10,7 +10,6 @@ import torch
 from torch.utils.data import get_worker_info, Sampler
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
-from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.io.ply import read_ply, write_ply
 
@@ -24,9 +23,8 @@ class Toronto3DDataset(PointCloudDataset):
         datapath,
         chosen_log=None,
         infered_file=None,
-        use_potentials=True,
         load_data=True,
-        split="training",
+        task="train",
     ):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
@@ -34,57 +32,27 @@ class Toronto3DDataset(PointCloudDataset):
         super().__init__(
             config=config,
             datapath=datapath,
-            dataset="Toronto3D",
+            ignored_labels=np.array([0]),
             chosen_log=chosen_log,
             infered_file=infered_file,
-            split=split,
+            task=task,
         )
 
-        ############
-        # Parameters
-        ############
-
-        # Dict from labels to names
-        self.label_to_names = {
-            0: "Unclassified",
-            1: "Road",
-            2: "Road_markings",
-            3: "Natural",
-            4: "Building",
-            5: "Utility_line",
-            6: "Pole",
-            7: "Car",
-            8: "Fence",
-        }
-
-        # Initialize a bunch of variables concerning class labels
-        self.init_labels()
-
-        # List of classes ignored during training (can be empty)
-        self.ignored_labels = np.array([0])
-
-        # Type of task conducted on this dataset
-        self.dataset_task = "cloud_segmentation"
-
         # Update number of class and data task in configuration
-        config.num_classes = self.num_classes - len(self.ignored_labels)
-        config.dataset_task = self.dataset_task
-
-        # Using potential or random epoch generation
-        self.use_potentials = use_potentials
+        self.num_classes = len(config["model"]["label_to_names"]) - len(self.ignored_labels)
 
         # Path of the training files
         self.train_files_path = "train"
 
         # List of files to process
-        ply_path = os.path.join(self.path, self.train_files_path)
+        ply_path = os.path.join(self.datapath, self.train_files_path)
 
         # Proportion of validation scenes
         self.cloud_names = ["L001", "L002", "L003", "L004"]
-        self.all_splits = list(range(len(self.cloud_names)))
-        self.validation_split = 1
-        self.test_splits = 1
-        self.train_splits = [0, 2, 3]
+        self.all_tasks = list(range(len(self.cloud_names)))
+        self.validation_task = 1
+        self.test_tasks = 1
+        self.train_tasks = [0, 2, 3]
 
         # Define offset
         self.UTM_OFFSET = [627285, 4841948, 0]
@@ -92,12 +60,14 @@ class Toronto3DDataset(PointCloudDataset):
         self.test_cloud_names = ["L002"]
 
         # Number of models used per epoch
-        if self.set == "training":
-            self.epoch_n = config.epoch_steps * config.batch_num
-        elif self.set in ["validation", "test", "ERF"]:
-            self.epoch_n = config.validation_size * config.batch_num
+        if self.task == "train":
+            self.epoch_n = self.config["train"]["epoch_steps"] * self.config["train"]["batch_num"]
+        elif self.task in ["validate", "test", "ERF"]:
+            self.epoch_n = (
+                self.config["train"]["validation_size"] * self.config["train"]["batch_num"]
+            )
         else:
-            raise ValueError("Unknown set for Toronto3D (with features) data: ", self.set)
+            raise ValueError("Unknown task for Toronto3D (with features) data: ", self.task)
 
         # Stop data is not needed
         if not load_data:
@@ -116,29 +86,29 @@ class Toronto3DDataset(PointCloudDataset):
         # List of training files
         self.files = []
         for i, f in enumerate(self.cloud_names):
-            if self.set == "training":
-                if self.all_splits[i] != self.validation_split:
+            if self.task == "train":
+                if self.all_tasks[i] != self.validation_task:
                     self.files += [os.path.join(ply_path, f + ".ply")]
-            elif self.set in ["validation", "test", "ERF"]:
-                if self.all_splits[i] == self.validation_split:
+            elif self.task in ["validate", "test", "ERF"]:
+                if self.all_tasks[i] == self.validation_task:
                     self.files += [os.path.join(ply_path, f + ".ply")]
             else:
-                raise ValueError("Unknown set for Toronto3D (with features) data: ", self.set)
+                raise ValueError("Unknown task for Toronto3D (with features) data: ", self.task)
 
-        if self.set == "training":
+        if self.task == "train":
             self.cloud_names = [
                 f
                 for i, f in enumerate(self.cloud_names)
-                if self.all_splits[i] != self.validation_split
+                if self.all_tasks[i] != self.validation_task
             ]
-        elif self.set in ["validation", "test", "ERF"]:
+        elif self.task in ["validate", "test", "ERF"]:
             self.cloud_names = [
                 f
                 for i, f in enumerate(self.cloud_names)
-                if self.all_splits[i] == self.validation_split
+                if self.all_tasks[i] == self.validation_task
             ]
 
-        if 0 < self.config.first_subsampling_dl <= 0.01:
+        if 0 < self.config["kpconv"]["first_subsampling_dl"] <= 0.01:
             raise ValueError("subsampling_parameter too low (should be over 1 cm")
 
         # Initiate containers
@@ -162,12 +132,12 @@ class Toronto3DDataset(PointCloudDataset):
         self.batch_limit.share_memory_()
 
         # Initialize potentials
-        if use_potentials:
+        if self.config["input"]["use_potentials"] is True:
             self.potentials = []
             self.min_potentials = []
             self.argmin_potentials = []
             for tree in self.pot_trees:
-                self.potentials += [torch.from_numpy(np.random.rand(tree.data.shape[0]) * 1e-3)]
+                self.potentials += [torch.from_numpy(np.random.rand(tree.data.shape[0]) * 0.001)]
                 min_ind = int(torch.argmin(self.potentials[-1]))
                 self.argmin_potentials += [min_ind]
                 self.min_potentials += [float(self.potentials[-1][min_ind])]
@@ -183,7 +153,7 @@ class Toronto3DDataset(PointCloudDataset):
                 self.potentials[i].share_memory_()
 
             self.worker_waiting = torch.tensor(
-                [0 for _ in range(config.input_threads)], dtype=torch.int32
+                [0 for _ in range(self.config["input"]["threads"])], dtype=torch.int32
             )
             self.worker_waiting.share_memory_()
             self.epoch_inds = None
@@ -201,7 +171,7 @@ class Toronto3DDataset(PointCloudDataset):
         self.worker_lock = Lock()
 
         # For ERF visualization, we want only one cloud per batch and no randomness
-        if self.set == "ERF":
+        if self.task == "ERF":
             self.batch_limit = torch.tensor([1], dtype=torch.float32)
             self.batch_limit.share_memory_()
             np.random.seed(42)
@@ -220,12 +190,12 @@ class Toronto3DDataset(PointCloudDataset):
 
         """
 
-        if self.use_potentials:
-            return self.potential_item(batch_i)
+        if self.config["input"]["use_potentials"]:
+            return self.potential_item()
         else:
             return self.random_item(batch_i)
 
-    def potential_item(self, batch_i, debug_workers=False):
+    def potential_item(self, debug_workers=False):
 
         t = [time.time()]
 
@@ -255,7 +225,9 @@ class Toronto3DDataset(PointCloudDataset):
                 message = ""
                 for wi in range(info.num_workers):
                     if wi == wid:
-                        message += f" {BColors.FAIL.value}X{BColors.ENDC.value} "
+                        t1 = self.config["colors"]["fail"]
+                        t2 = self.config["colors"]["endc"]
+                        message += f" {t1}X{t2} "
                     elif self.worker_waiting[wi] == 0:
                         message += "   "
                     elif self.worker_waiting[wi] == 1:
@@ -271,7 +243,9 @@ class Toronto3DDataset(PointCloudDataset):
                     message = ""
                     for wi in range(info.num_workers):
                         if wi == wid:
-                            message += f" {BColors.OKGREEN.value}v{BColors.ENDC.value} "
+                            t1 = self.config["colors"]["okgreen"]
+                            t2 = self.config["colors"]["endc"]
+                            message += f" {t1}v{t2} "
                         elif self.worker_waiting[wi] == 0:
                             message += "   "
                         elif self.worker_waiting[wi] == 1:
@@ -292,23 +266,23 @@ class Toronto3DDataset(PointCloudDataset):
                 center_point = pot_points[point_ind, :].reshape(1, -1)
 
                 # Add a small noise to center point
-                if self.set != "ERF":
+                if self.task != "ERF":
                     center_point += np.random.normal(
-                        scale=self.config.in_radius / 10, size=center_point.shape
+                        scale=self.config["input"]["sphere_radius"] / 10, size=center_point.shape
                     )
 
                 # Indices of points in input region
                 pot_inds, dists = self.pot_trees[cloud_ind].query_radius(
-                    center_point, r=self.config.in_radius, return_distance=True
+                    center_point, r=self.config["input"]["sphere_radius"], return_distance=True
                 )
 
                 d2s = np.square(dists[0])
                 pot_inds = pot_inds[0]
 
                 # Update potentials (Tukey weights)
-                if self.set != "ERF":
-                    tukeys = np.square(1 - d2s / np.square(self.config.in_radius))
-                    tukeys[d2s > np.square(self.config.in_radius)] = 0
+                if self.task != "ERF":
+                    tukeys = np.square(1 - d2s / np.square(self.config["input"]["sphere_radius"]))
+                    tukeys[d2s > np.square(self.config["input"]["sphere_radius"])] = 0
                     self.potentials[cloud_ind][pot_inds] += tukeys
                     min_ind = torch.argmin(self.potentials[cloud_ind])
                     self.min_potentials[[cloud_ind]] = self.potentials[cloud_ind][min_ind]
@@ -321,7 +295,7 @@ class Toronto3DDataset(PointCloudDataset):
 
             # Indices of points in input region
             input_inds = self.input_trees[cloud_ind].query_radius(
-                center_point, r=self.config.in_radius
+                center_point, r=self.config["input"]["sphere_radius"]
             )[0]
 
             t += [time.time()]
@@ -332,7 +306,7 @@ class Toronto3DDataset(PointCloudDataset):
             # Safe check for empty spheres
             if n < 2:
                 failed_attempts += 1
-                if failed_attempts > 100 * self.config.batch_num:
+                if failed_attempts > 100 * self.config["train"]["batch_num"]:
                     raise ValueError("It seems this dataset only contains empty input spheres")
                 t += [time.time()]
                 t += [time.time()]
@@ -341,7 +315,7 @@ class Toronto3DDataset(PointCloudDataset):
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
             input_colors = self.input_colors[cloud_ind][input_inds]
-            if self.set in ["test", "ERF"]:
+            if self.task in ["test", "ERF"]:
                 input_labels = np.zeros(input_points.shape[0])
             else:
                 input_labels = self.input_labels[cloud_ind][input_inds]
@@ -353,7 +327,7 @@ class Toronto3DDataset(PointCloudDataset):
             input_points, scale, R = self.augmentation_transform(input_points)
 
             # Color augmentation
-            if np.random.rand() > self.config.augment_color:
+            if np.random.rand() > self.config["train"]["augment_color"]:
                 input_colors *= 0
 
             # Get original height as additional feature
@@ -396,11 +370,11 @@ class Toronto3DDataset(PointCloudDataset):
 
         # Input features
         stacked_features = np.ones_like(stacked_points[:, :1], dtype=np.float32)
-        if self.config.in_features_dim == 1:
+        if self.config["input"]["features_dim"] == 1:
             pass
-        elif self.config.in_features_dim == 4:
+        elif self.config["input"]["features_dim"] == 4:
             stacked_features = np.hstack((stacked_features, features[:, :3]))
-        elif self.config.in_features_dim == 5:
+        elif self.config["input"]["features_dim"] == 5:
             stacked_features = np.hstack((stacked_features, features))
         else:
             raise ValueError("Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)")
@@ -428,7 +402,9 @@ class Toronto3DDataset(PointCloudDataset):
             message = ""
             for wi in range(info.num_workers):
                 if wi == wid:
-                    message += f" {BColors.OKBLUE.value}0{BColors.ENDC.value} "
+                    t1 = self.config["colors"]["okblue"]
+                    t2 = self.config["colors"]["endc"]
+                    message += f" {t1}0{t2} "
                 elif self.worker_waiting[wi] == 0:
                     message += "   "
                 elif self.worker_waiting[wi] == 1:
@@ -530,14 +506,14 @@ class Toronto3DDataset(PointCloudDataset):
             center_point = points[point_ind, :].reshape(1, -1)
 
             # Add a small noise to center point
-            if self.set != "ERF":
+            if self.task != "ERF":
                 center_point += np.random.normal(
-                    scale=self.config.in_radius / 10, size=center_point.shape
+                    scale=self.config["input"]["sphere_radius"] / 10, size=center_point.shape
                 )
 
             # Indices of points in input region
             input_inds = self.input_trees[cloud_ind].query_radius(
-                center_point, r=self.config.in_radius
+                center_point, r=self.config["input"]["sphere_radius"]
             )[0]
 
             # Number collected
@@ -546,14 +522,14 @@ class Toronto3DDataset(PointCloudDataset):
             # Safe check for empty spheres
             if n < 2:
                 failed_attempts += 1
-                if failed_attempts > 100 * self.config.batch_num:
+                if failed_attempts > 100 * self.config["train"]["batch_num"]:
                     raise ValueError("It seems this dataset only contains empty input spheres")
                 continue
 
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
             input_colors = self.input_colors[cloud_ind][input_inds]
-            if self.set in ["test", "ERF"]:
+            if self.task in ["test", "ERF"]:
                 input_labels = np.zeros(input_points.shape[0])
             else:
                 input_labels = self.input_labels[cloud_ind][input_inds]
@@ -563,7 +539,7 @@ class Toronto3DDataset(PointCloudDataset):
             input_points, scale, R = self.augmentation_transform(input_points)
 
             # Color augmentation
-            if np.random.rand() > self.config.augment_color:
+            if np.random.rand() > self.config["train"]["augment_color"]:
                 input_colors *= 0
 
             # Get original height as additional feature
@@ -604,11 +580,11 @@ class Toronto3DDataset(PointCloudDataset):
 
         # Input features
         stacked_features = np.ones_like(stacked_points[:, :1], dtype=np.float32)
-        if self.config.in_features_dim == 1:
+        if self.config["input"]["features_dim"] == 1:
             pass
-        elif self.config.in_features_dim == 4:
+        elif self.config["input"]["features_dim"] == 4:
             stacked_features = np.hstack((stacked_features, features[:, :3]))
-        elif self.config.in_features_dim == 5:
+        elif self.config["input"]["features_dim"] == 5:
             stacked_features = np.hstack((stacked_features, features))
         else:
             raise ValueError("Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)")
@@ -636,7 +612,7 @@ class Toronto3DDataset(PointCloudDataset):
         t0 = time.time()
 
         # Folder for the ply files
-        ply_path = os.path.join(self.path, self.train_files_path)
+        ply_path = os.path.join(self.datapath, self.train_files_path)
         if not os.path.exists(ply_path):
             os.mkdir(ply_path)
 
@@ -648,7 +624,7 @@ class Toronto3DDataset(PointCloudDataset):
 
             print(f"\nPreparing ply for cloud {cloud_name}\n")
 
-            pc = read_ply(os.path.join(self.path, "original_ply/" + cloud_name + ".ply"))
+            pc = read_ply(os.path.join(self.datapath, "original_ply/" + cloud_name + ".ply"))
             xyz = np.vstack(
                 (
                     pc["x"] - self.UTM_OFFSET[0],
@@ -683,10 +659,10 @@ class Toronto3DDataset(PointCloudDataset):
     def load_subsampled_clouds(self):
 
         # Parameter
-        dl = self.config.first_subsampling_dl
+        dl = self.config["kpconv"]["first_subsampling_dl"]
 
         # Create path for files
-        tree_path = os.path.join(self.path, f"input_{dl:.3f}")
+        tree_path = os.path.join(self.datapath, f"input_{dl:.3f}")
         if not os.path.exists(tree_path):
             os.mkdir(tree_path)
 
@@ -779,13 +755,13 @@ class Toronto3DDataset(PointCloudDataset):
         ############################
 
         # Only necessary for validation and test sets
-        if self.use_potentials:
+        if self.config["input"]["use_potentials"]:
             print("\nPreparing potentials")
 
             # Restart timer
             t0 = time.time()
 
-            pot_dl = self.config.in_radius / 10
+            pot_dl = self.config["input"]["sphere_radius"] / 10
 
             for file_idx, _ in enumerate(self.files):
 
@@ -826,7 +802,7 @@ class Toronto3DDataset(PointCloudDataset):
         self.num_clouds = len(self.input_trees)
 
         # Only necessary for validation and test sets
-        if self.set in ["validation", "test"]:
+        if self.task in ["validate", "test"]:
 
             print("\nPreparing reprojection indices for testing")
 
@@ -868,7 +844,7 @@ class Toronto3DDataset(PointCloudDataset):
 
     def load_evaluation_points(self, file_path):
         """
-        Load points (from test or validation split) on which the metrics should be evaluated
+        Load points (from test or validation task) on which the metrics should be evaluated
         """
 
         # Get original points
@@ -884,14 +860,14 @@ class Toronto3DSampler(Sampler):
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
-        self.calibration_path = os.path.join(self.dataset.path, "calibration")
+        self.calibration_path = os.path.join(self.dataset.datapath, "calibration")
         os.makedirs(self.calibration_path, exist_ok=True)
 
         # Number of step per epoch
-        if dataset.set == "training":
-            self.N = dataset.config.epoch_steps
+        if dataset.task == "train":
+            self.N = dataset.self.config["train"]["epoch_steps"]
         else:
-            self.N = dataset.config.validation_size
+            self.N = dataset.self.config.validation_size
 
         return
 
@@ -901,7 +877,7 @@ class Toronto3DSampler(Sampler):
 
         """
 
-        if not self.dataset.use_potentials:
+        if not self.config["input"]["use_potentials"]:
 
             # Initiate current epoch ind
             self.dataset.epoch_i *= 0
@@ -911,8 +887,8 @@ class Toronto3DSampler(Sampler):
             all_epoch_inds = np.zeros((2, 0), dtype=np.int64)
 
             # Number of sphere centers taken per class in each cloud
-            num_centers = self.N * self.dataset.config.batch_num
-            random_pick_n = int(np.ceil(num_centers / self.dataset.config.num_classes))
+            num_centers = self.N * self.dataset.config["train"]["batch_num"]
+            random_pick_n = int(np.ceil(num_centers / self.dataset.num_classes))
 
             # Choose random points of each class for each cloud
             for label_ind, label in enumerate(self.dataset.label_values):
@@ -946,7 +922,8 @@ class Toronto3DSampler(Sampler):
                                 )
                             )
                         warnings.warn(
-                            f"When choosing random epoch indices (use_potentials=False), "
+                            f"When choosing random epoch indices "
+                            f'(config["input"]["use_potentials"]=False), '
                             f"class {label:d}: {self.dataset.label_names[label_ind]} only had "
                             f"{N_inds:d} available points, while we needed {random_pick_n:d}. "
                             "Repeating indices in the same epoch",
@@ -997,7 +974,7 @@ class Toronto3DSampler(Sampler):
 
         # Estimated average batch size and target value
         estim_b = 0
-        target_b = self.dataset.config.batch_num
+        target_b = self.dataset.config["train"]["batch_num"]
 
         # Calibration parameters
         low_pass_T = 10
@@ -1103,14 +1080,14 @@ class Toronto3DSampler(Sampler):
             batch_lim_dict = {}
 
         # Check if the batch limit associated with current parameters exists
-        if self.dataset.use_potentials:
+        if self.config["input"]["use_potentials"]:
             sampler_method = "potentials"
         else:
             sampler_method = "random"
-        key = (
-            f"{sampler_method}_{self.dataset.config.in_radius:3f}_"
-            f"{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
-        )
+        t1 = self.dataset.config["input"]["sphere_radius"]
+        t2 = self.dataset.config["kpconv"]["first_subsampling_dl"]
+        t3 = self.dataset.config["train"]["batch_num"]
+        key = f"{sampler_method}_{t1:3f}_" f"{t2:3f}_{t3:d}"
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -1120,12 +1097,12 @@ class Toronto3DSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = BColors.OKGREEN.value
+                color = self.config["colors"]["okgreen"]
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = BColors.FAIL.value
+                color = self.config["colors"]["fail"]
                 v = "?"
-            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{self.config["colors"]["endc"]}')
 
         # Neighbors limit
         # ***************
@@ -1140,40 +1117,40 @@ class Toronto3DSampler(Sampler):
 
         # Check if the limit associated with current parameters exists (for each layer)
         neighb_limits = []
-        for layer_ind in range(self.dataset.config.num_layers):
+        for layer_ind in range(self.dataset.num_layers):
 
-            dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-            if self.dataset.config.deform_layers[layer_ind]:
-                r = dl * self.dataset.config.deform_radius
+            dl = self.dataset.config["kpconv"]["first_subsampling_dl"] * (2**layer_ind)
+            if self.dataset.deform_layers[layer_ind]:
+                r = dl * self.dataset.config["train"]["batch_num"]
             else:
-                r = dl * self.dataset.config.conv_radius
+                r = dl * self.dataset.config["kpconv"]["conv_radius"]
 
             key = f"{dl:.3f}_{r:.3f}"
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
-        if not redo and len(neighb_limits) == self.dataset.config.num_layers:
+        if not redo and len(neighb_limits) == self.dataset.num_layers:
             self.dataset.neighborhood_limits = neighb_limits
         else:
             redo = True
 
         if verbose:
             print("Check neighbors limit dictionary")
-            for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-                if self.dataset.config.deform_layers[layer_ind]:
-                    r = dl * self.dataset.config.deform_radius
+            for layer_ind in range(self.dataset.self.num_layers):
+                dl = self.dataset.self.config["kpconv"]["first_subsampling_dl"] * (2**layer_ind)
+                if self.dataset.deform_layers[layer_ind]:
+                    r = dl * self.dataset.self.config["kpconv"]["deform_radius"]
                 else:
-                    r = dl * self.dataset.config.conv_radius
+                    r = dl * self.dataset.self.config["kpconv"]["conv_radius"]
                 key = f"{dl:.3f}_{r:.3f}"
 
                 if key in neighb_lim_dict:
-                    color = BColors.OKGREEN.value
+                    color = self.config["colors"]["okgreen"]
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = BColors.FAIL.value
+                    color = self.config["colors"]["fail"]
                     v = "?"
-                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{self.config["colors"]["endc"]}')
 
         if redo:
 
@@ -1181,11 +1158,13 @@ class Toronto3DSampler(Sampler):
             # Neighbors calib parameters
             ############################
 
-            # From config parameter, compute higher bound of neighbors number in a neighborhood
-            hist_n = int(np.ceil(4 / 3 * np.pi * (self.dataset.config.deform_radius + 1) ** 3))
+            # From self.config parameter, compute higher bound of neighbors number in a neighborhood
+            hist_n = int(
+                np.ceil(4 / 3 * np.pi * (self.dataset.config["kpconv"]["deform_radius"] + 1) ** 3)
+            )
 
             # Histogram of neighborhood sizes
-            neighb_hists = np.zeros((self.dataset.config.num_layers, hist_n), dtype=np.int32)
+            neighb_hists = np.zeros((self.dataset.num_layers, hist_n), dtype=np.int32)
 
             ########################
             # Batch calib parameters
@@ -1193,7 +1172,7 @@ class Toronto3DSampler(Sampler):
 
             # Estimated average batch size and target value
             estim_b = 0
-            target_b = self.dataset.config.batch_num
+            target_b = self.dataset.config["train"]["batch_num"]
 
             # Expected batch size order of magnitude
             expected_N = 100000
@@ -1340,11 +1319,13 @@ class Toronto3DSampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = BColors.FAIL.value
+                            color = self.dataset.self.config["colors"]["fail"]
                         else:
-                            color = BColors.OKGREEN.value
+                            color = self.dataset.self.config["colors"]["okgreen"]
                         line0 += "|{:}{:10d}{:}  ".format(
-                            color, neighb_hists[layer, neighb_size], BColors.ENDC.value
+                            color,
+                            neighb_hists[layer, neighb_size],
+                            self.dataset.self.config["colors"]["endc"],
                         )
 
                     print(line0)
@@ -1354,25 +1335,25 @@ class Toronto3DSampler(Sampler):
                 print()
 
             # Save batch_limit dictionary
-            if self.dataset.use_potentials:
+            if self.dataset.self.config["input"]["use_potentials"]:
                 sampler_method = "potentials"
             else:
                 sampler_method = "random"
-            key = (
-                f"{sampler_method}_{self.dataset.config.in_radius:3f}_"
-                f"{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
-            )
+            t = self.dataset.self.config["kpconv"]["sphere_radius"]
+            t1 = self.dataset.self.config["kpconv"]["first_subsampling_dl"]
+            t2 = self.dataset.self.config["train"]["batch_num"]
+            key = f"{sampler_method}_{t:3f}_" f"{t1:3f}_{t2:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
 
             # Save neighb_limit dictionary
-            for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-                if self.dataset.config.deform_layers[layer_ind]:
-                    r = dl * self.dataset.config.deform_radius
+            for layer_ind in range(self.dataset.self.num_layers):
+                dl = self.dataset.self.config["kpconv"]["first_subsampling_dl"] * (2**layer_ind)
+                if self.dataset.deform_layers[layer_ind]:
+                    r = dl * self.dataset.self.config["train"]["batch_num"]
                 else:
-                    r = dl * self.dataset.config.conv_radius
+                    r = dl * self.dataset.self.config["kpconv"]["conv_radius"]
                 key = f"{dl:.3f}_{r:.3f}"
                 neighb_lim_dict[key] = self.dataset.neighborhood_limits[layer_ind]
             with open(neighb_lim_file, "wb") as file:
@@ -1526,162 +1507,6 @@ def Toronto3DCollate(batch_data):
     return Toronto3DCustomBatch(batch_data)
 
 
-class Toronto3DConfig(Config):
-    """
-    Override the parameters you want to modify for this dataset
-    """
-
-    ####################
-    # Dataset parameters
-    ####################
-
-    # Dataset name
-    dataset = "Toronto3D"
-
-    # Number of classes in the dataset (This value is overwritten by dataset class when
-    # Initializating dataset).
-    num_classes = None
-
-    # Type of task performed on this dataset (also overwritten)
-    dataset_task = ""
-
-    # Number of CPU threads for the input pipeline
-    input_threads = 20
-
-    #########################
-    # Architecture definition
-    #########################
-
-    # # Define layers
-    architecture = [
-        "simple",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-    ]
-
-    ###################
-    # KPConv parameters
-    ###################
-
-    # Number of kernel points
-    num_kernel_points = 15
-
-    # Radius of the input sphere (decrease value to reduce memory cost)
-    in_radius = 3.0
-
-    # Size of the first subsampling grid in meter (increase value to reduce memory cost)
-    first_subsampling_dl = 0.08
-
-    # Radius of convolution in "number grid cell". (2.5 is the standard value)
-    conv_radius = 2.5
-
-    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can
-    # spread out
-    deform_radius = 5.0
-
-    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the
-    # standard value)
-    KP_extent = 1.0
-
-    # Behavior of convolutions in ('constant', 'linear', 'gaussian')
-    KP_influence = "linear"
-
-    # Aggregation function of KPConv in ('closest', 'sum')
-    aggregation_mode = "closest"
-
-    # Choice of input features
-    first_features_dim = 128
-    in_features_dim = 4
-
-    # Can the network learn modulations
-    modulated = False
-
-    # Batch normalization parameters
-    use_batch_norm = True
-    batch_norm_momentum = 0.02
-
-    # Deformable offset loss : fitting geometry by penalizing distance from deform point to input
-    # points ('point2point'), or to input point triplet ('point2plane', not implemented)
-    deform_fitting_mode = "point2point"
-    deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
-    deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
-    repulse_extent = 1.2  # Distance of repulsion for deformed kernel points
-
-    #####################
-    # Training parameters
-    #####################
-
-    # Maximal number of epochs
-    max_epoch = 400
-
-    # Learning rate management
-    learning_rate = 1e-2
-    momentum = 0.98
-    lr_decays = {i: 0.1 ** (1 / 150) for i in range(1, max_epoch)}
-    grad_clip_norm = 100.0
-
-    # Number of batch (decrease to reduce memory cost, but it should remain > 3 for stability)
-    batch_num = 4
-
-    # Number of steps per epochs
-    epoch_steps = 500
-
-    # Number of validation examples per epoch
-    validation_size = 50
-
-    # Number of epoch between each checkpoint
-    checkpoint_gap = 50
-
-    # Increment of inference potential before saving results
-    potential_increment = 10
-
-    # Augmentations
-    augment_scale_anisotropic = True
-    augment_symmetries = [True, False, False]
-    augment_rotation = "vertical"
-    augment_scale_min = 0.9
-    augment_scale_max = 1.1
-    augment_noise = 0.001
-    augment_color = 0.8
-
-    # The way we balance segmentation loss
-    # - 'none': Each point in the whole batch has the same contribution.
-    # - 'class': Each class has the same contribution (points are weighted according to class
-    #   balance)
-    # - 'batch': Each cloud in the batch has the same contribution (points are weighted according
-    #   cloud sizes)
-    segloss_balance = "none"
-
-    # Do we need to save convergence
-    saving = True
-    chosen_log = None
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Debug functions
-#       \*********************/
-
-
 def debug_upsampling(dataset, loader):
     """Shows which labels are sampled according to strategy chosen"""
 
@@ -1721,7 +1546,7 @@ def debug_timing(dataset, loader):
     t = [time.time()]
     last_display = time.time()
     mean_dt = np.zeros(2)
-    estim_b = dataset.config.batch_num
+    estim_b = dataset.self.config["train"]["batch_num"]
     estim_N = 0
 
     for _ in range(10):
@@ -1757,13 +1582,10 @@ def debug_timing(dataset, loader):
     print(counts)
 
 
-def debug_show_clouds(dataset, loader):
+def debug_show_clouds(dataset, config, loader):
 
     for _ in range(10):
-
-        pass
-
-        L = dataset.config.num_layers
+        L = config["model"]["num_layers"]
 
         for batch in loader:
 

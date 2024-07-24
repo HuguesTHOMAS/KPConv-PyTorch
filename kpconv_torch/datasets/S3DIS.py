@@ -12,7 +12,6 @@ import torch
 from torch.utils.data import get_worker_info, Sampler
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
-from kpconv_torch.utils.config import BColors, Config
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.io.las import read_las_laz
 from kpconv_torch.io.ply import read_ply, write_ply
@@ -28,94 +27,66 @@ class S3DISDataset(PointCloudDataset):
         datapath,
         chosen_log=None,
         infered_file=None,
-        use_potentials=True,
         load_data=True,
-        split="training",
+        task="train",
     ):
         """
-        This dataset is small enough to be stored in-memory, so load all point clouds here
+        This dataset is small enough to be stored in-memory, so load all point clouds here.
+
+        @parameters:
+        - config: YAML configuration dictionnary, coming from the config.yaml file
+        - datapath: -d CLI parameter, giving the path to the labeled points clouds data files
+        - chosen_log: -l CLI parameter, path to an already trained KPConv model log folder
+          on the file system
+        - infered_file: -f CLI parameter, path to the file on which to predict semantic labels,
+          using the trained model
+        - load_data: boolean, saying if loading the .ply file is needed or not
+        - task: operation type to realize, can be "all", "ERF", "train", "test", "validate"
         """
         super().__init__(
             config=config,
             datapath=datapath,
-            dataset="S3DIS",
+            ignored_labels=np.array([]),
             chosen_log=chosen_log,
             infered_file=infered_file,
-            split=split,
+            task=task,
         )
 
-        ############
-        # Parameters
-        ############
-
-        # Dict from labels to names
-        self.label_to_names = {
-            0: "ceiling",
-            1: "floor",
-            2: "wall",
-            3: "beam",
-            4: "column",
-            5: "window",
-            6: "door",
-            7: "chair",
-            8: "table",
-            9: "bookcase",
-            10: "sofa",
-            11: "board",
-            12: "clutter",
-        }
-
-        # Initialize a bunch of variables concerning class labels
-        self.init_labels()
-
-        # List of classes ignored during training (can be empty)
-        self.ignored_labels = np.array([])
-
-        # Type of task conducted on this dataset
-        self.dataset_task = "cloud_segmentation"
-
-        # Update number of class and data task in configuration
-        config.num_classes = self.num_classes - len(self.ignored_labels)
-        config.dataset_task = self.dataset_task
-
-        # Using potential or random epoch generation
-        self.use_potentials = use_potentials
-
         # Path of the training files
-        self.train_files_path = self.path / "original_ply"
+        self.train_files_path = datapath / self.config["train"]["train_folder"]
         if not os.path.exists(self.train_files_path):
             print("The ply folder does not exist, create it.")
             os.makedirs(self.train_files_path)
 
         # Create path for files
-        self.tree_path = os.path.join(self.path, f"input_{self.config.first_subsampling_dl:.3f}")
+        t = self.config["kpconv"]["first_subsampling_dl"]
+        self.tree_path = os.path.join(self.datapath, f"input_{t:.3f}")
         if not os.path.exists(self.tree_path):
             os.makedirs(self.tree_path)
 
-        # Proportion of validation scenes
-        self.training_cloud_names = ["Area_1", "Area_2", "Area_3", "Area_4", "Area_6"]
-        self.validation_cloud_names = ["Area_5"]
-
         # Data folder management
-        if self.set == "test" and infered_file is not None:
+        if self.task == "test" and infered_file is not None:
             # Inference case: a S3DIS dataset is built with the infered file
             self.cloud_names = [infered_file]
         else:
             # Any other case: the S3DIS dataset is built with the S3DIS original data
-            if self.set == "all":
-                self.cloud_names = self.training_cloud_names + self.validation_cloud_names
-            elif self.set == "training":
-                self.cloud_names = self.training_cloud_names
+            if self.task == "all":
+                self.cloud_names = (
+                    self.config["model"]["train_cloud_names"]
+                    + self.config["train"]["validation_cloud_names"]
+                )
+            elif self.task == "train":
+                self.cloud_names = self.config["train"]["train_cloud_names"]
             else:
-                self.cloud_names = self.validation_cloud_names
-            available_cloud_data = [subfolder.name for subfolder in self.path.iterdir()]
+                self.cloud_names = self.config["train"]["validation_cloud_names"]
+            available_cloud_data = [subfolder.name for subfolder in self.datapath.iterdir()]
             self.cloud_names = [
                 cloud_name for cloud_name in self.cloud_names if cloud_name in available_cloud_data
             ]
         self.files = [
             (
                 cloud_name
-                if self.set == "test" and infered_file is not None
+                if self.task == "test" and infered_file is not None
                 else self.train_files_path / (cloud_name + ".ply")
             )
             for i, cloud_name in enumerate(self.cloud_names)
@@ -135,35 +106,32 @@ class S3DISDataset(PointCloudDataset):
         if infered_file is None:
             self.prepare_S3DIS_ply()
 
-        # Stop data is not needed
-        if not load_data:
-            return
-
         ################
         # Load ply files
         ################
-        if 0 < self.config.first_subsampling_dl <= 0.01:
-            raise ValueError("subsampling_parameter too low (should be over 1 cm)")
+        if load_data:
+            if 0 < self.config["kpconv"]["first_subsampling_dl"] <= 0.01:
+                raise ValueError("subsampling_parameter too low (should be over 1 cm)")
 
-        for cloud_name, file_path in zip(self.cloud_names, self.files):
-            cur_kdtree = self.load_kdtree(cloud_name, file_path)
-            if self.use_potentials:
-                self.load_coarse_potential_locations(cloud_name, cur_kdtree.data)
-            # Only necessary for validation and test sets
-            if self.set in ["validation", "test"]:
-                self.load_projection_indices(cloud_name, file_path, cur_kdtree)
+            for cloud_name, file_path in zip(self.cloud_names, self.files):
+                cur_kdtree = self.load_kdtree(cloud_name, file_path)
+                if self.config["input"]["use_potentials"]:
+                    self.load_coarse_potential_locations(cloud_name, cur_kdtree.data)
+                # Only necessary for validation and test sets
+                if self.task in ["validate", "test"]:
+                    self.load_projection_indices(cloud_name, file_path, cur_kdtree)
 
-        ############################
-        # Batch selection parameters
-        ############################
+            ############################
+            # Batch selection parameters
+            ############################
 
-        self.set_batch_selection_parameters()
+            self.set_batch_selection_parameters()
 
-        # For ERF visualization, we want only one cloud per batch and no randomness
-        if self.set == "ERF":
-            self.batch_limit = torch.tensor([1], dtype=torch.float32)
-            self.batch_limit.share_memory_()
-            np.random.seed(42)
+            # For ERF visualization, we want only one cloud per batch and no randomness
+            if self.task == "ERF":
+                self.batch_limit = torch.tensor([1], dtype=torch.float32)
+                self.batch_limit.share_memory_()
+                np.random.seed(42)
 
     def __len__(self):
         """
@@ -177,12 +145,12 @@ class S3DISDataset(PointCloudDataset):
         in parallel to load a different list of indices.
         """
 
-        if self.use_potentials:
-            return self.potential_item(batch_i)
+        if self.config["input"]["use_potentials"]:
+            return self.potential_item()
         else:
             return self.random_item(batch_i)
 
-    def potential_item(self, batch_i, debug_workers=False):
+    def potential_item(self, debug_workers=False):
 
         t = [time.time()]
 
@@ -212,7 +180,9 @@ class S3DISDataset(PointCloudDataset):
                 message = ""
                 for wi in range(info.num_workers):
                     if wi == wid:
-                        message += f" {BColors.FAIL.value}X{BColors.ENDC.value} "
+                        t1 = self.config["colors"]["fail"]
+                        t2 = self.config["colors"]["endc"]
+                        message += f" {t1}X{t2} "
                     elif self.worker_waiting[wi] == 0:
                         message += "   "
                     elif self.worker_waiting[wi] == 1:
@@ -228,7 +198,9 @@ class S3DISDataset(PointCloudDataset):
                     message = ""
                     for wi in range(info.num_workers):
                         if wi == wid:
-                            message += f" {BColors.OKGREEN.value}v{BColors.ENDC.value} "
+                            t1 = self.config["colors"]["okgreen"]
+                            t2 = self.config["colors"]["endc"]
+                            message += f" {t1}v{t2} "
                         elif self.worker_waiting[wi] == 0:
                             message += "   "
                         elif self.worker_waiting[wi] == 1:
@@ -249,23 +221,23 @@ class S3DISDataset(PointCloudDataset):
                 center_point = pot_points[point_ind, :].reshape(1, -1)
 
                 # Add a small noise to center point
-                if self.set != "ERF":
+                if self.task != "ERF":
                     center_point += np.random.normal(
-                        scale=self.config.in_radius / 10, size=center_point.shape
+                        scale=self.config["input"]["sphere_radius"] / 10, size=center_point.shape
                     )
 
                 # Indices of points in input region
                 pot_inds, dists = self.pot_trees[cloud_ind].query_radius(
-                    center_point, r=self.config.in_radius, return_distance=True
+                    center_point, r=self.config["input"]["sphere_radius"], return_distance=True
                 )
 
                 d2s = np.square(dists[0])
                 pot_inds = pot_inds[0]
 
                 # Update potentials (Tukey weights)
-                if self.set != "ERF":
-                    tukeys = np.square(1 - d2s / np.square(self.config.in_radius))
-                    tukeys[d2s > np.square(self.config.in_radius)] = 0
+                if self.task != "ERF":
+                    tukeys = np.square(1 - d2s / np.square(self.config["input"]["sphere_radius"]))
+                    tukeys[d2s > np.square(self.config["input"]["sphere_radius"])] = 0
                     self.potentials[cloud_ind][pot_inds] += tukeys
                     min_ind = torch.argmin(self.potentials[cloud_ind])
                     self.min_potentials[[cloud_ind]] = self.potentials[cloud_ind][min_ind]
@@ -278,7 +250,7 @@ class S3DISDataset(PointCloudDataset):
 
             # Indices of points in input region
             input_inds = self.input_trees[cloud_ind].query_radius(
-                center_point, r=self.config.in_radius
+                center_point, r=self.config["input"]["sphere_radius"]
             )[0]
 
             t += [time.time()]
@@ -289,7 +261,7 @@ class S3DISDataset(PointCloudDataset):
             # Safe check for empty spheres
             if n < 2:
                 failed_attempts += 1
-                if failed_attempts > 100 * self.config.batch_num:
+                if failed_attempts > 100 * self.config["train"]["batch_num"]:
                     raise ValueError("It seems this dataset only contains empty input spheres")
                 t += [time.time()]
                 t += [time.time()]
@@ -298,7 +270,7 @@ class S3DISDataset(PointCloudDataset):
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
             input_colors = self.input_colors[cloud_ind][input_inds]
-            if self.set in ["test", "ERF"]:
+            if self.task in ["test", "ERF"]:
                 input_labels = np.zeros(input_points.shape[0])
             else:
                 input_labels = self.input_labels[cloud_ind][input_inds]
@@ -310,7 +282,7 @@ class S3DISDataset(PointCloudDataset):
             input_points, scale, R = self.augmentation_transform(input_points)
 
             # Color augmentation
-            if np.random.rand() > self.config.augment_color:
+            if np.random.rand() > self.config["train"]["augment_color"]:
                 input_colors *= 0
 
             # Get original height as additional feature
@@ -353,11 +325,11 @@ class S3DISDataset(PointCloudDataset):
 
         # Input features
         stacked_features = np.ones_like(stacked_points[:, :1], dtype=np.float32)
-        if self.config.in_features_dim == 1:
+        if self.config["input"]["features_dim"] == 1:
             pass
-        elif self.config.in_features_dim == 4:
+        elif self.config["input"]["features_dim"] == 4:
             stacked_features = np.hstack((stacked_features, features[:, :3]))
-        elif self.config.in_features_dim == 5:
+        elif self.config["input"]["features_dim"] == 5:
             stacked_features = np.hstack((stacked_features, features))
         else:
             raise ValueError("Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)")
@@ -385,7 +357,9 @@ class S3DISDataset(PointCloudDataset):
             message = ""
             for wi in range(info.num_workers):
                 if wi == wid:
-                    message += f" {BColors.OKBLUE.value}0{BColors.ENDC.value} "
+                    t1 = self.config["colors"]["okblue"]
+                    t2 = self.config["colors"]["endc"]
+                    message += f" {t1}0{t2} "
                 elif self.worker_waiting[wi] == 0:
                     message += "   "
                 elif self.worker_waiting[wi] == 1:
@@ -487,14 +461,14 @@ class S3DISDataset(PointCloudDataset):
             center_point = points[point_ind, :].reshape(1, -1)
 
             # Add a small noise to center point
-            if self.set != "ERF":
+            if self.task != "ERF":
                 center_point += np.random.normal(
-                    scale=self.config.in_radius / 10, size=center_point.shape
+                    scale=self.config["input"]["sphere_radius"] / 10, size=center_point.shape
                 )
 
             # Indices of points in input region
             input_inds = self.input_trees[cloud_ind].query_radius(
-                center_point, r=self.config.in_radius
+                center_point, r=self.config["input"]["sphere_radius"]
             )[0]
 
             # Number collected
@@ -503,14 +477,14 @@ class S3DISDataset(PointCloudDataset):
             # Safe check for empty spheres
             if n < 2:
                 failed_attempts += 1
-                if failed_attempts > 100 * self.config.batch_num:
+                if failed_attempts > 100 * self.config["train"]["batch_num"]:
                     raise ValueError("It seems this dataset only contains empty input spheres")
                 continue
 
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
             input_colors = self.input_colors[cloud_ind][input_inds]
-            if self.set in ["test", "ERF"]:
+            if self.task in ["test", "ERF"]:
                 input_labels = np.zeros(input_points.shape[0])
             else:
                 input_labels = self.input_labels[cloud_ind][input_inds]
@@ -520,7 +494,7 @@ class S3DISDataset(PointCloudDataset):
             input_points, scale, R = self.augmentation_transform(input_points)
 
             # Color augmentation
-            if np.random.rand() > self.config.augment_color:
+            if np.random.rand() > self.config["train"]["augment_color"]:
                 input_colors *= 0
 
             # Get original height as additional feature
@@ -561,11 +535,11 @@ class S3DISDataset(PointCloudDataset):
 
         # Input features
         stacked_features = np.ones_like(stacked_points[:, :1], dtype=np.float32)
-        if self.config.in_features_dim == 1:
+        if self.config["input"]["features_dim"] == 1:
             pass
-        elif self.config.in_features_dim == 4:
+        elif self.config["input"]["features_dim"] == 4:
             stacked_features = np.hstack((stacked_features, features[:, :3]))
-        elif self.config.in_features_dim == 5:
+        elif self.config["input"]["features_dim"] == 5:
             stacked_features = np.hstack((stacked_features, features))
         else:
             raise ValueError("Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)")
@@ -599,7 +573,7 @@ class S3DISDataset(PointCloudDataset):
                 continue
 
             # Get rooms of the current cloud
-            cloud_folder = os.path.join(self.path, cloud_name)
+            cloud_folder = os.path.join(self.datapath, cloud_name)
             room_folders = [
                 os.path.join(cloud_folder, room)
                 for room in os.listdir(cloud_folder)
@@ -683,10 +657,8 @@ class S3DISDataset(PointCloudDataset):
         print("File path:", file_path)
         # Check if inputs have already been computed
         if os.path.exists(KDTree_file):
-            print(
-                f"\nFound KDTree for cloud {cloud_name}, "
-                f"subsampled at {self.config.first_subsampling_dl:3f}"
-            )
+            t = self.config["kpconv"]["first_subsampling_dl"]
+            print(f"\nFound KDTree for cloud {cloud_name}, " f"subsampled at {t:3f}")
 
             # read ply with data
             _, sub_colors, sub_labels = self.read_input(sub_ply_file)
@@ -696,10 +668,8 @@ class S3DISDataset(PointCloudDataset):
                 search_tree = pickle.load(f)
 
         else:
-            print(
-                f"\nPreparing KDTree for cloud {cloud_name}, "
-                f"subsampled at {self.config.first_subsampling_dl:3f}."
-            )
+            t = self.config["kpconv"]["first_subsampling_dl"]
+            print(f"\nPreparing KDTree for cloud {cloud_name}, " f"subsampled at {t:3f}.")
 
             points, colors, labels = self.read_input(file_path)
 
@@ -708,7 +678,7 @@ class S3DISDataset(PointCloudDataset):
                 points,
                 features=colors,
                 labels=labels,
-                sampleDl=self.config.first_subsampling_dl,
+                sampleDl=self.config["kpconv"]["first_subsampling_dl"],
             )
 
             # Rescale float color and squeeze label
@@ -756,7 +726,7 @@ class S3DISDataset(PointCloudDataset):
             # Subsample cloud
             sub_points = np.array(kdtree_data, copy=False)
             coarse_points = grid_subsampling(
-                sub_points.astype(np.float32), sampleDl=self.config.in_radius / 10
+                sub_points.astype(np.float32), sampleDl=self.config["input"]["sphere_radius"] / 10
             )
 
             # Get chosen neighborhoods
@@ -806,18 +776,20 @@ class S3DISDataset(PointCloudDataset):
         self.batch_limit.share_memory_()
 
         # Number of models used per epoch
-        if self.set == "training":
-            self.epoch_n = self.config.epoch_steps * self.config.batch_num
+        if self.task == "train":
+            self.epoch_n = self.config["train"]["epoch_steps"] * self.config["train"]["batch_num"]
         else:
-            self.epoch_n = self.config.validation_size * self.config.batch_num
+            self.epoch_n = (
+                self.config["train"]["validation_size"] * self.config["train"]["batch_num"]
+            )
 
         # Initialize potentials
-        if self.use_potentials:
+        if self.config["input"]["use_potentials"]:
             self.potentials = []
             self.min_potentials = []
             self.argmin_potentials = []
             for tree in self.pot_trees:
-                self.potentials += [torch.from_numpy(np.random.rand(tree.data.shape[0]) * 1e-3)]
+                self.potentials += [torch.from_numpy(np.random.rand(tree.data.shape[0]) * 0.001)]
                 min_ind = int(torch.argmin(self.potentials[-1]))
                 self.argmin_potentials += [min_ind]
                 self.min_potentials += [float(self.potentials[-1][min_ind])]
@@ -833,7 +805,7 @@ class S3DISDataset(PointCloudDataset):
                 self.potentials[i].share_memory_()
 
             self.worker_waiting = torch.tensor(
-                [0 for _ in range(self.config.input_threads)], dtype=torch.int32
+                [0 for _ in range(self.config["input"]["threads"])], dtype=torch.int32
             )
             self.worker_waiting.share_memory_()
             self.epoch_inds = None
@@ -852,7 +824,7 @@ class S3DISDataset(PointCloudDataset):
 
     def load_evaluation_points(self, file_path):
         """
-        Load points (from test or validation split) on which the metrics should be evaluated
+        Load points (from test or validation task) on which the metrics should be evaluated
         """
         points, _, _ = self.read_input(file_path)
         return points
@@ -888,14 +860,14 @@ class S3DISSampler(Sampler):
 
         # Dataset used by the sampler (no copy is made in memory)
         self.dataset = dataset
-        self.calibration_path = os.path.join(self.dataset.path, "calibration")
+        self.calibration_path = os.path.join(self.dataset.datapath, "calibration")
         os.makedirs(self.calibration_path, exist_ok=True)
 
         # Number of step per epoch
-        if dataset.set == "training":
-            self.N = dataset.config.epoch_steps
+        if dataset.task == "train":
+            self.N = dataset.config["train"]["epoch_steps"]
         else:
-            self.N = dataset.config.validation_size
+            self.N = dataset.config["train"]["validation_size"]
 
         return
 
@@ -905,7 +877,7 @@ class S3DISSampler(Sampler):
 
         """
 
-        if not self.dataset.use_potentials:
+        if not self.dataset.config["input"]["use_potentials"]:
 
             # Initiate current epoch ind
             self.dataset.epoch_i *= 0
@@ -915,8 +887,8 @@ class S3DISSampler(Sampler):
             all_epoch_inds = np.zeros((2, 0), dtype=np.int64)
 
             # Number of sphere centers taken per class in each cloud
-            num_centers = self.N * self.dataset.config.batch_num
-            random_pick_n = int(np.ceil(num_centers / self.dataset.config.num_classes))
+            num_centers = self.N * self.dataset.config["train"]["batch_num"]
+            random_pick_n = int(np.ceil(num_centers / self.dataset.num_classes))
 
             # Choose random points of each class for each cloud
             for label_ind, label in enumerate(self.dataset.label_values):
@@ -950,7 +922,8 @@ class S3DISSampler(Sampler):
                                 )
                             )
                         warnings.warn(
-                            f"When choosing random epoch indices (use_potentials=False), "
+                            f"When choosing random epoch indices "
+                            f'(config["input"]["use_potentials"]=False), '
                             f"class {label:d}: {self.dataset.label_names[label_ind]} only had "
                             f"{N_inds:d} available points, while we needed {random_pick_n:d}. "
                             "Repeating indices in the same epoch",
@@ -1001,7 +974,7 @@ class S3DISSampler(Sampler):
 
         # Estimated average batch size and target value
         estim_b = 0
-        target_b = self.dataset.config.batch_num
+        target_b = self.dataset.config["train"]["batch_num"]
 
         # Calibration parameters
         low_pass_T = 10
@@ -1107,14 +1080,16 @@ class S3DISSampler(Sampler):
             batch_lim_dict = {}
 
         # Check if the batch limit associated with current parameters exists
-        if self.dataset.use_potentials:
+        if self.dataset.config["input"]["use_potentials"]:
             sampler_method = "potentials"
         else:
             sampler_method = "random"
-        key = (
-            f"{sampler_method}_{self.dataset.config.in_radius:3f}_"
-            f"{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num}"
-        )
+
+        t1 = self.dataset.config["input"]["sphere_radius"]
+        t2 = self.dataset.config["kpconv"]["first_subsampling_dl"]
+        t3 = self.dataset.config["train"]["batch_num"]
+
+        key = f"{sampler_method}_{t1:3f}_" f"{t2:3f}_{t3}"
         if not redo and key in batch_lim_dict:
             self.dataset.batch_limit[0] = batch_lim_dict[key]
         else:
@@ -1124,12 +1099,12 @@ class S3DISSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = BColors.OKGREEN.value
+                color = self.dataset.config["colors"]["okgreen"]
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = BColors.FAIL.value
+                color = self.dataset.config["colors"]["fail"]
                 v = "?"
-            print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+            print(f'{color}"{key}": {v}{self.dataset.config["colors"]["endc"]}')
 
         # Neighbors limit
         # ***************
@@ -1144,40 +1119,40 @@ class S3DISSampler(Sampler):
 
         # Check if the limit associated with current parameters exists (for each layer)
         neighb_limits = []
-        for layer_ind in range(self.dataset.config.num_layers):
+        for layer_ind in range(self.dataset.num_layers):
 
-            dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-            if self.dataset.config.deform_layers[layer_ind]:
-                r = dl * self.dataset.config.deform_radius
+            dl = self.dataset.config["kpconv"]["first_subsampling_dl"] * (2**layer_ind)
+            if self.dataset.deform_layers[layer_ind]:
+                r = dl * self.dataset.config["train"]["batch_num"]
             else:
-                r = dl * self.dataset.config.conv_radius
+                r = dl * self.dataset.config["kpconv"]["conv_radius"]
 
             key = f"{dl:.3f}_{r:.3f}"
             if key in neighb_lim_dict:
                 neighb_limits += [neighb_lim_dict[key]]
 
-        if not redo and len(neighb_limits) == self.dataset.config.num_layers:
+        if not redo and len(neighb_limits) == self.dataset.num_layers:
             self.dataset.neighborhood_limits = neighb_limits
         else:
             redo = True
 
         if verbose:
             print("Check neighbors limit dictionary")
-            for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-                if self.dataset.config.deform_layers[layer_ind]:
-                    r = dl * self.dataset.config.deform_radius
+            for layer_ind in range(self.dataset.num_layers):
+                dl = self.dataset.config["kpconv"]["first_subsampling_dl"] * (2**layer_ind)
+                if self.dataset.deform_layers[layer_ind]:
+                    r = dl * self.dataset.config["train"]["batch_num"]
                 else:
-                    r = dl * self.dataset.config.conv_radius
+                    r = dl * self.dataset.config["kpconv"]["conv_radius"]
                 key = f"{dl:.3f}_{r:.3f}"
 
                 if key in neighb_lim_dict:
-                    color = BColors.OKGREEN.value
+                    color = self.dataset.config["colors"]["okgreen"]
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = BColors.FAIL.value
+                    color = self.dataset.config["colors"]["fail"]
                     v = "?"
-                print(f'{color}"{key}": {v}{BColors.ENDC.value}')
+                print(f'{color}"{key}": {v}{self.dataset.config["colors"]["endc"]}')
 
         if redo:
 
@@ -1186,10 +1161,12 @@ class S3DISSampler(Sampler):
             ############################
 
             # From config parameter, compute higher bound of neighbors number in a neighborhood
-            hist_n = int(np.ceil(4 / 3 * np.pi * (self.dataset.config.deform_radius + 1) ** 3))
+            hist_n = int(
+                np.ceil(4 / 3 * np.pi * (self.dataset.config["train"]["batch_num"] + 1) ** 3)
+            )
 
             # Histogram of neighborhood sizes
-            neighb_hists = np.zeros((self.dataset.config.num_layers, hist_n), dtype=np.int32)
+            neighb_hists = np.zeros((self.dataset.num_layers, hist_n), dtype=np.int32)
 
             ########################
             # Batch calib parameters
@@ -1197,7 +1174,7 @@ class S3DISSampler(Sampler):
 
             # Estimated average batch size and target value
             estim_b = 0
-            target_b = self.dataset.config.batch_num
+            target_b = self.dataset.config["train"]["batch_num"]
 
             # Expected batch size order of magnitude
             expected_N = 100000
@@ -1344,11 +1321,13 @@ class S3DISSampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = BColors.FAIL.value
+                            color = self.dataset.config["colors"]["fail"]
                         else:
-                            color = BColors.OKGREEN.value
+                            color = self.dataset.config["colors"]["okgreen"]
                         line0 += "|{:}{:10d}{:}  ".format(
-                            color, neighb_hists[layer, neighb_size], BColors.ENDC.value
+                            color,
+                            neighb_hists[layer, neighb_size],
+                            self.dataset.config["colors"]["endc"],
                         )
 
                     print(line0)
@@ -1358,25 +1337,26 @@ class S3DISSampler(Sampler):
                 print()
 
             # Save batch_limit dictionary
-            if self.dataset.use_potentials:
+            if self.dataset.config["input"]["use_potentials"]:
                 sampler_method = "potentials"
             else:
                 sampler_method = "random"
-            key = (
-                f"{sampler_method}_{self.dataset.config.in_radius:3f}_"
-                f"{self.dataset.config.first_subsampling_dl:3f}_{self.dataset.config.batch_num:d}"
-            )
+
+            t1 = self.dataset.config["input"]["sphere_radius"]
+            t2 = self.dataset.config["kpconv"]["first_subsampling_dl"]
+            t3 = self.dataset.config["train"]["batch_num"]
+            key = f"{sampler_method}_{t1:3f}_" f"{t2:3f}_{t3:d}"
             batch_lim_dict[key] = float(self.dataset.batch_limit)
             with open(batch_lim_file, "wb") as file:
                 pickle.dump(batch_lim_dict, file)
 
             # Save neighb_limit dictionary
-            for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
-                if self.dataset.config.deform_layers[layer_ind]:
-                    r = dl * self.dataset.config.deform_radius
+            for layer_ind in range(self.dataset.num_layers):
+                dl = self.dataset.config["kpconv"]["first_subsampling_dl"] * (2**layer_ind)
+                if self.dataset.deform_layers[layer_ind]:
+                    r = dl * self.dataset.config["train"]["batch_num"]
                 else:
-                    r = dl * self.dataset.config.conv_radius
+                    r = dl * self.dataset.config["kpconv"]["conv_radius"]
                 key = f"{dl:.3f}_{r:.3f}"
                 neighb_lim_dict[key] = self.dataset.neighborhood_limits[layer_ind]
             with open(neighb_lim_file, "wb") as file:
@@ -1530,159 +1510,6 @@ def S3DISCollate(batch_data):
     return S3DISCustomBatch(batch_data)
 
 
-class S3DISConfig(Config):
-    """
-    Override the parameters you want to modify for this dataset
-    """
-
-    ####################
-    # Dataset parameters
-    ####################
-    # Dataset name
-    dataset = "S3DIS"
-
-    # Number of classes in the dataset (This value is overwritten by dataset class when
-    # Initializating dataset).
-    num_classes = None
-
-    # Type of task performed on this dataset (also overwritten)
-    dataset_task = ""
-
-    # Number of CPU threads for the input pipeline
-    input_threads = 10
-
-    #########################
-    # Architecture definition
-    #########################
-    # # Define layers
-    architecture = [
-        "simple",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb",
-        "resnetb",
-        "resnetb_strided",
-        "resnetb_deformable",
-        "resnetb_deformable",
-        "resnetb_deformable_strided",
-        "resnetb_deformable",
-        "resnetb_deformable",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-        "nearest_upsample",
-        "unary",
-    ]
-
-    ###################
-    # KPConv parameters
-    ###################
-    # Number of kernel points
-    num_kernel_points = 15
-
-    # Radius of the input sphere (decrease value to reduce memory cost)
-    in_radius = 1.2
-
-    # Size of the first subsampling grid in meter (increase value to reduce memory cost)
-    first_subsampling_dl = 0.03
-
-    # Radius of convolution in "number grid cell". (2.5 is the standard value)
-    conv_radius = 2.5
-
-    # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can
-    # spread out
-    deform_radius = 5.0
-
-    # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the
-    # standard value)
-    KP_extent = 1.2
-
-    # Behavior of convolutions in ('constant', 'linear', 'gaussian')
-    KP_influence = "linear"
-
-    # Aggregation function of KPConv in ('closest', 'sum')
-    aggregation_mode = "sum"
-
-    # Choice of input features
-    first_features_dim = 128
-    in_features_dim = 5
-
-    # Can the network learn modulations
-    modulated = False
-
-    # Batch normalization parameters
-    use_batch_norm = True
-    batch_norm_momentum = 0.02
-
-    # Deformable offset loss : fitting geometry by penalizing distance from deform point to input
-    # points ('point2point'), or to input point triplet ('point2plane', not implemented)
-    deform_fitting_mode = "point2point"
-    deform_fitting_power = 1.0  # Multiplier for the fitting/repulsive loss
-    deform_lr_factor = 0.1  # Multiplier for learning rate applied to the deformations
-    repulse_extent = 1.2  # Distance of repulsion for deformed kernel points
-
-    #####################
-    # Training parameters
-    #####################
-    # Maximal number of epochs
-    max_epoch = 500
-
-    # Learning rate management
-    learning_rate = 1e-2
-    momentum = 0.98
-    lr_decays = {i: 0.1 ** (1 / 150) for i in range(1, max_epoch)}
-    grad_clip_norm = 100.0
-
-    # Number of batch (decrease to reduce memory cost, but it should remain > 3 for stability)
-    batch_num = 6
-
-    # Number of steps per epochs
-    epoch_steps = 500
-
-    # Number of validation examples per epoch
-    validation_size = 50
-
-    # Number of epoch between each checkpoint
-    checkpoint_gap = 50
-
-    # Increment of inference potential before saving results
-    potential_increment = 10
-
-    # Augmentations
-    augment_scale_anisotropic = True
-    augment_symmetries = [True, False, False]
-    augment_rotation = "vertical"
-    augment_scale_min = 0.9
-    augment_scale_max = 1.1
-    augment_noise = 0.001
-    augment_color = 0.8
-
-    # The way we balance segmentation loss
-    # - 'none': Each point in the whole batch has the same contribution.
-    # - 'class': Each class has the same contribution (points are weighted according to class
-    #   balance)
-    # - 'batch': Each cloud in the batch has the same contribution (points are weighted according
-    #   cloud sizes)
-    segloss_balance = "none"
-
-    # Do we need to save convergence
-    saving = True
-    chosen_log = None
-    output_dir = None
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Debug functions
-#       \*********************/
-
-
 def debug_upsampling(dataset, loader):
     """Shows which labels are sampled according to strategy chosen"""
 
@@ -1722,7 +1549,7 @@ def debug_timing(dataset, loader):
     t = [time.time()]
     last_display = time.time()
     mean_dt = np.zeros(2)
-    estim_b = dataset.config.batch_num
+    estim_b = dataset.config["train"]["batch_num"]
     estim_N = 0
 
     for _ in range(10):
@@ -1757,12 +1584,10 @@ def debug_timing(dataset, loader):
     print(counts)
 
 
-def debug_show_clouds(dataset, loader):
+def debug_show_clouds(dataset, config, loader):
 
     for _ in range(10):
-        pass
-
-        L = dataset.config.num_layers
+        L = config["model"]["num_layers"]
 
         for batch in loader:
 

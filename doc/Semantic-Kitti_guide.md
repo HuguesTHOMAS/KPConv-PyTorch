@@ -21,7 +21,7 @@ and
 Place them in your `../../Data/SemanticKitti` folder.
 
 N.B. If you want to place your data anywhere else, you just have to change the variable
-`self.path` of `SemanticKittiDataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/c32e6ce94ed34a3dd9584f98d8dc0be02535dfb4/datasets/SemanticKitti.py#L65)).
+`self.datapath` of `SemanticKittiDataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/c32e6ce94ed34a3dd9584f98d8dc0be02535dfb4/datasets/SemanticKitti.py#L65)).
 
 ### Training
 

@@ -11,7 +11,7 @@ Regularly sampled clouds from ModelNet40 dataset can be downloaded
 Uncompress the data and move it inside the folder `../../Data/ModelNet40`.
 
 N.B. If you want to place your data anywhere else, you just have to change the variable
-`self.path` of `ModelNet40Dataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/e9d328135c0a3818ee0cf1bb5bb63434ce15c22e/datasets/ModelNet40.py#L113)).
+`self.datapath` of `ModelNet40Dataset` class ([here](https://github.com/HuguesTHOMAS/KPConv-PyTorch/blob/e9d328135c0a3818ee0cf1bb5bb63434ce15c22e/datasets/ModelNet40.py#L113)).
 
 
 ### Training a model

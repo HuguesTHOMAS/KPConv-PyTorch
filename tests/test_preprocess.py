@@ -22,9 +22,8 @@ def test_preprocess(dataset_path):
         |_ original_ply/
             |_ Area_3.ply
             |_ Area_5.ply
-
     """
-    preprocess.preprocess(dataset_path, dataset_path.name)
+    preprocess.preprocess("config_S3DIS.yml", dataset_path)
     subsampling_coef = 0.03
     assert (dataset_path / f"input_{subsampling_coef:.3f}").exists()
     assert (dataset_path / "original_ply").exists()

@@ -3,7 +3,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-from kpconv_torch.utils.config import BColors
 from kpconv_torch.io.ply import read_ply, write_ply
 
 
@@ -47,6 +46,7 @@ def create_3D_rotations(axis, angle):
 
 
 def spherical_Lloyd(
+    config,
     radius,
     num_cells,
     dimension=3,
@@ -190,7 +190,7 @@ def spherical_Lloyd(
             if warning:
                 print(
                     "{:}WARNING: at least one point has no cell{:}".format(
-                        BColors.WARNING.value, BColors.ENDC.value
+                        config["colors"]["warning"], config["colors"]["endc"]
                     )
                 )
         if verbose > 1:
@@ -284,7 +284,7 @@ def kernel_point_optimization_debug(
     diameter0 = 2
 
     # Factor multiplicating gradients for moving points (~learning rate)
-    moving_factor = 1e-2
+    moving_factor = 0.01
     continuous_moving_decay = 0.9995
 
     # Gradient threshold to stop optimization

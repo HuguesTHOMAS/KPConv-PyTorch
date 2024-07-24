@@ -22,11 +22,17 @@ def get_test_save_path(infered_file: Path, chosen_log: Path) -> Path:
 
 
 class ModelTester:
-    def __init__(self, net, chkp_path=None, test_path=None, on_gpu=True):
+    def __init__(self, net, config, chkp_path=None, test_path=None, on_gpu=True):
+        """
+        Initialize training parameters and reload previous model for restore/finetune
+        :param net: network object
+        :param config: configuration object
+        :param chkp_path: path to the checkpoint that needs to be loaded
+        :param test_path: path to the folder dedicated to contain the infered files
+        :param on_gpu: Train on GPU or CPU
+        """
+        self.config = config
 
-        ############
-        # Parameters
-        ############
         # Choose to train on CPU or GPU
         if on_gpu and torch.cuda.is_available():
             self.device = torch.device("cuda:0")
@@ -46,7 +52,7 @@ class ModelTester:
 
         return
 
-    def classification_test(self, net, test_loader, config, num_votes=100, debug=False):
+    def classification_test(self, net, test_loader):
 
         ############
         # Initialize
@@ -55,11 +61,8 @@ class ModelTester:
         # Choose test smoothing parameter (0 for no smothing, 0.99 for big smoothing)
         softmax = torch.nn.Softmax(1)
 
-        # Number of classes including ignored labels
-        test_loader.dataset.num_classes
-
         # Number of classes predicted by the model
-        nc_model = config.num_classes
+        nc_model = test_loader.dataset.num_classes
 
         # Initiate global prediction over test clouds
         self.test_probs = np.zeros((test_loader.dataset.num_models, nc_model))
@@ -68,7 +71,7 @@ class ModelTester:
         t = [time.time()]
         mean_dt = np.zeros(1)
         last_display = time.time()
-        while np.min(self.test_counts) < num_votes:
+        while np.min(self.test_counts) < self.config["test"]["n_votes"]:
 
             # Run model on all test examples
             # ******************************
@@ -89,7 +92,7 @@ class ModelTester:
                     batch.to(self.device)
 
                 # Forward pass
-                outputs = net(batch, config)
+                outputs = net(batch, self.config)
 
                 # Get probs and labels
                 probs += [softmax(outputs).cpu().detach().numpy()]
@@ -110,7 +113,7 @@ class ModelTester:
                     print(
                         message.format(
                             np.min(self.test_counts),
-                            100 * len(obj_inds) / config.validation_size,
+                            100 * len(obj_inds) / self.config["test"]["validation_size"],
                             1000 * (mean_dt[0]),
                             1000 * (mean_dt[1]),
                         )
@@ -146,7 +149,7 @@ class ModelTester:
 
         return
 
-    def cloud_segmentation_test(self, net, test_loader, config, num_votes=100, debug=False):
+    def cloud_segmentation_test(self, net, test_loader):
         """
         Test method for cloud segmentation models
         """
@@ -160,11 +163,8 @@ class ModelTester:
         test_radius_ratio = 0.7
         softmax = torch.nn.Softmax(1)
 
-        # Number of classes including ignored labels
-        test_loader.dataset.num_classes
-
         # Number of classes predicted by the model
-        nc_model = config.num_classes
+        nc_model = test_loader.dataset.num_classes
 
         # Initiate global prediction over test clouds
         self.test_probs = [
@@ -173,7 +173,7 @@ class ModelTester:
         ]
 
         # Test saving path
-        if config.saving:
+        if self.config["model"]["saving"]:
             if not os.path.exists(self.test_path):
                 os.makedirs(self.test_path)
             if not os.path.exists(os.path.join(self.test_path, "predictions")):
@@ -184,7 +184,7 @@ class ModelTester:
                 os.makedirs(os.path.join(self.test_path, "potentials"))
 
         # If on validation directly compute score
-        if test_loader.dataset.set == "validation":
+        if test_loader.dataset.task == "validate":
             val_proportions = np.zeros(nc_model, dtype=np.float32)
             i = 0
             for label_value in test_loader.dataset.label_values:
@@ -226,7 +226,7 @@ class ModelTester:
                     batch.to(self.device)
 
                 # Forward pass
-                outputs = net(batch, config)
+                outputs = net(batch, self.config)
 
                 t += [time.time()]
 
@@ -253,7 +253,8 @@ class ModelTester:
 
                     if 0 < test_radius_ratio < 1:
                         mask = (
-                            np.sum(points**2, axis=1) < (test_radius_ratio * config.in_radius) ** 2
+                            np.sum(points**2, axis=1)
+                            < (test_radius_ratio * self.config["input"]["sphere_radius"]) ** 2
                         )
                         inds = inds[mask]
                         probs = probs[mask]
@@ -279,7 +280,7 @@ class ModelTester:
                         message.format(
                             test_epoch,
                             i,
-                            100 * i / config.validation_size,
+                            100 * i / self.config["test"]["validation_size"],
                             1000 * (mean_dt[0]),
                             1000 * (mean_dt[1]),
                             1000 * (mean_dt[2]),
@@ -302,7 +303,7 @@ class ModelTester:
                 last_min += 1
 
                 # Show vote results (On subcloud so it is not the good values here)
-                if test_loader.dataset.set == "validation":
+                if test_loader.dataset.task == "validate":
                     print("\nConfusion on sub clouds")
                     Confs = []
                     for file_idx, _ in enumerate(test_loader.dataset.files):
@@ -347,7 +348,7 @@ class ModelTester:
                     print(s + "\n")
 
                 # Save real IoU once in a while
-                if last_saved_min + config.potential_increment < new_min:
+                if last_saved_min + self.config["test"]["potential_increment"] < new_min:
                     last_saved_min = new_min
 
                     # Project predictions
@@ -373,7 +374,7 @@ class ModelTester:
                     print(f"Done in {t2 - t1:.1f} s\n")
 
                     # Show vote results
-                    if test_loader.dataset.set == "validation":
+                    if test_loader.dataset.task == "validate":
                         print("Confusion on full clouds")
                         t1 = time.time()
                         Confs = []
@@ -432,7 +433,9 @@ class ModelTester:
                         write_ply(test_name, [points, preds], ["x", "y", "z", "preds"])
                         test_name2 = os.path.join(self.test_path, "probs", cloud_name)
                         prob_names = [
-                            "_".join(test_loader.dataset.label_to_names[label].split())
+                            "_".join(
+                                test_loader.dataset.config["model"]["label_to_names"][label].split()
+                            )
                             for label in test_loader.dataset.label_values
                         ]
                         write_ply(
@@ -452,8 +455,8 @@ class ModelTester:
                         )
 
                         # Save ascii preds
-                        if test_loader.dataset.set == "test":
-                            if test_loader.dataset.name.startswith("Semantic3D"):
+                        if test_loader.dataset.task == "test":
+                            if test_loader.dataset.config["dataset"] == "Semantic3D":
                                 ascii_name = os.path.join(
                                     self.test_path,
                                     "predictions",
@@ -471,13 +474,13 @@ class ModelTester:
             test_epoch += 1
 
             # Break when reaching number of desired votes
-            if last_min > num_votes:
+            if last_min > self.config["test"]["n_votes"]:
                 break
             print("---")
 
         return
 
-    def slam_segmentation_test(self, net, test_loader, config, num_votes=100, debug=True):
+    def slam_segmentation_test(self, net, test_loader, debug=True):
         """
         Test method for slam segmentation models
         """
@@ -497,14 +500,14 @@ class ModelTester:
 
         # Test saving path
         report_path = None
-        if config.saving:
+        if self.config["model"]["saving"]:
             if not os.path.exists(self.test_path):
                 os.makedirs(self.test_path)
             report_path = os.path.join(self.test_path, "reports")
             if not os.path.exists(report_path):
                 os.makedirs(report_path)
 
-        if test_loader.dataset.set == "validation":
+        if test_loader.dataset.task == "validate":
             for folder in ["val_predictions", "val_probs"]:
                 if not os.path.exists(os.path.join(self.test_path, folder)):
                     os.makedirs(os.path.join(self.test_path, folder))
@@ -516,7 +519,7 @@ class ModelTester:
         # Init validation container
         all_f_preds = []
         all_f_labels = []
-        if test_loader.dataset.set == "validation":
+        if test_loader.dataset.task == "validate":
             for seq_frames in test_loader.dataset.frames:
                 all_f_preds.append([np.zeros((0,), dtype=np.int32) for _ in seq_frames])
                 all_f_labels.append([np.zeros((0,), dtype=np.int32) for _ in seq_frames])
@@ -549,7 +552,7 @@ class ModelTester:
                     batch.to(self.device)
 
                 # Forward pass
-                outputs = net(batch, config)
+                outputs = net(batch, self.config)
 
                 # Get probs and labels
                 stk_probs = softmax(outputs).cpu().detach().numpy()
@@ -586,7 +589,7 @@ class ModelTester:
 
                     # Save probs in a binary file (uint8 format for lighter weight)
                     seq_name = test_loader.dataset.sequences[s_ind]
-                    if test_loader.dataset.set == "validation":
+                    if test_loader.dataset.task == "validate":
                         folder = "val_probs"
                         pred_folder = "val_predictions"
                     else:
@@ -604,7 +607,7 @@ class ModelTester:
                     np.save(filepath, frame_probs_uint8)
 
                     # Save some prediction in ply format for visual
-                    if test_loader.dataset.set == "validation":
+                    if test_loader.dataset.task == "validate":
 
                         # Insert false columns for ignored labels
                         frame_probs_uint8_bis = frame_probs_uint8.copy()
@@ -660,7 +663,7 @@ class ModelTester:
                                 self.test_path, folder, filename[:-4] + "_probs.ply"
                             )
                             lbl_names = [
-                                test_loader.dataset.label_to_names[label_value]
+                                test_loader.dataset.config["model"]["label_to_names"][label_value]
                                 for label_value in test_loader.dataset.label_values
                                 if label_value not in test_loader.dataset.ignored_labels
                             ]
@@ -741,12 +744,16 @@ class ModelTester:
                         .type(torch.int32)
                         .item()
                     )
-                    current_num = pot_num + (i + 1 - config.validation_size) * config.val_batch_num
+                    current_num = (
+                        pot_num
+                        + (i + 1 - self.config["test"]["validation_size"])
+                        * self.config["test"]["val_batch_num"]
+                    )
                     print(
                         message.format(
                             test_epoch,
                             i,
-                            100 * i / config.validation_size,
+                            100 * i / self.config["test"]["validation_size"],
                             1000 * (mean_dt[0]),
                             1000 * (mean_dt[1]),
                             1000 * (mean_dt[2]),
@@ -764,7 +771,7 @@ class ModelTester:
                 # Update last_min
                 last_min += 1
 
-                if test_loader.dataset.set == "validation" and last_min % 1 == 0:
+                if test_loader.dataset.task == "validate" and last_min % 1 == 0:
 
                     #####################################
                     # Results on the whole validation set
@@ -839,7 +846,7 @@ class ModelTester:
             test_epoch += 1
 
             # Break when reaching number of desired votes
-            if last_min > num_votes:
+            if last_min > self.config["test"]["n_votes"]:
                 break
 
         return

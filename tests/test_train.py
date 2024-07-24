@@ -1,4 +1,5 @@
-"""Unit and functional tests related to the training and inference processes.
+"""
+Unit and functional tests related to the training and inference processes.
 """
 
 from pathlib import Path
@@ -7,6 +8,7 @@ from shutil import rmtree
 import numpy as np
 from pytest import mark
 
+from kpconv_torch.utils.config import load_config
 from kpconv_torch.utils import tester, trainer
 from kpconv_torch import test, train
 
@@ -55,7 +57,7 @@ def test_train(dataset_path, trained_model_path):
 
     Expected resulting tree:
 
-    _ tests/fixtures/trained_models/
+    _ tests/fixtures/trained_models/Log_<date>
         |_ checkpoints/
             |_ current_chkp.tar
             |_ chkp_0001.tar
@@ -66,61 +68,57 @@ def test_train(dataset_path, trained_model_path):
             |_ Area_5.ply
         |_ val_preds_2/ (after second run)
             |_ Area_5.ply
-        |_ parameters.txt
+        |_ config.yml
         |_ training.txt (must contain as many rows as the epoch number times the step number)
         |_ val_IoUs.txt
 
     """
-    max_epoch = 1
-    epoch_steps = 3
-    validation_size = 1
     # First run
     train.train(
         dataset_path,
+        Path("tests/config_S3DIS.yml"),
         chosen_log=None,
         output_dir=trained_model_path,
-        dataset=dataset_path.name,
-        max_epoch=max_epoch,
-        checkpoint_gap=1,
-        epoch_steps=epoch_steps,
-        validation_size=validation_size,
     )
 
     log_dirs = list(trained_model_path.iterdir())
     assert len(log_dirs) == 1
     log_dir = log_dirs[0]
-    assert (log_dir / "parameters.txt").exists()
+
+    config = load_config(Path("tests/config_S3DIS.yml"))
+    assert (log_dir / "config.yml").exists()
     assert (log_dir / "training.txt").exists()
     assert (log_dir / "checkpoints" / "current_chkp.tar").exists()
     assert (log_dir / "checkpoints" / "chkp_0001.tar").exists()
     training_results = np.loadtxt(log_dir / "training.txt", skiprows=1)
-    assert training_results.shape[0] == epoch_steps * max_epoch
+    assert (
+        training_results.shape[0] == config["train"]["epoch_steps"] * config["train"]["max_epoch"]
+    )
     assert (log_dir / "potentials" / "Area_5.ply").exists()
-    assert (log_dir / f"val_preds_{max_epoch}" / "Area_5.ply").exists()
+    t = config["train"]["max_epoch"]
+    assert (log_dir / f"val_preds_{t}" / "Area_5.ply").exists()
     assert (log_dir / "val_IoUs.txt").exists()
 
     # A second run to check the checkpoint usage
     # No need to specify max_epoch, checkpoint_gap and epoch_steps:
     # they are stored with the checkpoint
-    train.train(
-        dataset_path,
-        chosen_log=log_dir,
-        output_dir=None,
-        dataset=dataset_path.name,
-    )
+    train.train(dataset_path, configfile=None, chosen_log=log_dir, output_dir=None)
 
+    log_dirs = list(trained_model_path.iterdir())
     log_dirs = list(trained_model_path.iterdir())
     assert len(log_dirs) == 1
     new_log_dir = log_dirs[0]
     assert new_log_dir == log_dir
-    assert (log_dir / "parameters.txt").exists()
+    assert (log_dir / "config.yml").exists()
     assert (log_dir / "training.txt").exists()
     assert (log_dir / "checkpoints" / "current_chkp.tar").exists()
     assert (log_dir / "checkpoints" / "chkp_0002.tar").exists()
     training_results = np.loadtxt(log_dir / "training.txt", skiprows=1)
-    assert training_results.shape[0] == epoch_steps * (max_epoch + 1)
+    assert training_results.shape[0] == config["train"]["epoch_steps"] * (
+        config["train"]["max_epoch"] + 1
+    )
     assert (log_dir / "potentials" / "Area_5.ply").exists()
-    assert (log_dir / f"val_preds_{max_epoch}" / "Area_5.ply").exists()
+    assert (log_dir / f"val_preds_{t}" / "Area_5.ply").exists()
     assert (log_dir / "val_IoUs.txt").exists()
 
 
@@ -143,13 +141,11 @@ def test_test_validation_case(dataset_path, training_log):
     """
     test.test(
         dataset_path,
+        Path("tests/config_S3DIS.yml"),
         None,
         training_log,
-        dataset_path.name,
-        n_votes=1,
-        validation_size=5,
-        potential_increment=2,  # The min potential increases until ~2.5
     )
+
     assert (training_log / "test" / "potentials" / "Area_5.ply").is_file()
     assert (training_log / "test" / "probs" / "Area_5.ply").is_file()
     assert (training_log / "test" / "predictions" / "Area_5.ply").is_file()
@@ -171,16 +167,12 @@ def test_test_inference_case(dataset_path, inference_file, training_log):
         |_ predictions/
             |_ Area_5.ply
             |_ Area_5.txt (an extra file in this case)
-
     """
     test.test(
         dataset_path,
+        Path("tests/config_S3DIS.yml"),
         inference_file,
         training_log,
-        dataset_path.name,
-        n_votes=1,
-        validation_size=5,
-        potential_increment=4,  # The potential increases to 4-7 depending on the Python version
     )
     assert (
         inference_file.parent / "test" / training_log.name / "potentials" / inference_file.name

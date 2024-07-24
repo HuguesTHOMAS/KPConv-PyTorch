@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 import time
 
+from kpconv_torch.utils.config import load_config
 import numpy as np
 from torch.utils.data import DataLoader
 
@@ -16,7 +17,6 @@ from kpconv_torch.datasets.S3DIS import (
     S3DISSampler,
 )
 from kpconv_torch.models.architectures import KPCNN, KPFCNN
-from kpconv_torch.utils.config import Config
 from kpconv_torch.utils.visualizer import ModelVisualizer
 
 
@@ -39,9 +39,8 @@ def model_choice(chosen_log):
 
         # Find the last log of asked dataset
         for log in logs[::-1]:
-            log_config = Config()
-            log_config.load(log)
-            if log_config.dataset.startswith(test_dataset):
+            log_config = load_config(log)
+            if log_config["dataset"] == test_dataset:
                 chosen_log = log
                 break
 
@@ -56,10 +55,10 @@ def model_choice(chosen_log):
 
 
 def main(args):
-    visualize(args.datapath, args.chosen_log)
+    visualize(args.dataset, args.datapath, args.chosen_log)
 
 
-def visualize(datapath: Path, chosen_log: Path) -> None:
+def visualize(dataset: str, datapath: Path, chosen_log: Path) -> None:
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -97,19 +96,17 @@ def visualize(datapath: Path, chosen_log: Path) -> None:
     chosen_chkp = os.path.join(chosen_log, "checkpoints", chosen_chkp)
 
     # Initialize configuration class
-    config = Config()
-    config.load(chosen_log)
+    config = load_config(chosen_log)
 
     ##################################
     # Change model parameters for test
     ##################################
 
     # Change parameters for the test here. For example, you can stop augmenting the input data.
-
-    config.augment_noise = 0.0001
-    config.batch_num = 1
-    config.in_radius = 2.0
-    config.input_threads = 0
+    config["train"]["augment_noise"] = 0.0001
+    config["train"]["batch_num"] = 1
+    config["train"]["sphere_radius"] = 2.0
+    config["input"]["threads"] = 0
 
     ##############
     # Prepare Data
@@ -120,21 +117,16 @@ def visualize(datapath: Path, chosen_log: Path) -> None:
     print("****************")
 
     # Initiate dataset
-    if config.dataset.startswith("ModelNet40"):
+    if dataset == "ModelNet40":
         test_dataset = ModelNet40Dataset(config=config, datapath=datapath, train=False)
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
-    elif config.dataset == "S3DIS":
-        test_dataset = S3DISDataset(
-            config=config,
-            datapath=datapath,
-            split="validation",
-            use_potentials=True,
-        )
+    elif dataset == "S3DIS":
+        test_dataset = S3DISDataset(config=config, datapath=datapath, task="validate")
         test_sampler = S3DISSampler(test_dataset)
         collate_fn = S3DISCollate
     else:
-        raise ValueError("Unsupported dataset : " + config.dataset)
+        raise ValueError("Unsupported dataset : " + config["model"]["dataset"])
 
     # Data loader
     test_loader = DataLoader(
@@ -142,7 +134,7 @@ def visualize(datapath: Path, chosen_log: Path) -> None:
         batch_size=1,
         sampler=test_sampler,
         collate_fn=collate_fn,
-        num_workers=config.input_threads,
+        num_workers=config.threads,
         pin_memory=True,
     )
 
@@ -150,23 +142,23 @@ def visualize(datapath: Path, chosen_log: Path) -> None:
     test_sampler.calibration(test_loader, verbose=True)
 
     print("\nModel Preparation")
-    print("*****************")
+    print("*******************")
 
     # Define network model
     t1 = time.time()
-    if config.dataset_task == "classification":
+    if config["model"]["task"] == "classification":
         net = KPCNN(config)
-    elif config.dataset_task in ["cloud_segmentation", "slam_segmentation"]:
+    elif config["model"]["task"] in ["cloud_segmentation", "slam_segmentation"]:
         net = KPFCNN(config, test_dataset.label_values, test_dataset.ignored_labels)
     else:
-        raise ValueError("Unsupported dataset_task for deformation visu: " + config.dataset_task)
+        raise ValueError("Unsupported task for deformation visu: " + config["model"]["task"])
 
     # Define a visualizer class
-    visualizer = ModelVisualizer(net, config, chkp_path=chosen_chkp, on_gpu=False)
+    visualizer = ModelVisualizer(net, chkp_path=chosen_chkp, on_gpu=False)
     print(f"Done in {time.time() - t1:.1f}s\n")
 
     print("\nStart visualization")
-    print("*******************")
+    print("*********************")
 
     # Training
-    visualizer.show_deformable_kernels(net, test_loader, config, deform_idx)
+    visualizer.show_deformable_kernels(net, test_loader, deform_idx)
