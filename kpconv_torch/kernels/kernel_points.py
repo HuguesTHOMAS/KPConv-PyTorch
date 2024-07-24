@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from kpconv_torch.io.ply import read_ply, write_ply
+from kpconv_torch.utils.config import bcolors
 
 
 def create_3D_rotations(axis, angle):
@@ -190,7 +191,7 @@ def spherical_Lloyd(
             if warning:
                 print(
                     "{:}WARNING: at least one point has no cell{:}".format(
-                        config["colors"]["warning"], config["colors"]["endc"]
+                        bcolors.WARNING, bcolors.ENDC
                     )
                 )
         if verbose > 1:

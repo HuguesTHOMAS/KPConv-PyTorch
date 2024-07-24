@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import Sampler
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
+from kpconv_torch.utils.config import bcolors
 
 
 class SemanticKittiDataset(PointCloudDataset):
@@ -893,12 +894,12 @@ class SemanticKittiSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check max_in limit dictionary")
             if key in max_in_lim_dict:
-                color = config["colors"]["okgreen"]
+                color = bcolors.OKGREEN
                 v = str(int(max_in_lim_dict[key]))
             else:
-                color = config["colors"]["fail"]
+                color = bcolors.FAIL
                 v = "?"
-            print(f'{color}"{key}": {v}{config["colors"]["endc"]}')
+            print(f'{color}"{key}": {v}{bcolors.ENDC}')
 
         if redo:
 
@@ -1017,12 +1018,12 @@ class SemanticKittiSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = self.config["colors"]["okgreen"]
+                color = bcolors.OKGREEN
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = self.config["colors"]["fail"]
+                color = bcolors.FAIL
                 v = "?"
-            print(f'{color}"{key}": {v}{self.config["colors"]["endc"]}')
+            print(f'{color}"{key}": {v}{bcolors.ENDC}')
 
         # Neighbors limit
         # ***************
@@ -1065,12 +1066,12 @@ class SemanticKittiSampler(Sampler):
                 key = f"{sampler_method}_{self.dataset.max_in_p:d}_{dl:3f}_{r:3f}"
 
                 if key in neighb_lim_dict:
-                    color = self.config["colors"]["okgreen"]
+                    color = bcolors.OKGREEN
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = self.config["colors"]["fail"]
+                    color = bcolors.FAIL
                     v = "?"
-                print(f'{color}"{key}": {v}{self.config["colors"]["endc"]}')
+                print(f'{color}"{key}": {v}{bcolors.ENDC}')
 
         if redo:
 
@@ -1192,11 +1193,11 @@ class SemanticKittiSampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = self.config["colors"]["fail"]
+                            color = bcolors.FAIL
                         else:
-                            color = self.config["colors"]["okgreen"]
+                            color = bcolors.OKGREEN
                         line0 += "|{:}{:10d}{:}  ".format(
-                            color, neighb_hists[layer, neighb_size], self.config["colors"]["endc"]
+                            color, neighb_hists[layer, neighb_size], bcolors.ENDC
                         )
 
                     print(line0)
@@ -1208,11 +1209,11 @@ class SemanticKittiSampler(Sampler):
             # Control max_in_points value
             print("\n**************************************************\n")
             if cropped_n > 0.3 * all_n:
-                color = self.config["colors"]["fail"]
+                color = bcolors.FAIL
             else:
-                color = self.config["colors"]["okgreen"]
+                color = bcolors.OKGREEN
             print(f"Current value of max_in_points {self.dataset.max_in_p:d}")
-            t = self.config["colors"]["endc"]
+            t = bcolors.ENDC
             print(f"  > {color}{100 * cropped_n / all_n:.1f}% inputs are cropped{t}")
             if cropped_n > 0.3 * all_n:
                 print("\nTry a higher max_in_points value\n")

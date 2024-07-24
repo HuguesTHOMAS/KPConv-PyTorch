@@ -12,6 +12,7 @@ import torch
 from torch.utils.data import get_worker_info, Sampler
 
 from kpconv_torch.datasets.common import grid_subsampling, PointCloudDataset
+from kpconv_torch.utils.config import bcolors
 from kpconv_torch.utils.mayavi_visu import show_input_batch
 from kpconv_torch.io.las import read_las_laz
 from kpconv_torch.io.ply import read_ply, write_ply
@@ -180,8 +181,8 @@ class S3DISDataset(PointCloudDataset):
                 message = ""
                 for wi in range(info.num_workers):
                     if wi == wid:
-                        t1 = self.config["colors"]["fail"]
-                        t2 = self.config["colors"]["endc"]
+                        t1 = bcolors.FAIL
+                        t2 = bcolors.ENDC
                         message += f" {t1}X{t2} "
                     elif self.worker_waiting[wi] == 0:
                         message += "   "
@@ -198,9 +199,7 @@ class S3DISDataset(PointCloudDataset):
                     message = ""
                     for wi in range(info.num_workers):
                         if wi == wid:
-                            t1 = self.config["colors"]["okgreen"]
-                            t2 = self.config["colors"]["endc"]
-                            message += f" {t1}v{t2} "
+                            message += f" {bcolors.OKGREEN}v{bcolors.ENDC} "
                         elif self.worker_waiting[wi] == 0:
                             message += "   "
                         elif self.worker_waiting[wi] == 1:
@@ -357,9 +356,7 @@ class S3DISDataset(PointCloudDataset):
             message = ""
             for wi in range(info.num_workers):
                 if wi == wid:
-                    t1 = self.config["colors"]["okblue"]
-                    t2 = self.config["colors"]["endc"]
-                    message += f" {t1}0{t2} "
+                    message += f" {bcolors.OKBLUE}0{bcolors.ENDC} "
                 elif self.worker_waiting[wi] == 0:
                     message += "   "
                 elif self.worker_waiting[wi] == 1:
@@ -1099,12 +1096,12 @@ class S3DISSampler(Sampler):
             print("\nPrevious calibration found:")
             print("Check batch limit dictionary")
             if key in batch_lim_dict:
-                color = self.dataset.config["colors"]["okgreen"]
+                color = bcolors.OKGREEN
                 v = str(int(batch_lim_dict[key]))
             else:
-                color = self.dataset.config["colors"]["fail"]
+                color = bcolors.FAIL
                 v = "?"
-            print(f'{color}"{key}": {v}{self.dataset.config["colors"]["endc"]}')
+            print(f'{color}"{key}": {v}{bcolors.ENDC}')
 
         # Neighbors limit
         # ***************
@@ -1147,12 +1144,12 @@ class S3DISSampler(Sampler):
                 key = f"{dl:.3f}_{r:.3f}"
 
                 if key in neighb_lim_dict:
-                    color = self.dataset.config["colors"]["okgreen"]
+                    color = bcolors.OKGREEN
                     v = str(neighb_lim_dict[key])
                 else:
-                    color = self.dataset.config["colors"]["fail"]
+                    color = bcolors.FAIL
                     v = "?"
-                print(f'{color}"{key}": {v}{self.dataset.config["colors"]["endc"]}')
+                print(f'{color}"{key}": {v}{bcolors.ENDC}')
 
         if redo:
 
@@ -1321,13 +1318,13 @@ class S3DISSampler(Sampler):
                     line0 = f"     {neighb_size:4d}     "
                     for layer in range(neighb_hists.shape[0]):
                         if neighb_size > percentiles[layer]:
-                            color = self.dataset.config["colors"]["fail"]
+                            color = bcolors.FAIL
                         else:
-                            color = self.dataset.config["colors"]["okgreen"]
+                            color = bcolors.OKGREEN
                         line0 += "|{:}{:10d}{:}  ".format(
                             color,
                             neighb_hists[layer, neighb_size],
-                            self.dataset.config["colors"]["endc"],
+                            bcolors.ENDC,
                         )
 
                     print(line0)
