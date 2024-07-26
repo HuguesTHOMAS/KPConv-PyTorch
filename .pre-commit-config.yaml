@@ -40,6 +40,14 @@ repos:
         args:
           - --per-file-ignores=kpconv_torch/utils/visualizer.py:B023
 
+  - repo: https://github.com/pre-commit/mirrors-pylint
+    rev: v3.0.0a5
+    hooks:
+      - id: pylint
+        args: [--fail-under=8]
+        files: \.py
+        exclude: .pylintrc
+
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v2.40.0
     hooks:
