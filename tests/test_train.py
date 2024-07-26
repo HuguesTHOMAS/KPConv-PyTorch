@@ -1,6 +1,13 @@
 """
-Unit and functional tests related to the training and inference processes.
+Training and inference processes unit and functional tests
+
+@author: Hugues THOMAS, Oslandia
+@date: july 2024
+
 """
+
+# pylint: disable=R0913, R0914, R0912, R0902, R0915, E0401, C0103
+
 
 from pathlib import Path
 from shutil import rmtree
@@ -76,7 +83,7 @@ def test_train(dataset_path, trained_model_path):
     # First run
     train.train(
         dataset_path,
-        Path("tests/config_S3DIS.yml"),
+        Path("tests/config_s3dis.yml"),
         chosen_log=None,
         output_dir=trained_model_path,
     )
@@ -85,7 +92,7 @@ def test_train(dataset_path, trained_model_path):
     assert len(log_dirs) == 1
     log_dir = log_dirs[0]
 
-    config = load_config(Path("tests/config_S3DIS.yml"))
+    config = load_config(Path("tests/config_s3dis.yml"))
     assert (log_dir / "config.yml").exists()
     assert (log_dir / "training.txt").exists()
     assert (log_dir / "checkpoints" / "current_chkp.tar").exists()
@@ -141,7 +148,7 @@ def test_test_validation_case(dataset_path, training_log):
     """
     test.test(
         dataset_path,
-        Path("tests/config_S3DIS.yml"),
+        Path("tests/config_s3dis.yml"),
         None,
         training_log,
     )
@@ -170,7 +177,7 @@ def test_test_inference_case(dataset_path, inference_file, training_log):
     """
     test.test(
         dataset_path,
-        Path("tests/config_S3DIS.yml"),
+        Path("tests/config_s3dis.yml"),
         inference_file,
         training_log,
     )

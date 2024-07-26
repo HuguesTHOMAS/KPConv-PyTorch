@@ -20,10 +20,10 @@ from kpconv_torch.utils.config import load_config
 
 
 def main(args):
-    preprocess(args.configfile, args.datapath)
+    preprocess(args.datapath, args.configfile)
 
 
-def preprocess(configfile_path: Path, datapath: Path) -> None:
+def preprocess(datapath: Path, configfile_path: Path) -> None:
     # Option: set which gpu is going to be used and set the GPU visible device
     # By modifying the CUDA_VISIBLE_DEVICES environment variable
 

@@ -1,3 +1,13 @@
+"""
+Dataset preprocessing tests
+
+@author: Hugues THOMAS, Oslandia
+@date: july 2024
+
+"""
+
+# pylint: disable=R0913, R0914, R0912, R0902, R0915, E0401, C0103
+
 import numpy as np
 
 from kpconv_torch import preprocess
@@ -23,7 +33,7 @@ def test_preprocess(dataset_path):
             |_ Area_3.ply
             |_ Area_5.ply
     """
-    preprocess.preprocess("config_S3DIS.yml", dataset_path)
+    preprocess.preprocess(dataset_path, "tests/config_s3dis.yml")
     subsampling_coef = 0.03
     assert (dataset_path / f"input_{subsampling_coef:.3f}").exists()
     assert (dataset_path / "original_ply").exists()
