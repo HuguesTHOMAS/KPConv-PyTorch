@@ -8,7 +8,7 @@ import torch
 
 from kpconv_torch.models.blocks import KPConv
 from kpconv_torch.io.ply import write_ply
-from kpconv_torch.utils.config import bcolors
+from kpconv_torch.utils.config import BColors
 
 
 class ModelVisualizer:
@@ -71,9 +71,9 @@ class ModelVisualizer:
         for m in net.modules():
             if isinstance(m, KPConv) and m.deformable:
                 if len(deform_convs) == deform_idx:
-                    color = bcolors.OKGREEN
+                    color = BColors.OKGREEN
                 else:
-                    color = bcolors.FAIL
+                    color = BColors.FAIL
                 print(
                     fmt_str.format(
                         color,
@@ -81,7 +81,7 @@ class ModelVisualizer:
                         m.radius,
                         m.in_channels,
                         m.out_channels,
-                        bcolors.ENDC,
+                        BColors.ENDC,
                     )
                 )
                 deform_convs.append(m)

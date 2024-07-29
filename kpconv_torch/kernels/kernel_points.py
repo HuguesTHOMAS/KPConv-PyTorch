@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from kpconv_torch.io.ply import read_ply, write_ply
-from kpconv_torch.utils.config import bcolors
+from kpconv_torch.utils.config import BColors
 
 
-def create_3D_rotations(axis, angle):
+def create_3d_rotations(axis, angle):
     """
     Create rotation matrices from a list of axes and angles. Code from wikipedia on quaternions
     :param axis: float32[N, 3]
@@ -191,7 +191,7 @@ def spherical_Lloyd(
             if warning:
                 print(
                     "{:}WARNING: at least one point has no cell{:}".format(
-                        bcolors.WARNING, bcolors.ENDC
+                        BColors.WARNING, BColors.ENDC
                     )
                 )
         if verbose > 1:
@@ -492,7 +492,7 @@ def load_kernels(radius, num_kpoints, dimension, fixed, lloyd=False):
             alpha = np.random.rand() * 2 * np.pi
 
             # Create the rotation matrix with this vector and angle
-            R = create_3D_rotations(np.reshape(u, (1, -1)), np.reshape(alpha, (1, -1)))[0]
+            R = create_3d_rotations(np.reshape(u, (1, -1)), np.reshape(alpha, (1, -1)))[0]
 
             R = R.astype(np.float32)
 

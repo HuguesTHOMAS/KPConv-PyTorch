@@ -1,9 +1,23 @@
+"""
+Configuration reading / writing functions and colors definition for the terminal
+
+@author: Hugues THOMAS, Oslandia
+@date: july 2024
+
+"""
+
+# pylint: disable=R0913, R0914, R0912, R0902, R0915, C0103, E0401
+
+from enum import Enum
+from pathlib import Path
 import yaml
 
-from pathlib import Path
 
+class BColors(Enum):
+    """
+    Colors used to display the code in the terminal
+    """
 
-class bcolors:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
     OKCYAN = "\033[96m"
@@ -16,14 +30,25 @@ class bcolors:
 
 
 def save_config(train_save_path, config):
-    with open(Path(train_save_path / "config.yml"), "w") as file_object:
+    """
+    Saves a configuration into a YAML file
+
+    :param train_save_path: a path to a folder where to save the file
+    :param config: a configuration dictionnary
+    """
+    with open(Path(train_save_path / "config.yml"), "w", encoding="utf-8") as file_object:
         yaml.dump(config, file_object)
 
 
 def load_config(file_path):
+    """
+    Loads a configuration from a YAML file
+
+    :param file_path: a path to a config file
+    """
     file_path = Path(file_path)
 
-    with open(file_path) as file_object:
+    with open(file_path, encoding="utf-8") as file_object:
         config = yaml.load(file_object, Loader=yaml.SafeLoader)
 
     # Check if dataset exists

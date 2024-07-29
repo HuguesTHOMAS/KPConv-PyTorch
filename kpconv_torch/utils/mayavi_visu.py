@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def show_ModelNet_models(all_points):
+def show_modelnet_models(all_points):
     from mayavi import mlab
 
     ###########################
@@ -66,7 +66,7 @@ def show_ModelNet_models(all_points):
     mlab.show()
 
 
-def show_ModelNet_examples(clouds, cloud_normals=None, cloud_labels=None):
+def show_modelnet_examples(clouds, cloud_normals=None, cloud_labels=None):
     from mayavi import mlab
 
     ###########################
