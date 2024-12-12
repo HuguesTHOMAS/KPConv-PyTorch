@@ -689,18 +689,20 @@ class S3DISDataset(PointCloudDataset):
                         else:
                             raise ValueError('Unknown object name: ' + str(tmp))
 
-                        # Correct bug in S3DIS dataset
-                        if object_name == 'ceiling_1.txt':
+                        # Read object points and colors
+                        try:
+                            object_data = np.loadtxt(object_file, dtype=np.float32)
+                        except ValueError:
+                            # Correct bug in S3DIS dataset
+                            warnings.warn('Bugs in: ' + object_file + '. Try fixing...')
+                            import re
                             with open(object_file, 'r') as f:
                                 lines = f.readlines()
                             for l_i, line in enumerate(lines):
-                                if '103.0\x100000' in line:
-                                    lines[l_i] = line.replace('103.0\x100000', '103.000000')
+                                lines[l_i] = re.sub(r'[\x00-\x09\x0B-\x0C\x0E-\x1F\x7F-\x9F]', ' ', line)
                             with open(object_file, 'w') as f:
                                 f.writelines(lines)
-
-                        # Read object points and colors
-                        object_data = np.loadtxt(object_file, dtype=np.float32)
+                            object_data = np.loadtxt(object_file, dtype=np.float32)
 
                         # Stack all data
                         cloud_points = np.vstack((cloud_points, object_data[:, 0:3].astype(np.float32)))
