@@ -234,7 +234,7 @@ class KPConv(nn.Module):
         return Parameter(torch.tensor(K_points_numpy, dtype=torch.float32),
                          requires_grad=False)
 
-    def forward(self, q_pts, s_pts, neighb_inds, x):
+    def forward(self, q_pts, s_pts, neighb_inds0, x):
 
         ###################
         # Offset generation
@@ -243,7 +243,7 @@ class KPConv(nn.Module):
         if self.deformable:
 
             # Get offsets with a KPConv that only takes part of the features
-            self.offset_features = self.offset_conv(q_pts, s_pts, neighb_inds, x) + self.offset_bias
+            self.offset_features = self.offset_conv(q_pts, s_pts, neighb_inds0, x) + self.offset_bias
 
             if self.modulated:
 
@@ -275,6 +275,10 @@ class KPConv(nn.Module):
 
         # Add a fake point in the last row for shadow neighbors
         s_pts = torch.cat((s_pts, torch.zeros_like(s_pts[:1, :]) + 1e6), 0)
+
+        # Use actual index of last point instead of -1
+        neighb_inds = neighb_inds0.clone()
+        neighb_inds[neighb_inds == -1] = s_pts.shape[0] - 1
 
         # Get neighbor points [n_points, n_neighbors, dim]
         neighbors = s_pts[neighb_inds, :]
