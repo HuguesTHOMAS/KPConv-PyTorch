@@ -102,7 +102,6 @@ class NPM3DDataset(PointCloudDataset):
         self.use_potentials = use_potentials
 
         # Path of the training files
-        # self.train_path = 'original_ply'
         self.train_path = 'train'
         self.original_ply_path = 'original_ply'
 
@@ -112,8 +111,8 @@ class NPM3DDataset(PointCloudDataset):
         # Proportion of validation scenes
         self.cloud_names = ['Lille1_1', 'Lille1_2', 'Lille2', 'Paris', 'ajaccio_2', 'ajaccio_57', 'dijon_9']
         self.all_splits = [0, 1, 2, 3, 4, 5, 6]
+        # Select the validation set here
         self.validation_split = 1
-        # self.test_cloud_names = ['ajaccio_2', 'ajaccio_57', 'dijon_9']
         self.test_splits = [4, 5, 6]
         self.train_splits = [0, 2, 3]
 
@@ -653,7 +652,7 @@ class NPM3DDataset(PointCloudDataset):
 
     def prepare_NPM3D_ply(self):
 
-        print('\nPreparing ply files')
+        print('\nPreparing NPM3D ply files')
         t0 = time.time()
 
         # Folder for the ply files
